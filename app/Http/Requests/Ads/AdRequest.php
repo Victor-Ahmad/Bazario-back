@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Http\Requests\Ads;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class AdRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        $rules = [
+            'title'         => 'required|array',
+            'title.en'      => 'required|string|max:255',
+            'title.ar'      => 'required|string|max:255',
+            'description'   => 'nullable|array',
+            'phone'         => 'nullable|string|max:20',
+            'email'         => 'nullable|email',
+            'images'   => 'nullable|array|max:5',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:2048',
+        ];
+
+        switch ($this->ad_type) {
+            case 'product':
+                $rules = array_merge($rules, [
+                    'category_id'      => 'required|exists:categories,id',
+                    'price'            => 'required|numeric|min:0',
+
+                ]);
+                break;
+        }
+
+        return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'title.required'           => __('ads.title_required'),
+            'title.en.required'        => __('ads.title_en_required'),
+            'title.ar.required'        => __('ads.title_ar_required'),
+            'phone.max'                => __('ads.phone_max'),
+            'email.email'              => __('ads.email_invalid'),
+
+
+            // Product
+            'category_id.required'     => __('ads.category_required'),
+            'category_id.exists'       => __('ads.category_not_found'),
+
+            'price.required'           => __('ads.price_required'),
+            'price.numeric'            => __('ads.price_numeric'),
+
+
+            // Images
+            'images.array'             => __('ads.images_array'),
+            'images.max'               => __('ads.images_max'),
+            'images.*.image'           => __('ads.images_must_be_image'),
+            'images.*.mimes'           => __('ads.images_mimes'),
+            'images.*.max'             => __('ads.images_size_max'),
+        ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => 0,
+            'message' => __('ads.validation_failed'),
+            'result' => ['errors' => $validator->errors()],
+        ], 422));
+    }
+}
