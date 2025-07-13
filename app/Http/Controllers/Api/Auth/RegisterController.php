@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\CustomerRegisterRequest;
 use App\Http\Requests\Auth\SellerRegisterRequest;
+use App\Http\Requests\Auth\TalentRegisterRequest;
 use App\Http\Requests\Auth\UpgradeToSellerRequest;
 use App\Models\OtpCode;
 use App\Models\Seller;
+use App\Models\Talent;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +50,7 @@ class RegisterController extends Controller
             return $this->successResponse([
                 'token' => $token,
                 'user' => $user,
+                'role' => $user->getRoleNames()->first(),
             ], 'auth', 'registered');
         } catch (Throwable $e) {
             DB::rollBack();
@@ -87,7 +90,7 @@ class RegisterController extends Controller
             ]);
 
 
-            $role = Role::where('name', 'seller')->where('guard_name', 'api')->first();
+            $role = Role::where('name', 'customer')->where('guard_name', 'api')->first();
 
             if (!$role) {
                 throw new \Exception(__('auth.role_not_found'));
@@ -96,14 +99,71 @@ class RegisterController extends Controller
             $user->assignRole($role);
 
 
-            $token = $user->createToken('SellerToken')->accessToken;
+            $token = $user->createToken('customerToken')->accessToken;
 
             DB::commit();
 
             return $this->successResponse([
                 'token'  => $token,
                 'user'   => $user,
+                'role' => $user->getRoleNames()->first(),
                 'seller' => $seller,
+            ], 'auth', 'registered');
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            return $this->errorResponse('registration_failed', 'auth', 500, [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+    public function talentRegister(TalentRegisterRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $logoPath = null;
+            if ($request->hasFile('logo')) {
+                $logoPath =  $request->file('logo')->store('talents/logos', 'public');
+            }
+
+
+            $user = User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'phone'    => $request->phone,
+                'password' => Hash::make($request->password),
+            ]);
+
+
+            $talent = Talent::create([
+                'user_id'          => $user->id,
+                'name'             => $request->name,
+                'address'          => $request->address,
+                'logo'             => $logoPath ? 'storage/' . $logoPath : null,
+                'description'      => $request->description,
+
+            ]);
+
+
+            $role = Role::where('name', 'customer')->where('guard_name', 'api')->first();
+
+            if (!$role) {
+                throw new \Exception(__('auth.role_not_found'));
+            }
+
+            $user->assignRole($role);
+
+
+            $token = $user->createToken('customerToken')->accessToken;
+
+            DB::commit();
+
+            return $this->successResponse([
+                'token'  => $token,
+                'user'   => $user,
+                'role' => $user->getRoleNames()->first(),
+                'talent' => $talent,
             ], 'auth', 'registered');
         } catch (Throwable $e) {
             DB::rollBack();
@@ -207,7 +267,7 @@ class RegisterController extends Controller
                 throw new \Exception(__('auth.role_not_found'));
             }
 
-            $user->syncRoles(['seller']);
+
 
             DB::commit();
 

@@ -14,7 +14,8 @@ class Ad extends Model
         'image',
         'category_id',
         'price',
-        'added_by'
+        'added_by',
+        'quantity'
 
     ];
 
@@ -26,6 +27,11 @@ class Ad extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function seller()
+    {
+        return $this->belongsTo(Seller::class, 'added_by');
     }
 
     public function images()

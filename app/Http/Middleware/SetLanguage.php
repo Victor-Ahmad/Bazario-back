@@ -16,7 +16,7 @@ class SetLanguage
      */
     public function handle(Request $request, Closure $next)
     {
-        $lang = $request->header('Accept-Language', 'en');
+        $lang = $request->header('Accept-Language', 'ar');
 
         if (!in_array($lang, ['en', 'ar'])) {
             $lang = 'ar';

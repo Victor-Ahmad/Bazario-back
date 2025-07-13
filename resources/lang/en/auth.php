@@ -56,6 +56,9 @@ return [
 
 
     'guest_registered' => 'Guest user registered successfully.',
-    'seller_status_updated_successfully' => 'Seller status updated successfully.'
+    'seller_status_updated_successfully' => 'Seller status updated successfully.',
+
+    'fetched_successfully' => 'Sellers fetched successfully.',
+    'fetch_failed' => 'Failed to fetch sellers.',
 
 ];
