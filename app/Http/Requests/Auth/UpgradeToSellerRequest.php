@@ -33,9 +33,11 @@ class UpgradeToSellerRequest extends FormRequest
                 'email',
                 Rule::unique('users', 'email')->ignore($this->user()->id),
             ],
+            // Attachments validation (multiple files)
+            'attachments'      => 'nullable|array',
+            'attachments.*'    => 'file|max:10240', // up to 10MB per file, adjust as needed
         ];
     }
-
 
     public function messages(): array
     {
@@ -48,6 +50,9 @@ class UpgradeToSellerRequest extends FormRequest
             'phone.unique'   => __('auth.phone_unique'),
             'email.unique'   => __('auth.email_unique'),
             'email.email'    => __('auth.email_invalid'),
+            'attachments.array' => __('auth.attachments_array'),
+            'attachments.*.file' => __('auth.attachments_file'),
+            'attachments.*.max'  => __('auth.attachments_file_max'), // optional: customize message
         ];
     }
 

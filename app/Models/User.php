@@ -54,4 +54,8 @@ class User extends Authenticatable
     {
         return $this->hasOne(Seller::class);
     }
+    public function talent()
+    {
+        return $this->hasOne(Talent::class);
+    }
 }

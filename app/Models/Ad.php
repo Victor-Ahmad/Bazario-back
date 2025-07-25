@@ -8,34 +8,28 @@ class Ad extends Model
 {
     protected $fillable = [
         'title',
-        'description',
-        'phone',
-        'email',
-        'image',
-        'category_id',
-        'price',
-        'added_by',
-        'quantity'
-
+        'subtitle',
+        'expires_at',
+        'status',
+        'adable_type',
+        'adable_id',
+        'ad_position_id',
     ];
 
-    protected $casts = [
-        'title' => 'array',
-        'description' => 'array',
-    ];
+    protected $dates = ['expires_at'];
 
-    public function category()
+    public function adable()
     {
-        return $this->belongsTo(Category::class);
-    }
-
-    public function seller()
-    {
-        return $this->belongsTo(Seller::class, 'added_by');
+        return $this->morphTo();
     }
 
     public function images()
     {
         return $this->hasMany(AdImage::class);
+    }
+
+    public function position()
+    {
+        return $this->belongsTo(AdPosition::class, 'ad_position_id');
     }
 }

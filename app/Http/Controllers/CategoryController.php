@@ -26,12 +26,18 @@ class CategoryController extends Controller
             );
         }
     }
-    public function index()
+    public function index(Request $request)
     {
+        $query = Category::query();
 
-        $categories = Category::all();
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        }
+
+        $categories = $query->get();
         return $this->successResponse($categories, 'messages', 'categoriesـretrievedـsuccessfully');
     }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -41,6 +47,10 @@ class CategoryController extends Controller
             'name' => 'required|array',
             'name.en' => 'required|string|max:255',
             'name.ar' => 'required|string|max:255',
+            'parent_id' => 'nullable|exists:categories,id',
+            'slug' => 'nullable|string|max:255|unique:categories,slug',
+            'type' => 'nullable|string',
+            'description' => 'nullable|string',
             'image' => 'nullable|image'
         ]);
 
@@ -52,6 +62,7 @@ class CategoryController extends Controller
 
         return $this->successResponse($category, 'messages', 'created');
     }
+
 
     /**
      * Display the specified resource.
@@ -75,6 +86,10 @@ class CategoryController extends Controller
             'name' => 'sometimes|array',
             'name.en' => 'required_with:name|string|max:255',
             'name.ar' => 'required_with:name|string|max:255',
+            'parent_id' => 'nullable|exists:categories,id',
+            'type' => 'nullable|string',
+            'slug' => 'sometimes|string|max:255|unique:categories,slug,' . $id,
+            'description' => 'nullable|string',
             'image' => 'nullable|image'
         ]);
 

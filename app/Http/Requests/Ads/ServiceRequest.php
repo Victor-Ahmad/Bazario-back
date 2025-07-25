@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class ProductRequest extends FormRequest
+class ServiceRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,16 +16,16 @@ class ProductRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'name'         => 'required|array',
-            'name.en'      => 'required|string|max:255',
-            'name.ar'      => 'required|string|max:255',
+            'title'         => 'required|array',
+            'title.en'      => 'required|string|max:255',
+            'title.ar'      => 'required|string|max:255',
             'description'   => 'nullable|array',
             'images'   => 'nullable|array|max:5',
             'images.*' => 'image|mimes:jpg,jpeg,png,webp',
         ];
 
         switch ($this->ad_type) {
-            case 'product':
+            case 'service':
                 $rules = array_merge($rules, [
                     'category_id'      => 'required|exists:categories,id',
                     'price'            => 'required|numeric|min:0',
@@ -40,9 +40,9 @@ class ProductRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required'           => __('ads.name_required'),
-            'name.en.required'        => __('ads.name_en_required'),
-            'name.ar.required'        => __('ads.name_ar_required'),
+            'title.required'           => __('ads.title_required'),
+            'title.en.required'        => __('ads.title_en_required'),
+            'title.ar.required'        => __('ads.title_ar_required'),
 
 
             // Product

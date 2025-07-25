@@ -33,6 +33,25 @@ class TalentController extends Controller
             ]);
         }
     }
+
+    public function requests()
+    {
+        try {
+            $talents = Talent::with('user:id,name,email,phone')
+                ->select('id', 'user_id', 'name', 'address', 'logo', 'description', 'created_at')
+                ->where('status', 'pending')
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+            return $this->successResponse($talents, 'auth', 'fetched_successfully.');
+        } catch (\Throwable $e) {
+
+            return $this->errorResponse('fetch_failed', 'auth', 500, [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+
     public function updateTalentStatus(Request $request, Talent $talent)
     {
         $request->validate([

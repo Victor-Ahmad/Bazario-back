@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\CustomerRegisterRequest;
 use App\Http\Requests\Auth\SellerRegisterRequest;
 use App\Http\Requests\Auth\TalentRegisterRequest;
 use App\Http\Requests\Auth\UpgradeToSellerRequest;
+use App\Http\Requests\Auth\UpgradeToTalentRequest;
 use App\Models\OtpCode;
 use App\Models\Seller;
 use App\Models\Talent;
@@ -240,7 +241,6 @@ class RegisterController extends Controller
             if ($request->filled('email')) {
                 $user->email = $request->email;
             }
-
             if ($request->filled('phone')) {
                 $user->phone = $request->phone;
             }
@@ -258,16 +258,25 @@ class RegisterController extends Controller
                     'store_owner_name' => $request->store_owner_name,
                     'store_name' => $request->store_name,
                     'address' => $request->address,
-                    'logo' => 'storage/' . $logoPath,
+                    'logo' => $logoPath ? 'storage/' . $logoPath : null,
                     'description' => $request->description,
                 ]
             );
 
+            // Attachments logic
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $file) {
+                    $filePath = $file->store('attachments', 'public');
+                    $seller->attachments()->create([
+                        'file' => 'storage/' . $filePath,
+                        'name' => $file->getClientOriginalName(),
+                    ]);
+                }
+            }
+
             if (!Role::where('name', 'seller')->exists()) {
                 throw new \Exception(__('auth.role_not_found'));
             }
-
-
 
             DB::commit();
 
@@ -283,6 +292,72 @@ class RegisterController extends Controller
             ]);
         }
     }
+
+    public function upgradeToTalent(UpgradeToTalentRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $user = auth()->user();
+            $logoPath = null;
+
+            if ($request->hasFile('logo')) {
+                $logoPath = $request->file('logo')->store('talents/logos', 'public');
+            }
+            if ($request->filled('email')) {
+                $user->email = $request->email;
+            }
+            if ($request->filled('phone')) {
+                $user->phone = $request->phone;
+            }
+            $user->save();
+            if ($user->email == null) {
+                return $this->errorResponse(__('this_user_should_add_email'), 'auth', 404);
+            }
+            if ($user->phone == null) {
+                return $this->errorResponse(__('this_user_should_add_phone'), 'auth', 404);
+            }
+
+            $talent = Talent::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'name' => $request->name,
+                    'address' => $request->address,
+                    'logo' => $logoPath ? 'storage/' . $logoPath : null,
+                    'description' => $request->description,
+                ]
+            );
+
+            // Attachments logic
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $file) {
+                    $filePath = $file->store('attachments', 'public');
+                    $talent->attachments()->create([
+                        'file' => 'storage/' . $filePath,
+                        'name' => $file->getClientOriginalName(),
+                    ]);
+                }
+            }
+
+            if (!Role::where('name', 'talent')->exists()) {
+                throw new \Exception(__('auth.role_not_found'));
+            }
+
+            DB::commit();
+
+            return $this->successResponse([
+                'user' => $user,
+                'talent' => $talent,
+            ], 'auth', 'upgraded_to_talent');
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            return $this->errorResponse('upgrade_failed', 'auth', 500, [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function login(Request $request)
     {
         $credentials = $request->validate([

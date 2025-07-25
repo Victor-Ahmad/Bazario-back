@@ -5,30 +5,35 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Product extends Model
+class Service extends Model
 {
     // use SoftDeletes;
     protected $fillable = [
-        'name',
+        'title',
         'description',
         'category_id',
         'price',
-        'seller_id',
+        'duration_minutes',
+        'location_type',
+        'provider_id',
+        'is_active',
 
     ];
-    protected $casts = ['name' => 'array', 'description' => 'array'];
     protected $appends = ['isNew'];
     protected $dates = ['created_at'];
+    protected $casts = ['title' => 'array', 'description' => 'array'];
+
     public function getIsNewAttribute()
     {
         if (!$this->created_at) return false;
 
         return $this->created_at->gt(now()->subDays(2));
     }
-    public function getNameAttribute($value)
+
+    public function getTitleAttribute($value)
     {
         $locale = app()->getLocale();
-        return $this->attributes['name'] = $this->castAttribute('name', $value)[$locale] ?? null;
+        return $this->attributes['title'] = $this->castAttribute('title', $value)[$locale] ?? null;
     }
 
     public function category()
@@ -36,13 +41,13 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function seller()
+    public function talent()
     {
-        return $this->belongsTo(Seller::class, 'seller_id');
+        return $this->belongsTo(Talent::class, 'provider_id');
     }
 
     public function images()
     {
-        return $this->hasMany(ProductImage::class);
+        return $this->hasMany(ServiceImage::class);
     }
 }
