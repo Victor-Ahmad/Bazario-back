@@ -22,20 +22,9 @@ class UpgradeToSellerRequest extends FormRequest
             'address'          => 'required|string',
             'logo'             => 'nullable|image',
             'description'      => 'nullable|string',
-            'phone'            => [
-                'nullable',
-                'string',
-                'max:20',
-                Rule::unique('users', 'phone')->ignore($this->user()->id),
-            ],
-            'email'            => [
-                'nullable',
-                'email',
-                Rule::unique('users', 'email')->ignore($this->user()->id),
-            ],
-            // Attachments validation (multiple files)
+
             'attachments'      => 'nullable|array',
-            'attachments.*'    => 'file|max:10240', // up to 10MB per file, adjust as needed
+            'attachments.*'    => 'file',
         ];
     }
 
@@ -52,7 +41,7 @@ class UpgradeToSellerRequest extends FormRequest
             'email.email'    => __('auth.email_invalid'),
             'attachments.array' => __('auth.attachments_array'),
             'attachments.*.file' => __('auth.attachments_file'),
-            'attachments.*.max'  => __('auth.attachments_file_max'), // optional: customize message
+            'attachments.*.max'  => __('auth.attachments_file_max'),
         ];
     }
 

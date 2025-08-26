@@ -19,11 +19,8 @@ Route::middleware([SetLanguage::class])->group(function () {
 
 
     Route::post('/login', [RegisterController::class, 'login']);
-    Route::post('customer/register', [RegisterController::class, 'customerRegister']);
-    Route::post('seller/register', [RegisterController::class, 'sellerRegister']);
-    Route::post('talent/register', [RegisterController::class, 'talentRegister']);
+    Route::post('customer/register', [RegisterController::class, 'register']);
 
-    Route::post('guest/register', [RegisterController::class, 'guestRegister']);
 
     Route::post('register/social/{provider}', [RegisterController::class, 'socialRegister']);
 
@@ -43,7 +40,9 @@ Route::middleware([SetLanguage::class])->group(function () {
     Route::get('talent/{id}/services', [ServiceController::class, 'servicesByTalent']);
     Route::get('seller/{id}/products', [ProductController::class, 'productsBySeller']);
 
-
+    // Route::post('seller/register', [RegisterController::class, 'sellerRegister']);
+    // Route::post('talent/register', [RegisterController::class, 'talentRegister']);
+    // Route::post('guest/register', [RegisterController::class, 'guestRegister']);
 
     Route::middleware([EnsureApiTokenIsValid::class, 'auth:api'])->group(function () {
 

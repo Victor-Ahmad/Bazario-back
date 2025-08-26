@@ -15,13 +15,6 @@ return new class extends Migration {
             $table->integer('priority')->default(0);
             $table->timestamps();
         });
-
-        // Optionally, seed some positions
-        DB::table('ad_positions')->insert([
-            ['name' => 'landing_top', 'label' => 'Landing Page - Top', 'priority' => 1],
-            ['name' => 'below_main', 'label' => 'Below Main Section', 'priority' => 2],
-            ['name' => 'footer', 'label' => 'Footer Section', 'priority' => 3],
-        ]);
     }
     public function down(): void
     {

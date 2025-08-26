@@ -20,7 +20,7 @@ class TalentController extends Controller
         try {
             $talents = Talent::with('user:id,name,email,phone')
                 ->select('id', 'user_id', 'name', 'address', 'logo', 'description', 'created_at')
-                ->where('status', 'accepted')
+                ->where('status', 'approved')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
@@ -37,7 +37,7 @@ class TalentController extends Controller
     public function requests()
     {
         try {
-            $talents = Talent::with('user:id,name,email,phone')
+            $talents = Talent::with('user:id,name,email,phone', 'attachments')
                 ->select('id', 'user_id', 'name', 'address', 'logo', 'description', 'created_at')
                 ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')

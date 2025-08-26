@@ -20,9 +20,8 @@ class UpgradeToTalentRequest extends FormRequest
             'address'     => 'required|string',
             'logo'        => 'nullable|image',
             'description' => 'nullable|string',
-            // Attachments validation (multiple files)
             'attachments'   => 'nullable|array',
-            'attachments.*' => 'file|max:10240', // up to 10MB per file
+            'attachments.*' => 'file',
         ];
     }
 
