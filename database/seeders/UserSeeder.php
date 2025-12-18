@@ -41,31 +41,31 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'remember_token' => null,
             ],
-            // Talents
+            // ServiceProviders
             [
                 'name' => 'Laila Khoury',
-                'email' => 'laila.talent@example.com',
+                'email' => 'laila.service_provider@example.com',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => null,
             ],
             [
                 'name' => 'Samir Fadel',
-                'email' => 'samir.talent@example.com',
+                'email' => 'samir.service_provider@example.com',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => null,
             ],
             [
                 'name' => 'Rana Mansour',
-                'email' => 'rana.talent@example.com',
+                'email' => 'rana.service_provider@example.com',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => null,
             ],
             [
                 'name' => 'Khaled Jamal',
-                'email' => 'khaled.talent@example.com',
+                'email' => 'khaled.service_provider@example.com',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => null,

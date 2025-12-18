@@ -50,12 +50,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
     public function seller()
     {
         return $this->hasOne(Seller::class);
     }
-    public function talent()
+
+    public function serviceProvider()
     {
-        return $this->hasOne(Talent::class);
+        return $this->hasOne(ServiceProvider::class);
     }
 }

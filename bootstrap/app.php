@@ -26,6 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
     })
+    // ->withBroadcasting([
+    //     'middleware' => ['auth:api'],
+    // ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

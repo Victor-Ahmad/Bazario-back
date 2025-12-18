@@ -33,7 +33,7 @@ class ProductController extends Controller
 
     public function myProducts()
     {
-        $user = auth()->user();
+        $user = auth()->guard()->user();
         $seller = Seller::where('user_id', $user->id)->first();
 
         $query = Product::where('seller_id', $seller->id)
@@ -56,23 +56,36 @@ class ProductController extends Controller
 
     public function productsBySeller($id)
     {
-        $products = Product::where('seller_id', $id)->with([
-            'images:id,product_id,image',
-            'category:id,name',
-            'seller.user:id,name,email,phone',
-            'seller:id,user_id,store_name,store_owner_name,logo,address,description'
-        ])
-            ->select('id', 'name', 'description',  'price',  'category_id', 'seller_id', 'created_at')
+        $seller = Seller::query()
+            ->with(['user:id,name,email,phone'])
+            ->select('id', 'user_id', 'store_name', 'store_owner_name', 'logo', 'address', 'description')
+            ->findOrFail($id);
+
+        $products = Product::where('seller_id', $seller->id)
+            ->with([
+                'images:id,product_id,image',
+                'category:id,name',
+                'seller.user:id,name,email,phone',
+                'seller:id,user_id,store_name,store_owner_name,logo,address,description',
+            ])
+            ->select('id', 'name', 'description', 'price', 'category_id', 'seller_id', 'created_at')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return $this->successResponse($products, 'messages', 'products_retrieved_successfully');
+        return $this->successResponse(
+            [
+                'seller'   => $seller,
+                'products' => $products,
+            ],
+            'messages',
+            'products_retrieved_successfully'
+        );
     }
 
     public function store(ProductRequest $request)
     {
         $data = $request->except('images');
-        $user = auth()->user();
+        $user = auth()->guard()->user();
         $seller = Seller::where('user_id', $user->id)->first();
 
         $data['seller_id'] = $seller->id;

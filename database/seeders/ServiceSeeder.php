@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Talent;
+use App\Models\ServiceProvider;
 use App\Models\Category;
 use App\Models\Service;
 use Illuminate\Support\Str;
@@ -16,7 +16,7 @@ class ServiceSeeder extends Seeder
 
         $servicesByProvider = [
             // Laila Khoury - Photographer
-            'laila.talent@example.com' => [
+            'laila.service_provider@example.com' => [
                 [
                     'title' => ['en' => 'Wedding Photography', 'ar' => 'تصوير حفلات الزفاف'],
                     'description' => 'Professional coverage for your wedding day.',
@@ -51,7 +51,7 @@ class ServiceSeeder extends Seeder
                 ],
             ],
             // Samir Fadel - Tutor
-            'samir.talent@example.com' => [
+            'samir.service_provider@example.com' => [
                 [
                     'title' => ['en' => 'Math Tutoring', 'ar' => 'دروس خصوصية في الرياضيات'],
                     'description' => 'High school & university math sessions.',
@@ -86,7 +86,7 @@ class ServiceSeeder extends Seeder
                 ],
             ],
             // Rana Mansour - Event Planner
-            'rana.talent@example.com' => [
+            'rana.service_provider@example.com' => [
                 [
                     'title' => ['en' => 'Wedding Planning', 'ar' => 'تنظيم حفلات الزفاف'],
                     'description' => 'Complete planning and coordination for your wedding.',
@@ -121,7 +121,7 @@ class ServiceSeeder extends Seeder
                 ],
             ],
             // Khaled Jamal - Repair/Maintenance
-            'khaled.talent@example.com' => [
+            'khaled.service_provider@example.com' => [
                 [
                     'title' => ['en' => 'Home Appliance Repair', 'ar' => 'تصليح الأجهزة المنزلية'],
                     'description' => 'Repair of all types of home appliances.',
@@ -158,15 +158,15 @@ class ServiceSeeder extends Seeder
         ];
 
         foreach ($servicesByProvider as $email => $services) {
-            $talent = Talent::whereHas('user', function ($query) use ($email) {
+            $service_provider = ServiceProvider::whereHas('user', function ($query) use ($email) {
                 $query->where('email', $email);
             })->first();
 
-            if ($talent) {
+            if ($service_provider) {
                 foreach ($services as $serviceData) {
                     $title = $serviceData['title'];
                     Service::create([
-                        'provider_id' => $talent->id,
+                        'provider_id' => $service_provider->id,
                         'category_id' => $categories[$serviceData['category_slug']] ?? null,
                         'title' => $title,
                         'slug' => Str::slug($title['en'] . '-' . uniqid()),

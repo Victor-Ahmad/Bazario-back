@@ -4,20 +4,20 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
-use App\Models\Talent;
+use App\Models\ServiceProvider;
 
-class TalentSeeder extends Seeder
+class ServiceProviderSeeder extends Seeder
 {
     public function run()
     {
-        $talentEmails = [
-            'laila.talent@example.com',
-            'samir.talent@example.com',
-            'rana.talent@example.com',
-            'khaled.talent@example.com',
+        $service_providerEmails = [
+            'laila.service_provider@example.com',
+            'samir.service_provider@example.com',
+            'rana.service_provider@example.com',
+            'khaled.service_provider@example.com',
         ];
 
-        $talentsData = [
+        $service_providersData = [
             [
                 'name' => 'Laila Khoury',
                 'address' => 'Dubai, UAE',
@@ -48,12 +48,12 @@ class TalentSeeder extends Seeder
             ],
         ];
 
-        foreach ($talentEmails as $index => $email) {
+        foreach ($service_providerEmails as $index => $email) {
             $user = User::where('email', $email)->first();
             if ($user) {
-                $talentData = $talentsData[$index];
-                $talentData['user_id'] = $user->id;
-                Talent::create($talentData);
+                $service_providerData = $service_providersData[$index];
+                $service_providerData['user_id'] = $user->id;
+                ServiceProvider::create($service_providerData);
             }
         }
     }

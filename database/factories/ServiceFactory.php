@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Talent;
+use App\Models\ServiceProvider;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -16,7 +16,7 @@ class ServiceFactory extends Factory
             'ar' => $this->faker->words(3, true),
         ];
         return [
-            'provider_id' => Talent::inRandomOrder()->first()?->id ?? Talent::factory(),
+            'provider_id' => ServiceProvider::inRandomOrder()->first()?->id ?? ServiceProvider::factory(),
             'category_id' => Category::inRandomOrder()->first()?->id ?? Category::factory(),
             'title' => $title,
             'slug' => Str::slug($title['en'] . '-' . $this->faker->unique()->randomNumber()),

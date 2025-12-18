@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Ads\ServiceRequest;
 use App\Models\Category;
 use App\Models\Service;
-use App\Models\Talent;
+use App\Models\ServiceProvider;
 use App\Traits\ApiResponseTrait;
 
 
@@ -17,8 +17,8 @@ class ServiceController extends Controller
         $query = Service::with([
             'images:id,service_id,image',
             'category:id,name',
-            'talent.user:id,name,email,phone',
-            'talent:id,user_id,name,logo,address,description'
+            'service_provider.user:id,name,email,phone',
+            'service_provider:id,user_id,name,logo,address,description'
         ])
             ->select('id', 'title', 'description',  'price',  'category_id', 'provider_id', 'created_at');
 
@@ -33,15 +33,15 @@ class ServiceController extends Controller
 
     public function myServices()
     {
-        $user = auth()->user();
-        $talent = Talent::where('user_id', $user->id)->first();
+        $user = auth()->guard()->user();
+        $service_provider = ServiceProvider::where('user_id', $user->id)->first();
 
-        $query = Service::where('provider_id', $talent->id)
+        $query = Service::where('provider_id', $service_provider->id)
             ->with([
                 'images:id,service_id,image',
                 'category:id,name',
-                'talent.user:id,name,email,phone',
-                'talent:id,user_id,name,logo,address,description'
+                'service_provider.user:id,name,email,phone',
+                'service_provider:id,user_id,name,logo,address,description'
             ])
             ->select('id', 'title', 'description',  'price',  'category_id', 'provider_id', 'created_at');
 
@@ -54,13 +54,13 @@ class ServiceController extends Controller
         return $this->successResponse($services, 'messages', 'services_retrieved_successfully');
     }
 
-    public function servicesByTalent($id)
+    public function servicesByServiceProvider($id)
     {
         $services = Service::where('provider_id', $id)->with([
             'images:id,service_id,image',
             'category:id,name',
-            'talent.user:id,name,email,phone',
-            'talent:id,user_id,name,logo,address,description'
+            'service_provider.user:id,name,email,phone',
+            'service_provider:id,user_id,name,logo,address,description'
         ])
             ->select('id', 'title', 'description',  'price',  'category_id', 'provider_id', 'created_at')
             ->orderBy('created_at', 'desc')
@@ -72,16 +72,16 @@ class ServiceController extends Controller
     public function store(ServiceRequest $request)
     {
         $data = $request->except('images');
-        $user = auth()->user();
-        $talent = Talent::where('user_id', $user->id)->first();
+        $user = auth()->guard()->user();
+        $service_provider = ServiceProvider::where('user_id', $user->id)->first();
 
-        $data['provider_id'] = $talent->id;
+        $data['provider_id'] = $service_provider->id;
         $service = Service::create($data);
 
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $service->images()->create([
-                    'image' => 'storage/' . $image->store('services/' . $talent->id, 'public'),
+                    'image' => 'storage/' . $image->store('services/' . $service_provider->id, 'public'),
                 ]);
             }
         }
@@ -100,8 +100,8 @@ class ServiceController extends Controller
             ->with([
                 'images:id,service_id,image',
                 'category:id,name',
-                'talent.user:id,name,email,phone',
-                'talent:id,user_id,name,logo,address,description'
+                'service_provider.user:id,name,email,phone',
+                'service_provider:id,user_id,name,logo,address,description'
             ])
             ->select('id', 'title', 'description', 'price', 'category_id', 'provider_id', 'created_at')
             ->orderBy('created_at', 'desc')

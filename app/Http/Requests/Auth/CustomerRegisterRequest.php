@@ -17,8 +17,8 @@ class CustomerRegisterRequest extends FormRequest
     {
         return [
             'name'     => 'required|string|max:255',
-            'age'      => 'required|integer|min:12|max:100',
-            'email'    => 'nullable|email|unique:users,email',
+            'age'      => 'nullable|integer|min:12|max:100',
+            'email'    => 'required|email|unique:users,email',
             'phone'    => 'nullable|string|unique:users,phone',
             'password' => 'required|string|min:6|confirmed',
         ];

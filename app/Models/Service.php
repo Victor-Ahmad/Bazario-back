@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Staudenmeir\BelongsToThrough\BelongsToThrough;
 
 class Service extends Model
 {
@@ -37,15 +38,18 @@ class Service extends Model
         $locale = app()->getLocale();
         return $this->attributes['title'] = $this->castAttribute('title', $value)[$locale] ?? null;
     }
-
+    public function user()
+    {
+        return $this->belongsToThrough(User::class, ServiceProvider::class);
+    }
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function talent()
+    public function serviceProvider()
     {
-        return $this->belongsTo(Talent::class, 'provider_id');
+        return $this->belongsTo(ServiceProvider::class, 'provider_id');
     }
 
     public function images()

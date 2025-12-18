@@ -4,24 +4,21 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\CustomerRegisterRequest;
-use App\Http\Requests\Auth\SellerRegisterRequest;
-use App\Http\Requests\Auth\TalentRegisterRequest;
 use App\Http\Requests\Auth\UpgradeToSellerRequest;
-use App\Http\Requests\Auth\UpgradeToTalentRequest;
+use App\Http\Requests\Auth\UpgradeToServiceProviderRequest;
 use App\Models\OtpCode;
 use App\Models\Seller;
-use App\Models\Talent;
+use App\Models\ServiceProvider;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
-use Laravel\Socialite\Facades\Socialite;
+// use Laravel\Socialite\Facades\Socialite;
 use Throwable;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
+use Laravel\Passport\Token;
 
 class RegisterController extends Controller
 {
@@ -29,7 +26,6 @@ class RegisterController extends Controller
 
     public function register(CustomerRegisterRequest $request)
     {
-
         try {
             DB::beginTransaction();
             $user = User::create([
@@ -62,43 +58,43 @@ class RegisterController extends Controller
         }
     }
 
-    public function socialRegister($provider)
-    {
-        try {
-            $socialUser = Socialite::driver($provider)->stateless()->user();
+    // public function socialRegister($provider)
+    // {
+    //     try {
+    //         $socialUser = Socialite::driver($provider)->stateless()->user();
 
-            $user = User::firstOrCreate([
-                'email' => $socialUser->getEmail(),
-            ], [
-                'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'Social User',
-                'password' => Hash::make(uniqid()),
-                'provider_id' => $socialUser->getId(),
-                'provider' => $provider,
-            ]);
+    //         $user = User::firstOrCreate([
+    //             'email' => $socialUser->getEmail(),
+    //         ], [
+    //             'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'Social User',
+    //             'password' => Hash::make(uniqid()),
+    //             'provider_id' => $socialUser->getId(),
+    //             'provider' => $provider,
+    //         ]);
 
-            if (!$user->hasRole('customer')) {
-                $user->assignRole('customer');
-            }
+    //         if (!$user->hasRole('customer')) {
+    //             $user->assignRole('customer');
+    //         }
 
-            $token = $user->createToken('SocialCustomerToken')->accessToken;
+    //         $token = $user->createToken('SocialCustomerToken')->accessToken;
 
-            return $this->successResponse([
-                'token' => $token,
-                'user' => $user,
-            ], 'auth', 'registered');
-        } catch (Throwable $e) {
-            return $this->errorResponse('registration_failed', 'auth', 500, [
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
+    //         return $this->successResponse([
+    //             'token' => $token,
+    //             'user' => $user,
+    //         ], 'auth', 'registered');
+    //     } catch (Throwable $e) {
+    //         return $this->errorResponse('registration_failed', 'auth', 500, [
+    //             'error' => $e->getMessage(),
+    //         ]);
+    //     }
+    // }
 
     public function upgradeToSeller(UpgradeToSellerRequest $request)
     {
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = auth()->guard()->user();
             $logoPath = null;
 
             if ($request->hasFile('logo')) {
@@ -159,16 +155,16 @@ class RegisterController extends Controller
         }
     }
 
-    public function upgradeToTalent(UpgradeToTalentRequest $request)
+    public function upgradeToServiceProvider(UpgradeToServiceProviderRequest $request)
     {
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = auth()->guard()->user();
             $logoPath = null;
 
             if ($request->hasFile('logo')) {
-                $logoPath = $request->file('logo')->store('talents/logos', 'public');
+                $logoPath = $request->file('logo')->store('service_providers/logos', 'public');
             }
             if ($request->filled('email')) {
                 $user->email = $request->email;
@@ -184,7 +180,7 @@ class RegisterController extends Controller
                 return $this->errorResponse(__('this_user_should_add_phone'), 'auth', 404);
             }
 
-            $talent = Talent::updateOrCreate(
+            $service_provider = ServiceProvider::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'name' => $request->name,
@@ -198,14 +194,14 @@ class RegisterController extends Controller
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
                     $filePath = $file->store('attachments', 'public');
-                    $talent->attachments()->create([
+                    $service_provider->attachments()->create([
                         'file' => 'storage/' . $filePath,
                         'name' => $file->getClientOriginalName(),
                     ]);
                 }
             }
 
-            if (!Role::where('name', 'talent')->exists()) {
+            if (!Role::where('name', 'service_provider')->exists()) {
                 throw new \Exception(__('auth.role_not_found'));
             }
 
@@ -213,8 +209,8 @@ class RegisterController extends Controller
 
             return $this->successResponse([
                 'user' => $user,
-                'talent' => $talent,
-            ], 'auth', 'upgraded_to_talent');
+                'service_provider' => $service_provider,
+            ], 'auth', 'upgraded_to_service_provider');
         } catch (Throwable $e) {
             DB::rollBack();
 
@@ -264,7 +260,7 @@ class RegisterController extends Controller
                 ], 422);
             }
 
-            $user = auth()->user();
+            $user = auth()->guard()->user();
 
             if (!Hash::check($request->old_password, $user->password)) {
                 return $this->errorResponse('invalid_old_password', 'auth', 400);
@@ -359,139 +355,25 @@ class RegisterController extends Controller
         return $this->successResponse([], 'auth', 'password_reset_success');
     }
 
-
-    // public function sellerRegister(SellerRegisterRequest $request)
-    // {
-    //     try {
-    //         DB::beginTransaction();
-
-    //         $logoPath = null;
-    //         if ($request->hasFile('logo')) {
-    //             $logoPath =  $request->file('logo')->store('sellers/logos', 'public');
-    //         }
+    public function logout(Request $request)
+    {
 
 
-    //         $user = User::create([
-    //             'name'     => $request->store_owner_name,
-    //             'email'    => $request->email,
-    //             'phone'    => $request->phone,
-    //             'password' => Hash::make($request->password),
-    //         ]);
+        $token = $request->user()?->token();
+        if ($token instanceof Token) {
+            $token->revoke();
+        }
 
+        // passport
+        // if (method_exists($request->user(), 'token') && $request->user()->token()) {
+        //     $request->user()->token()->revoke();
+        // }
 
-    //         $seller = Seller::create([
-    //             'user_id'          => $user->id,
-    //             'store_owner_name' => $request->store_owner_name,
-    //             'store_name'       => $request->store_name,
-    //             'address'          => $request->address,
-    //             'logo'             => $logoPath ? 'storage/' . $logoPath : null,
-    //             'description'      => $request->description,
+        // sanctum
+        // if (method_exists($request->user(), 'currentAccessToken') && $request->user()->currentAccessToken()) {
+        //     $request->user()->currentAccessToken()->delete();
+        // }
 
-    //         ]);
-
-
-    //         $role = Role::where('name', 'customer')->where('guard_name', 'api')->first();
-
-    //         if (!$role) {
-    //             throw new \Exception(__('auth.role_not_found'));
-    //         }
-
-    //         $user->assignRole($role);
-
-
-    //         $token = $user->createToken('customerToken')->accessToken;
-
-    //         DB::commit();
-
-    //         return $this->successResponse([
-    //             'token'  => $token,
-    //             'user'   => $user,
-    //             'role' => $user->getRoleNames()->first(),
-    //             'seller' => $seller,
-    //         ], 'auth', 'registered');
-    //     } catch (Throwable $e) {
-    //         DB::rollBack();
-
-    //         return $this->errorResponse('registration_failed', 'auth', 500, [
-    //             'error' => $e->getMessage(),
-    //         ]);
-    //     }
-    // }
-    // public function talentRegister(TalentRegisterRequest $request)
-    // {
-    //     try {
-    //         DB::beginTransaction();
-
-    //         $logoPath = null;
-    //         if ($request->hasFile('logo')) {
-    //             $logoPath =  $request->file('logo')->store('talents/logos', 'public');
-    //         }
-
-
-    //         $user = User::create([
-    //             'name'     => $request->name,
-    //             'email'    => $request->email,
-    //             'phone'    => $request->phone,
-    //             'password' => Hash::make($request->password),
-    //         ]);
-
-
-    //         $talent = Talent::create([
-    //             'user_id'          => $user->id,
-    //             'name'             => $request->name,
-    //             'address'          => $request->address,
-    //             'logo'             => $logoPath ? 'storage/' . $logoPath : null,
-    //             'description'      => $request->description,
-
-    //         ]);
-
-
-    //         $role = Role::where('name', 'customer')->where('guard_name', 'api')->first();
-
-    //         if (!$role) {
-    //             throw new \Exception(__('auth.role_not_found'));
-    //         }
-
-    //         $user->assignRole($role);
-
-
-    //         $token = $user->createToken('customerToken')->accessToken;
-
-    //         DB::commit();
-
-    //         return $this->successResponse([
-    //             'token'  => $token,
-    //             'user'   => $user,
-    //             'role' => $user->getRoleNames()->first(),
-    //             'talent' => $talent,
-    //         ], 'auth', 'registered');
-    //     } catch (Throwable $e) {
-    //         DB::rollBack();
-
-    //         return $this->errorResponse('registration_failed', 'auth', 500, [
-    //             'error' => $e->getMessage(),
-    //         ]);
-    //     }
-    // }
-    // public function guestRegister()
-    // {
-    //     $user = User::create([
-    //         'name' => 'Guest-' . uniqid(),
-    //         'email' => null,
-    //         'password' => Hash::make(Str::random(12)),
-    //     ]);
-    //     $role = Role::where('name', 'guest')->where('guard_name', 'api')->first();
-
-    //     if (!$role) {
-    //         throw new \Exception(__('auth.role_not_found'));
-    //     }
-    //     $user->assignRole($role);
-
-    //     $token = $user->createToken('GuestToken')->accessToken;
-
-    //     return $this->successResponse([
-    //         'token' => $token,
-    //         'user'  => $user,
-    //     ], 'auth', 'guest_registered');
-    // }
+        return $this->successResponse([], 'auth', 'logout_success');
+    }
 }

@@ -12,11 +12,11 @@ return new class extends Migration {
             $table->string('title');
             $table->string('subtitle')->nullable();
             $table->dateTime('expires_at')->nullable();
+            $table->decimal('price', 12, 2)->nullable();
+            $table->string('adable_type')->nullable();
+            $table->unsignedBigInteger('adable_id')->nullable();
 
-            $table->string('adable_type');
-            $table->unsignedBigInteger('adable_id');
-
-            $table->foreignId('ad_position_id')->constrained('ad_positions');
+            $table->foreignId('ad_position_id')->constrained('ad_positions')->nullable();
             $table->string('status')->default('pending');
             $table->timestamps();
         });

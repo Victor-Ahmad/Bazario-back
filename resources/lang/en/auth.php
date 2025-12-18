@@ -60,5 +60,8 @@ return [
 
     'fetched_successfully' => 'Sellers fetched successfully.',
     'fetch_failed' => 'Failed to fetch sellers.',
+    'user_not_found' => 'User Not Found',
+    'invalid_password' => 'Invalid Password',
+
 
 ];

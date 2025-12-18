@@ -9,6 +9,7 @@ class Ad extends Model
     protected $fillable = [
         'title',
         'subtitle',
+        'price',
         'expires_at',
         'status',
         'adable_type',
@@ -31,5 +32,10 @@ class Ad extends Model
     public function position()
     {
         return $this->belongsTo(AdPosition::class, 'ad_position_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

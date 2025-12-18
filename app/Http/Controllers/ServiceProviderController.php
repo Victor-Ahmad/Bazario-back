@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Seller;
+
+use App\Models\ServiceProvider;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
@@ -10,20 +11,37 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 use Spatie\Permission\Models\Role;
 
-class SellerController extends Controller
+class ServiceProviderController extends Controller
 {
     use ApiResponseTrait;
 
+    public function index()
+    {
+
+        try {
+            $service_providers = ServiceProvider::with('user:id,name,email,phone')
+                ->select('id', 'user_id', 'name', 'address', 'logo', 'description', 'created_at')
+                ->where('status', 'approved')
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+            return $this->successResponse($service_providers, 'auth', 'fetched_successfully.');
+        } catch (\Throwable $e) {
+
+            return $this->errorResponse('fetch_failed', 'auth', 500, [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 
     public function requests()
     {
         try {
-            $sellers = Seller::with('user:id,name,email,phone', 'attachments')
-                ->select('id', 'user_id', 'store_owner_name', 'store_name', 'address', 'logo', 'description', 'created_at')
+            $service_provider_requests = ServiceProvider::with('user:id,name,email,phone', 'attachments')
+                ->select('id', 'user_id', 'name', 'address', 'logo', 'description', 'created_at')
                 ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
-            return $this->successResponse($sellers, 'auth', 'fetched_successfully.');
+            return $this->successResponse($service_provider_requests, 'auth', 'fetched_successfully.');
         } catch (\Throwable $e) {
 
             return $this->errorResponse('fetch_failed', 'auth', 500, [
@@ -31,24 +49,7 @@ class SellerController extends Controller
             ]);
         }
     }
-    public function index()
-    {
-        try {
-            $sellers = Seller::with('user:id,name,email,phone')
-                ->select('id', 'user_id', 'store_owner_name', 'store_name', 'address', 'logo', 'description', 'created_at')
-                ->where('status', 'approved')
-                ->orderBy('created_at', 'desc')
-                ->paginate(20);
 
-
-            return $this->successResponse($sellers, 'auth', 'fetched_successfully.');
-        } catch (\Throwable $e) {
-
-            return $this->errorResponse('fetch_failed', 'auth', 500, [
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
 
     protected function forceLogoutUser(User $user): void
     {
@@ -63,32 +64,30 @@ class SellerController extends Controller
         }
     }
 
-
-    public function updateSellerStatus(Request $request, Seller $seller)
+    public function updateServiceProviderStatus(Request $request, ServiceProvider $service_provider)
     {
         $request->validate([
             'status' => 'required|in:approved,rejected',
         ]);
         try {
             DB::beginTransaction();
-            $seller->status = $request->status;
-            $seller->save();
+            $service_provider->status = $request->status;
+            $service_provider->save();
             $role = null;
-            if ($seller->status == 'approved') {
+            if ($service_provider->status == 'approved') {
                 $role = Role::where('name', 'seller')->where('guard_name', 'api')->first();
-                $this->forceLogoutUser($seller->user);
+                $this->forceLogoutUser($service_provider->user);
             } else {
                 $role = Role::where('name', 'customer')->where('guard_name', 'api')->first();
             }
-
             if (!$role) {
                 throw new \Exception(__('auth.role_not_found'));
             }
 
-            $seller->user->assignRole($role);
+            $service_provider->user->assignRole($role);
 
             DB::commit();
-            return $this->successResponse($seller, 'auth', 'seller_status_updated_successfully.');
+            return $this->successResponse($service_provider, 'auth', 'service_provider_status_updated_successfully.');
         } catch (Throwable $e) {
             DB::rollBack();
 

@@ -56,5 +56,8 @@ return [
     'this_user_should_add_phone' => 'يجب عليك إضافة رقم هاتف للمتابعة.',
 
     'guest_registered' => 'تم تسجيل المستخدم كضيف بنجاح.',
-    'seller_status_updated_successfully' => 'تم تحديث حالة التاجر بنجاح'
+    'seller_status_updated_successfully' => 'تم تحديث حالة التاجر بنجاح',
+
+    'user_not_found' => 'المستخدم غير موجود',
+    'invalid_password' => 'كلمة المرور خاطئة',
 ];

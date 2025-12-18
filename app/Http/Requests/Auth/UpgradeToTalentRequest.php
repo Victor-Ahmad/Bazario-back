@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class UpgradeToTalentRequest extends FormRequest
+class UpgradeToServiceProviderRequest extends FormRequest
 {
     public function authorize(): bool
     {

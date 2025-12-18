@@ -30,7 +30,7 @@ class AdsController extends Controller
     public function store(AdRequest $request)
     {
         $data = $request->except('images');
-        $user = auth()->user();
+        $user = auth()->guard()->user();
         $seller = Seller::where('user_id', $user->id)->first();
         if ($request->hasFile('image')) {
             $data['image'] = 'storage/' . $request->file('image')->store('ads', 'public');

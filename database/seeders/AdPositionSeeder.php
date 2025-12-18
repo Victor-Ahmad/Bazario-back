@@ -22,25 +22,12 @@ class AdPositionSeeder extends Seeder
                 'priority' => 2,
             ],
             [
-                'name' => 'bronze_ad',
-                'label' => 'Bronze Featured Ad (Moderate Visibility)',
+                'name' => 'normal_ad',
+                'label' => 'Normal Featured Ad (Moderate Visibility)',
                 'priority' => 3,
             ],
-            [
-                'name' => 'main_banner',
-                'label' => 'Main Banner Ad',
-                'priority' => 4,
-            ],
-            [
-                'name' => 'sidebar_spotlight',
-                'label' => 'Sidebar Spotlight Ad',
-                'priority' => 5,
-            ],
-            [
-                'name' => 'footer_ad',
-                'label' => 'Footer Ad (Lowest Visibility)',
-                'priority' => 6,
-            ],
+
+
         ];
 
         DB::table('ad_positions')->insert($positions);

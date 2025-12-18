@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('provider_id')->constrained('talents')->cascadeOnDelete();
+            $table->foreignId('provider_id')->constrained('service_providers')->cascadeOnDelete();
             $table->foreignId('category_id')->constrained('categories')->cascadeOnDelete();
             $table->json('title')->nullable();
             $table->string('slug')->unique()->nullable();

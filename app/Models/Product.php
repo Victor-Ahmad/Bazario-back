@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Staudenmeir\BelongsToThrough\BelongsToThrough;
 
 class Product extends Model
 {
@@ -42,7 +43,10 @@ class Product extends Model
     {
         return $this->belongsTo(Seller::class, 'seller_id');
     }
-
+    public function user()
+    {
+        return $this->belongsToThrough(User::class, Seller::class);
+    }
     public function images()
     {
         return $this->hasMany(ProductImage::class);
