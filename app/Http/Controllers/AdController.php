@@ -54,8 +54,10 @@ class AdController extends Controller
             if (!$adable) return;
 
             $class = get_class($adable);
-            if (in_array($class, [Product::class, Service::class])) {
+            if ($class == Product::class) {
                 $adable->loadMissing('seller.user');
+            } elseif ($class == Service::class) {
+                $adable->loadMissing('serviceProvider.user');
             } elseif (in_array($class, [Seller::class, ServiceProvider::class])) {
                 $adable->loadMissing('user');
             }
