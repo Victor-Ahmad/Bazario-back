@@ -44,6 +44,7 @@ class AdController extends Controller
             ->where('status', 'approved')
             ->whereHas('position', function ($q) use ($name) {
                 $q->whereRaw('LOWER(name) = ?', [mb_strtolower($name)]);
+                // whereRaw("LOWER(name) = '$value'")
             })
             ->with(['images', 'position', 'adable'])
             ->orderByDesc('created_at')
