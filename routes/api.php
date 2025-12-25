@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\AdController;
-use App\Http\Controllers\AdsController;
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConversationController;
@@ -14,7 +13,7 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceProviderController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\SetLanguage;
-use App\Http\Middleware\EnsureApiTokenIsValid;
+
 use Illuminate\Support\Facades\Broadcast;
 
 
@@ -23,17 +22,22 @@ Broadcast::routes([
     // 'middleware' => ['auth:api'],
 ]);
 
-Route::middleware([SetLanguage::class])->group(function () {
+Route::middleware(['set-language', 'throttle:api'])->group(function () {
+
+    Route::middleware(['throttle:auth'])->group(function () {
+        Route::post('/login', [RegisterController::class, 'login']);
+        Route::post('customer/register', [RegisterController::class, 'register']);
+        Route::post('password/forgot', [RegisterController::class, 'sendResetOtp']);
+        Route::post('password/verify-otp', [RegisterController::class, 'verifyOtp']);
+        Route::post('password/reset', [RegisterController::class, 'resetPassword']);
+    });
 
 
-    Route::post('/login', [RegisterController::class, 'login']);
-    Route::post('customer/register', [RegisterController::class, 'register']);
 
-    // Route::post('register/social/{provider}', [RegisterController::class, 'socialRegister']);
 
-    Route::post('password/forgot', [RegisterController::class, 'sendResetOtp']);
-    Route::post('password/verify-otp', [RegisterController::class, 'verifyOtp']);
-    Route::post('password/reset', [RegisterController::class, 'resetPassword']);
+
+
+
 
 
     Route::get('sellers', [SellerController::class, 'index']);
@@ -55,7 +59,7 @@ Route::middleware([SetLanguage::class])->group(function () {
     Route::get('ads/silver', [AdController::class, 'silverIndex']);
     Route::get('ads/normal', [AdController::class, 'normalIndex']);
 
-    Route::middleware([EnsureApiTokenIsValid::class, 'auth:sanctum'])->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::get('/conversations/unread-count', [ConversationController::class, 'unreadCount']);
 

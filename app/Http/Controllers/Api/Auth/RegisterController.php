@@ -108,6 +108,10 @@ class RegisterController extends Controller
                 throw new \Exception(__('auth.role_not_found'));
             }
 
+            $user->assignRole('seller');
+            $user->syncWithoutDetaching(['customer', 'seller']);
+
+
             DB::commit();
 
             return $this->successResponse([
@@ -172,7 +176,8 @@ class RegisterController extends Controller
             if (!Role::where('name', 'service_provider')->exists()) {
                 throw new \Exception(__('auth.role_not_found'));
             }
-
+            $user->assignRole('service_provider');
+            $user->syncWithoutDetaching(['customer', 'service_provider']);
             DB::commit();
 
             return $this->successResponse([
@@ -332,5 +337,12 @@ class RegisterController extends Controller
         }
 
         return $this->successResponse([], 'auth', 'logout_success');
+    }
+
+    public function logoutAll(Request $request)
+    {
+        $request->user()?->tokens()->delete();
+
+        return $this->successResponse([], 'auth', 'logout_all_success');
     }
 }
