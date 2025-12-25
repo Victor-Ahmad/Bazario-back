@@ -14,11 +14,9 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
-// use Laravel\Socialite\Facades\Socialite;
 use Throwable;
 use Exception;
 use Illuminate\Http\Request;
-use Laravel\Passport\Token;
 
 class RegisterController extends Controller
 {
@@ -40,7 +38,7 @@ class RegisterController extends Controller
             }
             $user->assignRole(Role::where('name', 'customer')->where('guard_name', 'api')->first());
 
-            $token = $user->createToken('CustomerToken')->accessToken;
+            $token = $user->createToken('CustomerToken')->plainTextToken;
 
             DB::commit();
 
@@ -58,36 +56,6 @@ class RegisterController extends Controller
         }
     }
 
-    // public function socialRegister($provider)
-    // {
-    //     try {
-    //         $socialUser = Socialite::driver($provider)->stateless()->user();
-
-    //         $user = User::firstOrCreate([
-    //             'email' => $socialUser->getEmail(),
-    //         ], [
-    //             'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'Social User',
-    //             'password' => Hash::make(uniqid()),
-    //             'provider_id' => $socialUser->getId(),
-    //             'provider' => $provider,
-    //         ]);
-
-    //         if (!$user->hasRole('customer')) {
-    //             $user->assignRole('customer');
-    //         }
-
-    //         $token = $user->createToken('SocialCustomerToken')->accessToken;
-
-    //         return $this->successResponse([
-    //             'token' => $token,
-    //             'user' => $user,
-    //         ], 'auth', 'registered');
-    //     } catch (Throwable $e) {
-    //         return $this->errorResponse('registration_failed', 'auth', 500, [
-    //             'error' => $e->getMessage(),
-    //         ]);
-    //     }
-    // }
 
     public function upgradeToSeller(UpgradeToSellerRequest $request)
     {
@@ -236,7 +204,7 @@ class RegisterController extends Controller
         if (!Hash::check($credentials['password'], $user->password)) {
             return $this->errorResponse(__('invalid_password'), 'auth', 401);
         }
-        $token = $user->createToken('AuthToken')->accessToken;
+        $token = $user->createToken('AuthToken')->plainTextToken;
 
         return $this->successResponse([
             'token' => $token,
@@ -357,22 +325,11 @@ class RegisterController extends Controller
 
     public function logout(Request $request)
     {
+        $user = $request->user();
 
-
-        $token = $request->user()?->token();
-        if ($token instanceof Token) {
-            $token->revoke();
+        if ($user) {
+            $user->tokens()->where('id', $user->currentAccessToken()?->id)->delete();
         }
-
-        // passport
-        // if (method_exists($request->user(), 'token') && $request->user()->token()) {
-        //     $request->user()->token()->revoke();
-        // }
-
-        // sanctum
-        // if (method_exists($request->user(), 'currentAccessToken') && $request->user()->currentAccessToken()) {
-        //     $request->user()->currentAccessToken()->delete();
-        // }
 
         return $this->successResponse([], 'auth', 'logout_success');
     }

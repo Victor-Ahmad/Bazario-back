@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\Broadcast;
 
 
 Broadcast::routes([
-    'middleware' => ['auth:api'],
+    'middleware' => ['auth:sanctum'],
+    // 'middleware' => ['auth:api'],
 ]);
 
 Route::middleware([SetLanguage::class])->group(function () {
@@ -54,7 +55,7 @@ Route::middleware([SetLanguage::class])->group(function () {
     Route::get('ads/silver', [AdController::class, 'silverIndex']);
     Route::get('ads/normal', [AdController::class, 'normalIndex']);
 
-    Route::middleware([EnsureApiTokenIsValid::class, 'auth:api'])->group(function () {
+    Route::middleware([EnsureApiTokenIsValid::class, 'auth:sanctum'])->group(function () {
 
         Route::get('/conversations/unread-count', [ConversationController::class, 'unreadCount']);
 
