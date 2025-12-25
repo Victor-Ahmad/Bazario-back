@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 
@@ -14,10 +13,20 @@ class RolesTableSeeder extends Seeder
     public function run(): void
     {
 
-        Role::firstOrCreate(['name' => 'seller', 'guard_name' => 'api']);
-        Role::firstOrCreate(['name' => 'service_providers', 'guard_name' => 'api']);
-        Role::firstOrCreate(['name' => 'customer', 'guard_name' => 'api']);
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'api']);
-        Role::firstOrCreate(['name' => 'guest', 'guard_name' => 'api']);
+
+        $roles = [
+            'seller',
+            'service_provider',
+            'customer',
+            'admin',
+            'guest',
+        ];
+
+        foreach ($roles as $role) {
+            Role::firstOrCreate([
+                'name'       => $role,
+                'guard_name' => 'sanctum',
+            ]);
+        }
     }
 }

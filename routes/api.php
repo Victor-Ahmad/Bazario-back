@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\AdController;
-use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CustomerController;
@@ -12,9 +11,12 @@ use App\Http\Controllers\SellerController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceProviderController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Middleware\SetLanguage;
-
 use Illuminate\Support\Facades\Broadcast;
+use App\Http\Controllers\Api\Auth\RegisterController;
+use App\Http\Controllers\Api\Auth\LoginController;
+use App\Http\Controllers\Api\Auth\PasswordUpdateController;
+use App\Http\Controllers\Api\Auth\PasswordResetController;
+use App\Http\Controllers\Api\Auth\UpgradeAccountController;
 
 
 Broadcast::routes([
@@ -25,19 +27,14 @@ Broadcast::routes([
 Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
     Route::middleware(['throttle:auth'])->group(function () {
-        Route::post('/login', [RegisterController::class, 'login']);
-        Route::post('customer/register', [RegisterController::class, 'register']);
-        Route::post('password/forgot', [RegisterController::class, 'sendResetOtp']);
-        Route::post('password/verify-otp', [RegisterController::class, 'verifyOtp']);
-        Route::post('password/reset', [RegisterController::class, 'resetPassword']);
+        Route::middleware(['throttle:auth'])->group(function () {
+            Route::post('login', [LoginController::class, 'login']);
+            Route::post('register', [RegisterController::class, 'register']);
+            Route::post('password/forgot', [PasswordResetController::class, 'sendResetOtp']);
+            Route::post('password/verify-otp', [PasswordResetController::class, 'verifyOtp']);
+            Route::post('password/reset', [PasswordResetController::class, 'resetPassword']);
+        });
     });
-
-
-
-
-
-
-
 
 
     Route::get('sellers', [SellerController::class, 'index']);
@@ -60,6 +57,12 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
     Route::get('ads/normal', [AdController::class, 'normalIndex']);
 
     Route::middleware(['auth:sanctum'])->group(function () {
+
+
+        Route::post('logout', [LoginController::class, 'logout']);
+        Route::post('logout-all', [LoginController::class, 'logoutAll']);
+
+        Route::post('update-password', [PasswordUpdateController::class, 'update']);
 
         Route::get('/conversations/unread-count', [ConversationController::class, 'unreadCount']);
 
@@ -85,7 +88,6 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
 
 
-        Route::post('update-password', [RegisterController::class, 'updatePassword']);
 
 
 
@@ -148,8 +150,8 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
         // Customer routes
         Route::middleware(['role:customer'])->prefix('customer')->group(function () {
-            Route::post('upgrade-to-seller', [RegisterController::class, 'upgradeToSeller']);
-            Route::post('upgrade-to-service_provider', [RegisterController::class, 'upgradeToServiceProvider']);
+            Route::post('upgrade-to-seller', [UpgradeAccountController::class, 'upgradeToSeller']);
+            Route::post('upgrade-to-service_provider', [UpgradeAccountController::class, 'upgradeToServiceProvider']);
         });
     });
 });
