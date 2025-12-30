@@ -17,7 +17,7 @@ class PasswordUpdateController extends Controller
         try {
             $validator = validator($request->all(), [
                 'old_password' => 'required',
-                'password'     => 'required|confirmed|min:6',
+                'password'     => 'required|min:6',
             ]);
 
             if ($validator->fails()) {
