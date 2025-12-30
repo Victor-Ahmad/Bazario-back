@@ -33,7 +33,7 @@ class LoginController extends Controller
         return $this->successResponse([
             'token' => $token,
             'user'  => $user,
-            'role'  => $user->getRoleNames()->first(),
+            'roles' => $user->getRoleNames(),
         ], 'auth', 'login_success');
     }
 

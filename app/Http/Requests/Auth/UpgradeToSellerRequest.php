@@ -16,12 +16,27 @@ class UpgradeToSellerRequest extends FormRequest
 
     public function rules(): array
     {
+        $userId = $this->user()?->id;
+
         return [
             'store_owner_name' => 'required|string|max:255',
             'store_name'       => 'required|string|max:255',
             'address'          => 'required|string',
             'logo'             => 'nullable|image',
             'description'      => 'nullable|string',
+
+            'email' => [
+
+                Rule::requiredIf(fn() => $this->user()?->email === null),
+                'email',
+                Rule::unique('users', 'email')->ignore($userId),
+            ],
+            'phone' => [
+
+                Rule::requiredIf(fn() => $this->user()?->phone === null),
+                'string',
+                Rule::unique('users', 'phone')->ignore($userId),
+            ],
 
             'attachments'      => 'nullable|array',
             'attachments.*'    => 'file',
@@ -32,16 +47,20 @@ class UpgradeToSellerRequest extends FormRequest
     {
         return [
             'store_owner_name.required' => __('auth.store_owner_name_required'),
-            'store_name.required' => __('auth.store_name_required'),
-            'address.required' => __('auth.address_required'),
-            'logo.image' => __('auth.logo_must_be_image'),
-            'description.required' => __('auth.description_required'),
+            'store_name.required'       => __('auth.store_name_required'),
+            'address.required'          => __('auth.address_required'),
+            'logo.image'                => __('auth.logo_must_be_image'),
+
+            'email.required' => __('this_user_should_add_email'),
+            'phone.required' => __('this_user_should_add_phone'),
+
             'phone.unique'   => __('auth.phone_unique'),
             'email.unique'   => __('auth.email_unique'),
             'email.email'    => __('auth.email_invalid'),
-            'attachments.array' => __('auth.attachments_array'),
-            'attachments.*.file' => __('auth.attachments_file'),
-            'attachments.*.max'  => __('auth.attachments_file_max'),
+
+            'attachments.array'    => __('auth.attachments_array'),
+            'attachments.*.file'   => __('auth.attachments_file'),
+            'attachments.*.max'    => __('auth.attachments_file_max'),
         ];
     }
 
@@ -50,7 +69,7 @@ class UpgradeToSellerRequest extends FormRequest
         throw new HttpResponseException(response()->json([
             'success' => 0,
             'message' => __('auth.validation_failed'),
-            'result' => ['errors' => $validator->errors()],
+            'result'  => ['errors' => $validator->errors()],
         ], 422));
     }
 }
