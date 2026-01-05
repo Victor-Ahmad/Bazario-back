@@ -20,7 +20,7 @@ class CustomerRegisterRequest extends FormRequest
             'age'      => 'nullable|integer|min:12|max:100',
             'email'    => 'required|email|unique:users,email',
             'phone'    => 'nullable|string|unique:users,phone',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:6',
         ];
     }
 

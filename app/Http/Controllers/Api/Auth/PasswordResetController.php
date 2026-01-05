@@ -69,7 +69,7 @@ class PasswordResetController extends Controller
         $request->validate([
             'email'    => 'required|email',
             'token'    => 'required',
-            'password' => 'required|confirmed|min:6',
+            'password' => 'required|min:6',
         ]);
 
         $otpRecord = OtpCode::where('email', $request->email)

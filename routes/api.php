@@ -27,13 +27,13 @@ Broadcast::routes([
 Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
     Route::middleware(['throttle:auth'])->group(function () {
-        Route::middleware(['throttle:auth'])->group(function () {
+       
             Route::post('login', [LoginController::class, 'login']);
             Route::post('register', [RegisterController::class, 'register']);
             Route::post('password/forgot', [PasswordResetController::class, 'sendResetOtp']);
             Route::post('password/verify-otp', [PasswordResetController::class, 'verifyOtp']);
             Route::post('password/reset', [PasswordResetController::class, 'resetPassword']);
-        });
+       
     });
 
 
