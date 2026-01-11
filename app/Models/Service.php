@@ -20,6 +20,8 @@ class Service extends Model
         'location_type',
         'provider_id',
         'is_active',
+        'max_concurrent_bookings',
+        'slot_interval_minutes',
 
     ];
     protected $appends = ['isNew'];
@@ -55,5 +57,10 @@ class Service extends Model
     public function images()
     {
         return $this->hasMany(ServiceImage::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(ServiceBooking::class);
     }
 }

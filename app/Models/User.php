@@ -63,4 +63,26 @@ class User extends Authenticatable
     {
         return $this->hasOne(ServiceProvider::class);
     }
+
+
+
+    public function connectAccount()
+    {
+        return $this->hasOne(ConnectAccount::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
+    }
+
+    public function payableItems()
+    {
+        return $this->hasMany(OrderItem::class, 'payee_user_id');
+    }
+
+    public function walletEntries()
+    {
+        return $this->hasMany(WalletLedgerEntry::class);
+    }
 }

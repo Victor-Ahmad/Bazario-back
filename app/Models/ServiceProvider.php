@@ -27,4 +27,19 @@ class ServiceProvider extends Model
     {
         return $this->morphMany(Attachment::class, 'attachable');
     }
+
+    public function services()
+    {
+        return $this->hasMany(Service::class, 'provider_id');
+    }
+
+    public function workingHours()
+    {
+        return $this->hasMany(ServiceProviderWorkingHour::class);
+    }
+
+    public function timeOffs()
+    {
+        return $this->hasMany(ServiceProviderTimeOff::class);
+    }
 }

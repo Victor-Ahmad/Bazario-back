@@ -17,23 +17,34 @@ use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\PasswordUpdateController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\Auth\UpgradeAccountController;
-
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderCheckoutController;
+use App\Http\Controllers\ServiceAvailabilityController;
+use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\ServiceBookingController;
+use App\Http\Controllers\ServiceProviderAvailabilityController;
 
 Broadcast::routes([
     'middleware' => ['auth:sanctum'],
     // 'middleware' => ['auth:api'],
 ]);
 
+
+
+
 Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
+    Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
+    Route::get('/services/{service}/availability', [ServiceAvailabilityController::class, 'day']);
+
+
     Route::middleware(['throttle:auth'])->group(function () {
-       
-            Route::post('login', [LoginController::class, 'login']);
-            Route::post('register', [RegisterController::class, 'register']);
-            Route::post('password/forgot', [PasswordResetController::class, 'sendResetOtp']);
-            Route::post('password/verify-otp', [PasswordResetController::class, 'verifyOtp']);
-            Route::post('password/reset', [PasswordResetController::class, 'resetPassword']);
-       
+
+        Route::post('login', [LoginController::class, 'login']);
+        Route::post('register', [RegisterController::class, 'register']);
+        Route::post('password/forgot', [PasswordResetController::class, 'sendResetOtp']);
+        Route::post('password/verify-otp', [PasswordResetController::class, 'verifyOtp']);
+        Route::post('password/reset', [PasswordResetController::class, 'resetPassword']);
     });
 
 
@@ -119,6 +130,33 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
 
 
+        Route::prefix('orders')->group(function () {
+            Route::post('/', [OrderController::class, 'store']);
+            Route::get('/{order}', [OrderController::class, 'show']);
+            Route::post('/{order}/items', [OrderController::class, 'addItem']);
+            Route::post('/{order}/checkout', [OrderCheckoutController::class, 'createPaymentIntent']);
+        });
+
+        // customer creates booking for a service
+        Route::post('/services/{service}/bookings', [ServiceBookingController::class, 'store']);
+
+        // customer views their bookings
+        Route::get('/me/bookings', [ServiceBookingController::class, 'myBookings']);
+
+        // provider views bookings assigned to them
+        Route::get('/provider/bookings', [ServiceBookingController::class, 'providerBookings']);
+
+        // provider confirms booking
+        Route::patch('/bookings/{booking}/confirm', [ServiceBookingController::class, 'confirm']);
+
+        // customer or provider cancels booking
+        Route::patch('/bookings/{booking}/cancel', [ServiceBookingController::class, 'cancel']);
+
+        // provider marks completed
+        Route::patch('/bookings/{booking}/complete', [ServiceBookingController::class, 'complete']);
+
+
+
         Route::middleware(['role:admin'])->group(function () {
             Route::prefix('admin')->group(function () {
                 Route::post('seller/{seller}/status', [SellerController::class, 'updateSellerStatus']);
@@ -131,6 +169,11 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
             });
             Route::prefix('service_provider')->group(function () {
                 Route::get('/requests', [ServiceProviderController::class, 'requests']);
+
+                Route::get('/availability', [ServiceProviderAvailabilityController::class, 'show']);
+                Route::put('/working-hours', [ServiceProviderAvailabilityController::class, 'updateWorkingHours']);
+                Route::post('/time-off', [ServiceProviderAvailabilityController::class, 'addTimeOff']);
+                Route::delete('/time-off/{timeOff}', [ServiceProviderAvailabilityController::class, 'deleteTimeOff']);
             });
 
 

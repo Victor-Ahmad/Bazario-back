@@ -17,8 +17,8 @@ class ServiceController extends Controller
         $query = Service::with([
             'images:id,service_id,image',
             'category:id,name',
-            'service_provider.user:id,name,email,phone',
-            'service_provider:id,user_id,name,logo,address,description'
+            'serviceProvider.user:id,name,email,phone',
+            'serviceProvider:id,user_id,name,logo,address,description'
         ])
             ->select('id', 'title', 'description',  'price',  'category_id', 'provider_id', 'created_at');
 
@@ -40,8 +40,8 @@ class ServiceController extends Controller
             ->with([
                 'images:id,service_id,image',
                 'category:id,name',
-                'service_provider.user:id,name,email,phone',
-                'service_provider:id,user_id,name,logo,address,description'
+                'serviceProvider.user:id,name,email,phone',
+                'serviceProvider:id,user_id,name,logo,address,description'
             ])
             ->select('id', 'title', 'description',  'price',  'category_id', 'provider_id', 'created_at');
 
@@ -59,8 +59,8 @@ class ServiceController extends Controller
         $services = Service::where('provider_id', $id)->with([
             'images:id,service_id,image',
             'category:id,name',
-            'service_provider.user:id,name,email,phone',
-            'service_provider:id,user_id,name,logo,address,description'
+            'serviceProvider.user:id,name,email,phone',
+            'serviceProvider:id,user_id,name,logo,address,description'
         ])
             ->select('id', 'title', 'description',  'price',  'category_id', 'provider_id', 'created_at')
             ->orderBy('created_at', 'desc')
@@ -100,8 +100,8 @@ class ServiceController extends Controller
             ->with([
                 'images:id,service_id,image',
                 'category:id,name',
-                'service_provider.user:id,name,email,phone',
-                'service_provider:id,user_id,name,logo,address,description'
+                'serviceProvider.user:id,name,email,phone',
+                'serviceProvider:id,user_id,name,logo,address,description'
             ])
             ->select('id', 'title', 'description', 'price', 'category_id', 'provider_id', 'created_at')
             ->orderBy('created_at', 'desc')
