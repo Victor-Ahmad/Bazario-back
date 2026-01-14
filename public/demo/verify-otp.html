@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Verify OTP</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="page">
+            <!-- FORM -->
+            <section class="right">
+                <form id="verifyForm" class="card" novalidate>
+                    <div class="field">
+                        <label id="lblEmail" for="email">Email</label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            required
+                        />
+                        <small class="error" data-error-for="email"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblOtp" for="otp">OTP Code</label>
+                        <input
+                            id="otp"
+                            name="otp"
+                            type="text"
+                            inputmode="numeric"
+                            autocomplete="one-time-code"
+                            required
+                        />
+                        <small class="error" data-error-for="otp"></small>
+                    </div>
+
+                    <button id="submitBtn" type="submit">Verify OTP</button>
+
+                    <p class="formLink">
+                        <a id="toForgotLink" href="/demo/forgot-password.html"
+                            >Back</a
+                        >
+                    </p>
+                </form>
+            </section>
+
+            <!-- INFO / STATUS -->
+            <section class="left">
+                <div class="brand">
+                    <div class="toolbar">
+                        <div id="badgeText" class="badge">Marketplace Demo</div>
+
+                        <div class="langWrap">
+                            <label class="srOnly" for="langSelect"
+                                >Language</label
+                            >
+                            <select id="langSelect" aria-label="Language">
+                                <option value="en">English</option>
+                                <option value="ar">Arabic</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h1 id="pageTitle">Verify OTP</h1>
+                    <p id="pageSubtitle" class="subtitle">
+                        Enter the OTP code sent to your email.
+                    </p>
+                </div>
+
+                <section class="status">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>POST</code> <code>/api/password/verify-otp</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre
+                        id="debugBox"
+                        class="debugBox"
+                        style="display: none"
+                    ></pre>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/verify-otp.js"></script>
+    </body>
+</html>
