@@ -23,6 +23,7 @@ use App\Http\Controllers\ServiceAvailabilityController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\ServiceBookingController;
 use App\Http\Controllers\ServiceProviderAvailabilityController;
+use App\Http\Controllers\HomeController;
 
 Broadcast::routes([
     'middleware' => ['auth:sanctum'],
@@ -61,6 +62,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
     // Route::post('seller/register', [RegisterController::class, 'sellerRegister']);
     // Route::post('service_provider/register', [RegisterController::class, 'service_providerRegister']);
     // Route::post('guest/register', [RegisterController::class, 'guestRegister']);
+    Route::get('home', [HomeController::class, 'index']);
 
     Route::get('ads', [AdController::class, 'index']);
     Route::get('ads/gold', [AdController::class, 'goldIndex']);

@@ -20,6 +20,11 @@ export default {
     nav_logout: "Logout",
     nav_logout_all: "Logout all",
     nav_hi: "Hi",
+    nav_home: "Home",
+    nav_products: "Products",
+    nav_services: "Services",
+    nav_ads: "Ads",
+    nav_upgrade: "Upgrade Account",
 
     // Register
     title: "Customer Registration",
@@ -70,4 +75,25 @@ export default {
     reset_submit: "Reset Password",
     reset_resetting: "Resetting password...",
     reset_success: "Password reset successfully ✅ You can log in now.",
+
+    // Upgrade account
+    upgrade_title: "Upgrade Account",
+    upgrade_subtitle:
+        "Submit a request to become a seller or service provider. Requests are reviewed by admins.",
+    upgrade_type_label: "Upgrade to",
+    upgrade_type_seller: "Seller",
+    upgrade_type_service_provider: "Service Provider",
+    upgrade_store_owner_name: "Store owner name *",
+    upgrade_store_name: "Store name *",
+    upgrade_provider_name: "Provider name *",
+    upgrade_address: "Address *",
+    upgrade_email: "Email",
+    upgrade_phone: "Phone",
+    upgrade_logo: "Logo",
+    upgrade_description: "Description",
+    upgrade_attachments: "Attachments",
+    upgrade_submit: "Submit upgrade request",
+    upgrade_submitting: "Submitting upgrade request...",
+    upgrade_success: "Request submitted ✅ Awaiting admin approval.",
+    upgrade_login_required: "Please log in to submit an upgrade request.",
 };

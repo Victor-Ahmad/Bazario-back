@@ -20,6 +20,11 @@ export default {
     nav_logout: "Abmelden",
     nav_logout_all: "Überall abmelden",
     nav_hi: "Hallo",
+    nav_home: "Start",
+    nav_products: "Produkte",
+    nav_services: "Services",
+    nav_ads: "Anzeigen",
+    nav_upgrade: "Konto upgraden",
 
     // Register
     title: "Kundenregistrierung",
@@ -76,4 +81,26 @@ export default {
     reset_resetting: "Passwort wird zurückgesetzt...",
     reset_success:
         "Passwort erfolgreich zurückgesetzt ✅ Du kannst dich jetzt anmelden.",
+
+    // Upgrade account
+    upgrade_title: "Konto upgraden",
+    upgrade_subtitle:
+        "Sende eine Anfrage, um Verkäufer oder Dienstleister zu werden. Anfragen werden von Admins geprüft.",
+    upgrade_type_label: "Upgrade zu",
+    upgrade_type_seller: "Verkäufer",
+    upgrade_type_service_provider: "Dienstleister",
+    upgrade_store_owner_name: "Name des Ladeninhabers *",
+    upgrade_store_name: "Shopname *",
+    upgrade_provider_name: "Name des Dienstleisters *",
+    upgrade_address: "Adresse *",
+    upgrade_email: "E-Mail",
+    upgrade_phone: "Telefon",
+    upgrade_logo: "Logo",
+    upgrade_description: "Beschreibung",
+    upgrade_attachments: "Anhänge",
+    upgrade_submit: "Upgrade-Anfrage senden",
+    upgrade_submitting: "Upgrade-Anfrage wird gesendet...",
+    upgrade_success: "Anfrage gesendet ✅ Warten auf Admin-Freigabe.",
+    upgrade_login_required:
+        "Bitte anmelden, um eine Upgrade-Anfrage zu senden.",
 };

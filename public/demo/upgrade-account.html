@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Upgrade Account</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="page">
+            <section class="right">
+                <form id="upgradeForm" class="card" novalidate>
+                    <div class="field">
+                        <label id="lblAccountType" for="accountType"
+                            >Upgrade to</label
+                        >
+                        <select id="accountType" name="account_type">
+                            <option id="optSeller" value="seller">
+                                Seller
+                            </option>
+                            <option
+                                id="optServiceProvider"
+                                value="service_provider"
+                            >
+                                Service Provider
+                            </option>
+                        </select>
+                        <small
+                            class="error"
+                            data-error-for="account_type"
+                        ></small>
+                    </div>
+
+                    <div id="sellerFields" style="display: grid; gap: 12px">
+                        <div class="field">
+                            <label
+                                id="lblStoreOwnerName"
+                                for="store_owner_name"
+                                >Store owner name *</label
+                            >
+                            <input
+                                id="store_owner_name"
+                                name="store_owner_name"
+                                type="text"
+                                autocomplete="name"
+                                required
+                            />
+                            <small
+                                class="error"
+                                data-error-for="store_owner_name"
+                            ></small>
+                        </div>
+
+                        <div class="field">
+                            <label id="lblStoreName" for="store_name"
+                                >Store name *</label
+                            >
+                            <input
+                                id="store_name"
+                                name="store_name"
+                                type="text"
+                                required
+                            />
+                            <small
+                                class="error"
+                                data-error-for="store_name"
+                            ></small>
+                        </div>
+                    </div>
+
+                    <div
+                        id="providerFields"
+                        style="display: none; gap: 12px"
+                    >
+                        <div class="field">
+                            <label id="lblProviderName" for="provider_name"
+                                >Provider name *</label
+                            >
+                            <input
+                                id="provider_name"
+                                name="name"
+                                type="text"
+                                required
+                            />
+                            <small class="error" data-error-for="name"></small>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblAddress" for="address">Address *</label>
+                        <textarea
+                            id="address"
+                            name="address"
+                            rows="3"
+                            required
+                        ></textarea>
+                        <small class="error" data-error-for="address"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblEmail" for="email">Email</label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                        />
+                        <small class="error" data-error-for="email"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblPhone" for="phone">Phone</label>
+                        <input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            autocomplete="tel"
+                        />
+                        <small class="error" data-error-for="phone"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblLogo" for="logo">Logo</label>
+                        <input
+                            id="logo"
+                            name="logo"
+                            type="file"
+                            accept="image/*"
+                        />
+                        <small class="error" data-error-for="logo"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblDescription" for="description"
+                            >Description</label
+                        >
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows="3"
+                        ></textarea>
+                        <small
+                            class="error"
+                            data-error-for="description"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblAttachments" for="attachments"
+                            >Attachments</label
+                        >
+                        <input
+                            id="attachments"
+                            name="attachments[]"
+                            type="file"
+                            multiple
+                        />
+                        <small
+                            class="error"
+                            data-error-for="attachments"
+                        ></small>
+                    </div>
+
+                    <button id="submitBtn" type="submit">
+                        Submit upgrade request
+                    </button>
+                </form>
+            </section>
+
+            <section class="left">
+                <div class="brand">
+                    <div class="toolbar">
+                        <div id="badgeText" class="badge">Marketplace Demo</div>
+
+                        <div class="langWrap">
+                            <label class="srOnly" for="langSelect"
+                                >Language</label
+                            >
+                            <select id="langSelect" aria-label="Language">
+                                <option value="en">English</option>
+                                <option value="ar">Arabic</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h1 id="pageTitle">Upgrade Account</h1>
+                    <p id="pageSubtitle" class="subtitle">
+                        Submit a request to become a seller or service provider.
+                        Requests are reviewed by admins.
+                    </p>
+                </div>
+
+                <section class="status">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>POST</code> <code>/api/upgrade-to-seller</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre
+                        id="debugBox"
+                        class="debugBox"
+                        style="display: none"
+                    ></pre>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/upgrade-account.js"></script>
+    </body>
+</html>

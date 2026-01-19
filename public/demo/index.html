@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Home</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+        <link rel="stylesheet" href="./assets/css/home.css" />
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="homePage">
+            <!-- Row 1: top status / language -->
+            <section class="homeTop">
+                <div class="card homeIntro">
+                    <div class="toolbar">
+                        <div id="badgeText" class="badge">Marketplace Demo</div>
+
+                        <div class="langWrap">
+                            <label class="srOnly" for="langSelect"
+                                >Language</label
+                            >
+                            <select id="langSelect" aria-label="Language">
+                                <option value="en">English</option>
+                                <option value="ar">Arabic</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="homeIntroText">
+                        <h1 id="pageTitle">Home</h1>
+                        <p id="pageSubtitle" class="subtitle">
+                            One API call: <code>/api/home</code> → products,
+                            services, ads (10 each).
+                        </p>
+                    </div>
+                </div>
+
+                <section class="status homeStatus">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>GET</code> <code>/api/home</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre
+                        id="debugBox"
+                        class="debugBox"
+                        style="display: none"
+                    ></pre>
+                </section>
+            </section>
+
+            <!-- Row 2: 3 columns -->
+            <section class="homeGrid">
+                <section class="card homeCol">
+                    <h2 class="homeColTitle">Products</h2>
+                    <div id="productsList" class="homeList"></div>
+                </section>
+
+                <section class="card homeCol">
+                    <h2 class="homeColTitle">Services</h2>
+                    <div id="servicesList" class="homeList"></div>
+                </section>
+
+                <section class="card homeCol">
+                    <h2 class="homeColTitle">Ads</h2>
+                    <div id="adsList" class="homeList"></div>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/home.js"></script>
+    </body>
+</html>

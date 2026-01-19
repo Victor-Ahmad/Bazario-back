@@ -11,7 +11,9 @@ function el(tag, attrs = {}, children = []) {
         else node.setAttribute(k, v);
     });
     children.forEach((c) =>
-        node.appendChild(typeof c === "string" ? document.createTextNode(c) : c)
+        node.appendChild(
+            typeof c === "string" ? document.createTextNode(c) : c,
+        ),
     );
     return node;
 }
@@ -22,6 +24,26 @@ function currentPath() {
 
 function isActive(path) {
     return currentPath().endsWith(path);
+}
+
+function normalizeRoles(roles) {
+    if (!roles) return [];
+    if (Array.isArray(roles)) {
+        return roles
+            .map((role) =>
+                typeof role === "string"
+                    ? role
+                    : role?.name || role?.slug || role?.role || "",
+            )
+            .filter(Boolean);
+    }
+    if (Array.isArray(roles?.data)) return normalizeRoles(roles.data);
+    if (Array.isArray(roles?.roles)) return normalizeRoles(roles.roles);
+    return [];
+}
+
+function hasRole(roles, name) {
+    return normalizeRoles(roles).includes(name);
 }
 
 async function doLogout(all = false, setMsg, setBusy) {
@@ -45,17 +67,75 @@ function renderHeader(container) {
     const lang = getLanguage();
     const session = getAuthSession();
     const userName = session?.user?.name || "";
+    const roles = session?.roles;
+    const canUpgrade =
+        session?.user &&
+        !hasRole(roles, "seller") &&
+        !hasRole(roles, "service_provider");
 
     container.innerHTML = "";
 
     const msg = el("div", { class: "topbarMsg", id: "topbarMsg" });
-    const brand = el(
-        "a",
-        { class: "topbarBrand", href: "/demo/register.html" },
-        ["Marketplace Demo"]
-    );
+    const brand = el("a", { class: "topbarBrand", href: "/demo/index.html" }, [
+        "Marketplace Demo",
+    ]);
 
     const nav = el("nav", { class: "topbarNav" }, [
+        el(
+            "a",
+            {
+                class: `navLink ${
+                    currentPath().endsWith("/demo/") ||
+                    currentPath().endsWith("/demo/index.html")
+                        ? "active"
+                        : ""
+                }`,
+                href: "/demo/index.html",
+            },
+            [t(lang, "nav_home")],
+        ),
+        el(
+            "a",
+            {
+                class: `navLink ${isActive("/demo/products.html") ? "active" : ""}`,
+                href: "/demo/products.html",
+            },
+            [t(lang, "nav_products")],
+        ),
+
+        el(
+            "a",
+            {
+                class: `navLink ${isActive("/demo/services.html") ? "active" : ""}`,
+                href: "/demo/services.html",
+            },
+            [t(lang, "nav_services")],
+        ),
+
+        el(
+            "a",
+            {
+                class: `navLink ${isActive("/demo/ads.html") ? "active" : ""}`,
+                href: "/demo/ads.html",
+            },
+            [t(lang, "nav_ads")],
+        ),
+        ...(canUpgrade
+            ? [
+                  el(
+                      "a",
+                      {
+                          class: `navLink ${
+                              isActive("/demo/upgrade-account.html")
+                                  ? "active"
+                                  : ""
+                          }`,
+                          href: "/demo/upgrade-account.html",
+                      },
+                      [t(lang, "nav_upgrade")],
+                  ),
+              ]
+            : []),
         el(
             "a",
             {
@@ -64,7 +144,7 @@ function renderHeader(container) {
                 }`,
                 href: "/demo/register.html",
             },
-            [t(lang, "nav_register")]
+            [t(lang, "nav_register")],
         ),
         el(
             "a",
@@ -74,7 +154,7 @@ function renderHeader(container) {
                 }`,
                 href: "/demo/login.html",
             },
-            [t(lang, "nav_login")]
+            [t(lang, "nav_login")],
         ),
     ]);
 
@@ -95,30 +175,30 @@ function renderHeader(container) {
     if (!session?.user) {
         // Not logged in: show links only
         right.appendChild(
-            el("span", { class: "topbarHint" }, ["Not logged in"])
+            el("span", { class: "topbarHint" }, ["Not logged in"]),
         );
     } else {
         // Logged in: show greeting + logout buttons
         right.appendChild(
             el("span", { class: "topbarHint" }, [
                 `${t(lang, "nav_hi")}, ${userName}`,
-            ])
+            ]),
         );
 
         const btnLogout = el("button", { class: "topbarBtn", type: "button" }, [
             t(lang, "nav_logout"),
         ]);
         btnLogout.addEventListener("click", () =>
-            doLogout(false, setMsg, setBusy)
+            doLogout(false, setMsg, setBusy),
         );
 
         const btnLogoutAll = el(
             "button",
             { class: "topbarBtn secondary", type: "button" },
-            [t(lang, "nav_logout_all")]
+            [t(lang, "nav_logout_all")],
         );
         btnLogoutAll.addEventListener("click", () =>
-            doLogout(true, setMsg, setBusy)
+            doLogout(true, setMsg, setBusy),
         );
 
         right.appendChild(btnLogout);

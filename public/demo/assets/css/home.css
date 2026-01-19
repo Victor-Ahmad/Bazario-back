@@ -1,0 +1,63 @@
+/* public/demo/assets/css/home.css */
+
+/* Two-row layout */
+.homePage {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 46px 18px;
+    display: grid;
+    gap: 18px;
+}
+
+/* Top row: two blocks side-by-side (intro + status) */
+.homeTop {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 18px;
+    align-items: start;
+}
+
+.homeIntro {
+    display: grid;
+    gap: 12px;
+}
+
+.homeIntroText h1 {
+    margin: 10px 0 6px;
+}
+
+.homeStatus {
+    height: 100%;
+}
+
+/* Bottom row: 3 columns */
+.homeGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+    align-items: start;
+}
+
+.homeCol {
+    display: grid;
+    gap: 10px;
+}
+
+.homeColTitle {
+    margin-bottom: 6px;
+}
+
+.homeList {
+    display: grid;
+    gap: 10px;
+}
+
+/* Make it responsive */
+@media (max-width: 980px) {
+    .homeTop {
+        grid-template-columns: 1fr;
+    }
+    .homeGrid {
+        grid-template-columns: 1fr;
+    }
+}

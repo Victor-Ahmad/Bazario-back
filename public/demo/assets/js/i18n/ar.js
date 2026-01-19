@@ -20,6 +20,11 @@ export default {
     nav_logout: "تسجيل الخروج",
     nav_logout_all: "تسجيل الخروج من الكل",
     nav_hi: "مرحباً",
+    nav_home: "الرئيسية",
+    nav_products: "المنتجات",
+    nav_services: "الخدمات",
+    nav_ads: "الإعلانات",
+    nav_upgrade: "ترقية الحساب",
 
     // Register
     title: "تسجيل عميل جديد",
@@ -71,4 +76,25 @@ export default {
     reset_submit: "إعادة تعيين",
     reset_resetting: "جاري إعادة التعيين...",
     reset_success: "تم تغيير كلمة المرور بنجاح ✅ يمكنك تسجيل الدخول الآن.",
+
+    // Upgrade account
+    upgrade_title: "ترقية الحساب",
+    upgrade_subtitle:
+        "قدّم طلبًا لتصبح بائعًا أو مقدم خدمة. تتم مراجعة الطلبات من قبل الإدارة.",
+    upgrade_type_label: "الترقية إلى",
+    upgrade_type_seller: "بائع",
+    upgrade_type_service_provider: "مقدم خدمة",
+    upgrade_store_owner_name: "اسم مالك المتجر *",
+    upgrade_store_name: "اسم المتجر *",
+    upgrade_provider_name: "اسم مقدم الخدمة *",
+    upgrade_address: "العنوان *",
+    upgrade_email: "البريد الإلكتروني",
+    upgrade_phone: "الهاتف",
+    upgrade_logo: "الشعار",
+    upgrade_description: "الوصف",
+    upgrade_attachments: "المرفقات",
+    upgrade_submit: "إرسال طلب الترقية",
+    upgrade_submitting: "جاري إرسال طلب الترقية...",
+    upgrade_success: "تم إرسال الطلب ✅ بانتظار موافقة الإدارة.",
+    upgrade_login_required: "يرجى تسجيل الدخول لإرسال طلب الترقية.",
 };

@@ -157,7 +157,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
     width: 100%;
     padding: 11px 12px;
     border-radius: 10px;
@@ -168,7 +169,8 @@ select {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
     border-color: rgba(255, 255, 255, 0.22);
     box-shadow: 0 0 0 4px var(--focus-ring);
 }
@@ -305,13 +307,15 @@ h2 {
 
 /* Field states */
 input.isInvalid,
-select.isInvalid {
+select.isInvalid,
+textarea.isInvalid {
     border-color: rgba(255, 77, 79, 0.55) !important;
     box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.14) !important;
 }
 
 input.isValid,
-select.isValid {
+select.isValid,
+textarea.isValid {
     border-color: rgba(45, 212, 191, 0.45) !important;
     box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.12) !important;
 }
