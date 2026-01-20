@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Book Service</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="page">
+            <section class="right">
+                <div class="card" style="display: grid; gap: 12px">
+                    <div>
+                        <h1 id="pageTitle" style="margin: 0 0 6px">
+                            Book Service
+                        </h1>
+                        <p id="pageSubtitle" class="subtitle" style="max-width: none">
+                            Pick a date and slot, then add the booking to your cart.
+                        </p>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblDate" for="dateInput">Date</label>
+                        <input id="dateInput" type="date" />
+                    </div>
+
+                    <div class="field">
+                        <label id="lblTimezone" for="timezoneInput"
+                            >Timezone</label
+                        >
+                        <select id="timezoneInput"></select>
+                    </div>
+
+                    <button id="checkAvailabilityBtn" type="button">
+                        Check availability
+                    </button>
+
+                    <div style="display: grid; gap: 8px">
+                        <h2 id="slotsTitle">Available slots</h2>
+                        <div
+                            id="slotsGrid"
+                            style="display: grid; gap: 8px"
+                        ></div>
+                    </div>
+
+                    <div id="selectedSlot" class="statusBox">—</div>
+
+                    <button id="addBookingBtn" type="button" disabled>
+                        Add booking to cart
+                    </button>
+                </div>
+            </section>
+
+            <section class="left">
+                <div class="brand">
+                    <div class="toolbar">
+                        <div id="badgeText" class="badge">Marketplace Demo</div>
+
+                        <div class="langWrap">
+                            <label class="srOnly" for="langSelect"
+                                >Language</label
+                            >
+                            <select id="langSelect" aria-label="Language">
+                                <option value="en">English</option>
+                                <option value="ar">Arabic</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="status">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>GET</code> <code>/api/services/{id}/availability</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre
+                        id="debugBox"
+                        class="debugBox"
+                        style="display: none"
+                    ></pre>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/book-service.js"></script>
+    </body>
+</html>

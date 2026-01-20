@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\PasswordUpdateController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\Auth\UpgradeAccountController;
+use App\Http\Controllers\Api\Admin\UpgradeRequestController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderCheckoutController;
 use App\Http\Controllers\ServiceAvailabilityController;
@@ -139,8 +140,8 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
             Route::post('/{order}/checkout', [OrderCheckoutController::class, 'createPaymentIntent']);
         });
 
-        // customer creates booking for a service
-        Route::post('/services/{service}/bookings', [ServiceBookingController::class, 'store']);
+        // customer creates booking for a service (order flow only)
+        // Route::post('/services/{service}/bookings', [ServiceBookingController::class, 'store']);
 
         // customer views their bookings
         Route::get('/me/bookings', [ServiceBookingController::class, 'myBookings']);
@@ -164,6 +165,14 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
                 Route::post('seller/{seller}/status', [SellerController::class, 'updateSellerStatus']);
                 Route::post('service_provider/{service_provider}/status', [ServiceProviderController::class, 'updateServiceProviderStatus']);
                 Route::post('ad/{ad}/status', [AdController::class, 'updateStatus']);
+
+                Route::prefix('upgrade-requests')->group(function () {
+                    Route::get('/', [UpgradeRequestController::class, 'index']);
+                    Route::post('/seller/{seller}/approve', [UpgradeRequestController::class, 'approveSeller']);
+                    Route::post('/seller/{seller}/reject', [UpgradeRequestController::class, 'rejectSeller']);
+                    Route::post('/service-provider/{service_provider}/approve', [UpgradeRequestController::class, 'approveServiceProvider']);
+                    Route::post('/service-provider/{service_provider}/reject', [UpgradeRequestController::class, 'rejectServiceProvider']);
+                });
             });
 
             Route::prefix('seller')->group(function () {
@@ -171,11 +180,6 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
             });
             Route::prefix('service_provider')->group(function () {
                 Route::get('/requests', [ServiceProviderController::class, 'requests']);
-
-                Route::get('/availability', [ServiceProviderAvailabilityController::class, 'show']);
-                Route::put('/working-hours', [ServiceProviderAvailabilityController::class, 'updateWorkingHours']);
-                Route::post('/time-off', [ServiceProviderAvailabilityController::class, 'addTimeOff']);
-                Route::delete('/time-off/{timeOff}', [ServiceProviderAvailabilityController::class, 'deleteTimeOff']);
             });
 
 
@@ -186,6 +190,15 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
                     Route::get('timed', [AdController::class, 'timedAdRequests']);
                     Route::get('banner', [AdController::class, 'bannerdAdRequests']);
                 });
+            });
+        });
+
+        Route::middleware(['role:admin|service_provider'])->group(function () {
+            Route::prefix('service_provider')->group(function () {
+                Route::get('/availability', [ServiceProviderAvailabilityController::class, 'show']);
+                Route::put('/working-hours', [ServiceProviderAvailabilityController::class, 'updateWorkingHours']);
+                Route::post('/time-off', [ServiceProviderAvailabilityController::class, 'addTimeOff']);
+                Route::delete('/time-off/{timeOff}', [ServiceProviderAvailabilityController::class, 'deleteTimeOff']);
             });
         });
 

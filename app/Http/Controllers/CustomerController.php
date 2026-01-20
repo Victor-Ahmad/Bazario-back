@@ -17,7 +17,7 @@ class CustomerController extends Controller
                 ->select('id', 'name', 'email', 'phone', 'created_at')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
-            return $this->successResponse($customers, 'auth', 'fetched_successfully.');
+            return $this->successResponse($customers, 'auth', 'fetched_successfully');
         } catch (\Throwable $e) {
 
             return $this->errorResponse('fetch_failed', 'auth', 500, [

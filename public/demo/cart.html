@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Cart</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="page">
+            <section class="right">
+                <div class="card" style="display: grid; gap: 14px">
+                    <div>
+                        <h1 id="pageTitle" style="margin: 0 0 6px">
+                            Your Cart
+                        </h1>
+                        <p id="pageSubtitle" class="subtitle" style="max-width: none">
+                            Review products and service bookings before checkout.
+                        </p>
+                    </div>
+
+                    <div style="display: grid; gap: 8px">
+                        <h2 id="productsTitle">Products</h2>
+                        <div id="productsList" style="display: grid; gap: 10px"></div>
+                    </div>
+
+                    <div style="display: grid; gap: 8px">
+                        <h2 id="servicesTitle">Service Bookings</h2>
+                        <div id="servicesList" style="display: grid; gap: 10px"></div>
+                    </div>
+
+                    <div id="totalsBox" class="statusBox">—</div>
+
+                    <button id="checkoutBtn" type="button">Checkout</button>
+                </div>
+            </section>
+
+            <section class="left">
+                <div class="brand">
+                    <div class="toolbar">
+                        <div id="badgeText" class="badge">Marketplace Demo</div>
+
+                        <div class="langWrap">
+                            <label class="srOnly" for="langSelect"
+                                >Language</label
+                            >
+                            <select id="langSelect" aria-label="Language">
+                                <option value="en">English</option>
+                                <option value="ar">Arabic</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="status">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>Local</code> <code>Cart</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre
+                        id="debugBox"
+                        class="debugBox"
+                        style="display: none"
+                    ></pre>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/cart-page.js"></script>
+    </body>
+</html>

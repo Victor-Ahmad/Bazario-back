@@ -19,6 +19,7 @@ return [
 
 
     'upgraded_to_seller' => 'You have been successfully upgraded to a seller.',
+    'upgraded_to_service_provider' => 'You have been successfully upgraded to a service provider.',
     'upgrade_failed' => 'Upgrade failed. Please try again later.',
 
     'store_owner_name_required' => 'Store owner name is required.',
@@ -58,10 +59,16 @@ return [
     'guest_registered' => 'Guest user registered successfully.',
     'seller_status_updated_successfully' => 'Seller status updated successfully.',
 
-    'fetched_successfully' => 'Sellers fetched successfully.',
-    'fetch_failed' => 'Failed to fetch sellers.',
+    'fetched_successfully' => 'Fetched successfully.',
+    'fetch_failed' => 'Failed to fetch data.',
     'user_not_found' => 'User Not Found',
     'invalid_password' => 'Invalid Password',
+    'failed' => 'Invalid email or password.',
+    'logout_success' => 'Logged out successfully.',
+    'logout_all_success' => 'Logged out from all devices.',
+    'service_provider_status_updated_successfully' => 'Service provider status updated successfully.',
+    'invalid_status' => 'Invalid status.',
+    'updated_failed' => 'Update failed.',
 
 
 ];

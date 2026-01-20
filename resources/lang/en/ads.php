@@ -23,4 +23,11 @@ return [
     'images_must_be_image' => 'Each file must be an image.',
     'images_mimes' => 'Images must be of type jpg, jpeg, png, or webp.',
     'images_size_max' => 'Each image must not exceed 2MB.',
+
+    // General
+    'invalid_adable_type' => 'Invalid adable type.',
+    'seller_not_found' => 'Seller not found.',
+    'service_provider_not_found' => 'Service provider not found.',
+    'create_failed' => 'Failed to create ad.',
+    'deleted' => 'Ad deleted.',
 ];

@@ -48,7 +48,11 @@ class MessageController extends Controller
     {
         $this->authorizeParticipant($r->user()->id, $message->conversation_id);
 
-        abort_unless($r->user()->id === $message->recipient_id, 403, 'Only the recipient can ack delivery.');
+        abort_unless(
+            $r->user()->id === $message->recipient_id,
+            403,
+            __('chat.only_recipient_ack')
+        );
 
         $updated = $this->chat->markDelivered($message);
 
@@ -63,7 +67,11 @@ class MessageController extends Controller
     {
         $this->authorizeParticipant($r->user()->id, $message->conversation_id);
 
-        abort_unless($r->user()->id === $message->recipient_id, 403, 'Only the recipient can mark read.');
+        abort_unless(
+            $r->user()->id === $message->recipient_id,
+            403,
+            __('chat.only_recipient_read')
+        );
 
         $updated = $this->chat->markRead($message);
 

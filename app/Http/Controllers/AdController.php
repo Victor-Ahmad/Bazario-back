@@ -145,21 +145,30 @@ class AdController extends Controller
         ];
         $type = strtolower((string) $validated['adable_type'] ?? '');
         if (!isset($map[$type])) {
-            return response()->json(['success' => 0, 'message' => 'Invalid adable_type'], 422);
+            return response()->json([
+                'success' => 0,
+                'message' => __('ads.invalid_adable_type'),
+            ], 422);
         }
         $validated['adable_type'] = $map[$type];
         if (empty($validated['adable_id'])) {
             if ($validated['adable_type'] === \App\Models\Seller::class) {
                 $seller = auth()->guard()->user()->seller;
                 if (!$seller) {
-                    return response()->json(['success' => 0, 'message' => 'Seller not found'], 422);
+                    return response()->json([
+                        'success' => 0,
+                        'message' => __('ads.seller_not_found'),
+                    ], 422);
                 }
                 $validated['adable_id'] = $seller->id;
             }
             if ($validated['adable_type'] === \App\Models\ServiceProvider::class) {
                 $service_provider = auth()->guard()->user()->service_provider;
                 if (!$service_provider) {
-                    return response()->json(['success' => 0, 'message' => 'Service Provider not found'], 422);
+                    return response()->json([
+                        'success' => 0,
+                        'message' => __('ads.service_provider_not_found'),
+                    ], 422);
                 }
                 $validated['adable_id'] = $service_provider->id;
             }
@@ -187,7 +196,11 @@ class AdController extends Controller
             return response()->json(['success' => 1, 'result' => $ad->load('images', 'position')]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => 0, 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => 0,
+                'message' => __('ads.create_failed'),
+                'result' => ['error' => $e->getMessage()],
+            ], 500);
         }
     }
 
@@ -238,7 +251,10 @@ class AdController extends Controller
         $ad = Ad::findOrFail($id);
         $ad->delete();
 
-        return response()->json(['success' => 1, 'message' => 'Ad deleted']);
+        return response()->json([
+            'success' => 1,
+            'message' => __('ads.deleted'),
+        ]);
     }
 
     // Attach more images

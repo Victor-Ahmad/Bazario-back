@@ -10,7 +10,6 @@ use App\Models\ServiceProvider;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Permission\Models\Role;
 use Throwable;
 
 class UpgradeAccountController extends Controller
@@ -51,6 +50,7 @@ class UpgradeAccountController extends Controller
                         'address'          => $request->address,
                         'logo'             => $logoPath ? 'storage/' . $logoPath : null,
                         'description'      => $request->description,
+                        'status'           => 'pending',
                     ]
                 );
 
@@ -66,12 +66,7 @@ class UpgradeAccountController extends Controller
                     }
                 }
 
-                if (! Role::where('name', 'seller')->exists()) {
-                    throw new \Exception(__('auth.role_not_found'));
-                }
-
-                $user->assignRole('seller');
-                $user->syncRoles(['customer', 'seller']);
+                // Role upgrade happens after admin approval.
 
                 return [
                     'user'   => $user,
@@ -127,6 +122,7 @@ class UpgradeAccountController extends Controller
                         'address'     => $request->address,
                         'logo'        => $logoPath ? 'storage/' . $logoPath : null,
                         'description' => $request->description,
+                        'status'      => 'pending',
                     ]
                 );
 
@@ -142,12 +138,7 @@ class UpgradeAccountController extends Controller
                     }
                 }
 
-                if (! Role::where('name', 'service_provider')->exists()) {
-                    throw new \Exception(__('auth.role_not_found'));
-                }
-
-                $user->assignRole('service_provider');
-                $user->syncRoles(['customer', 'service_provider']);
+                // Role upgrade happens after admin approval.
 
                 return [
                     'user'             => $user,

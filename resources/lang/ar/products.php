@@ -23,4 +23,5 @@ return [
     'images_must_be_image' => 'يجب أن يكون كل ملف صورة.',
     'images_mimes' => 'يجب أن تكون الصور من نوع jpg أو jpeg أو png أو webp.',
     'images_size_max' => 'يجب ألا يتجاوز حجم كل صورة 2 ميجابايت.',
+    'product_created_successfully' => 'تم إنشاء المنتج بنجاح.',
 ];

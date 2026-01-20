@@ -19,7 +19,7 @@ class ConversationController extends Controller
         $authId = $r->user()->id;
         $otherId = (int) $data['user_id'];
 
-        abort_if($authId === $otherId, 422, 'Cannot chat with yourself.');
+        abort_if($authId === $otherId, 422, __('chat.cannot_chat_self'));
 
         $conversation = Conversation::firstOrCreate(
             ['direct_key' => Conversation::directKey($authId, $otherId)],

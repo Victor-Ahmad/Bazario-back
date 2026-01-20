@@ -47,7 +47,7 @@ class ServiceProviderAvailabilityController extends Controller
                 foreach ($day['intervals'] as $interval) {
 
                     if ($interval['end_time'] <= $interval['start_time']) {
-                        abort(422, 'end_time must be after start_time');
+                        abort(422, __('availability.end_time_after_start'));
                     }
 
                     $provider->workingHours()->create([
@@ -58,7 +58,9 @@ class ServiceProviderAvailabilityController extends Controller
                 }
             }
 
-            return response()->json(['message' => 'Working hours updated']);
+            return response()->json([
+                'message' => __('availability.working_hours_updated'),
+            ]);
         });
     }
 
@@ -81,7 +83,9 @@ class ServiceProviderAvailabilityController extends Controller
         $endsUtc = Carbon::parse($data['ends_at'], $tz)->utc();
 
         if ($endsUtc->lessThanOrEqualTo($startsUtc)) {
-            return response()->json(['message' => 'Invalid time range'], 422);
+            return response()->json([
+                'message' => __('availability.invalid_time_range'),
+            ], 422);
         }
 
         $timeOff = ServiceProviderTimeOff::create([
@@ -103,6 +107,8 @@ class ServiceProviderAvailabilityController extends Controller
         abort_unless($timeOff->service_provider_id === $provider->id, 403);
 
         $timeOff->delete();
-        return response()->json(['message' => 'Deleted']);
+        return response()->json([
+            'message' => __('availability.deleted'),
+        ]);
     }
 }

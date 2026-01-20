@@ -21,7 +21,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->index(['service_provider_id', 'day_of_week']);
+            $table->index(['service_provider_id', 'day_of_week'], 'sp_wh_provider_day_idx');
         });
     }
 

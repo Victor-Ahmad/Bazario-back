@@ -23,8 +23,8 @@ return new class extends Migration
             $table->string('status', 32)->default('requested');
             // status: requested, confirmed, in_progress, completed, cancelled_by_customer, cancelled_by_provider, no_show
 
-            $table->timestamp('starts_at');
-            $table->timestamp('ends_at');
+            $table->dateTime('starts_at');
+            $table->dateTime('ends_at');
             $table->string('timezone')->nullable();
 
             $table->string('location_type', 32)->nullable();

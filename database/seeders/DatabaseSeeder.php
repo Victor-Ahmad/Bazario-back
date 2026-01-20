@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             SellerSeeder::class,
             ServiceProviderSeeder::class,
+            ApprovedAccountRolesSeeder::class,
+            ServiceProviderAvailabilitySeeder::class,
             ProductSeeder::class,
             ServiceSeeder::class,
             AdPositionSeeder::class,

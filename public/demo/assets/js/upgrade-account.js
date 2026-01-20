@@ -44,14 +44,14 @@ const providerNameInput = document.getElementById("provider_name");
 
 function endpointFor(type) {
     return type === "service_provider"
-        ? "/upgrade-to-service_provider"
-        : "/upgrade-to-seller";
+        ? "/customer/upgrade-to-service_provider"
+        : "/customer/upgrade-to-seller";
 }
 
 function endpointLabel(type) {
     return type === "service_provider"
-        ? "/api/upgrade-to-service_provider"
-        : "/api/upgrade-to-seller";
+        ? "/api/customer/upgrade-to-service_provider"
+        : "/api/customer/upgrade-to-seller";
 }
 
 function setGroupEnabled(group, enabled) {
@@ -143,7 +143,11 @@ form.addEventListener("submit", async (e) => {
     clearErrors(form);
 
     if (!getToken()) {
-        statusUI.setStatus(t(getLanguage(), "upgrade_login_required"), "bad", 401);
+        statusUI.setStatus(
+            t(getLanguage(), "upgrade_login_required"),
+            "bad",
+            401,
+        );
         return;
     }
 

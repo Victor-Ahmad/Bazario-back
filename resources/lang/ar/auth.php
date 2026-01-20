@@ -20,6 +20,7 @@ return [
 
 
     'upgraded_to_seller' => 'تم الترقية إلى حساب تاجر بنجاح.',
+    'upgraded_to_service_provider' => 'تم الترقية إلى حساب مقدم خدمة بنجاح.',
     'upgrade_failed' => 'فشلت الترقية. حاول مرة أخرى لاحقًا.',
 
     'store_owner_name_required' => 'اسم صاحب المتجر مطلوب.',
@@ -60,4 +61,12 @@ return [
 
     'user_not_found' => 'المستخدم غير موجود',
     'invalid_password' => 'كلمة المرور خاطئة',
+    'fetched_successfully' => 'تم جلب البيانات بنجاح.',
+    'fetch_failed' => 'فشل في جلب البيانات.',
+    'failed' => 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+    'logout_success' => 'تم تسجيل الخروج بنجاح.',
+    'logout_all_success' => 'تم تسجيل الخروج من جميع الأجهزة.',
+    'service_provider_status_updated_successfully' => 'تم تحديث حالة مقدم الخدمة بنجاح.',
+    'invalid_status' => 'حالة غير صالحة.',
+    'updated_failed' => 'فشل التحديث.',
 ];

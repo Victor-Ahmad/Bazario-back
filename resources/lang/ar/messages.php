@@ -10,4 +10,8 @@ return [
 
     'user_not_found' => 'المستخدم غير موجود',
     'invalid_password' => 'كلمة المرور خاطئة',
+    'validation_failed' => 'فشل التحقق من البيانات.',
+    'home_retrieved_successfully' => 'تم جلب بيانات الصفحة الرئيسية بنجاح.',
+    'products_retrieved_successfully' => 'تم جلب المنتجات بنجاح.',
+    'services_retrieved_successfully' => 'تم جلب الخدمات بنجاح.',
 ];

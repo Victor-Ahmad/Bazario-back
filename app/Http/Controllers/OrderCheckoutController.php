@@ -14,8 +14,8 @@ class OrderCheckoutController extends Controller
     public function createPaymentIntent(Request $request, Order $order, StripeClient $stripe)
     {
         abort_unless($order->buyer_id === $request->user()->id, 403);
-        abort_if($order->status !== 'draft', 422, 'Order is not payable.');
-        abort_if($order->total_amount <= 0, 422, 'Order total is invalid.');
+        abort_if($order->status !== 'draft', 422, __('orders.not_payable'));
+        abort_if($order->total_amount <= 0, 422, __('orders.total_invalid'));
 
         return DB::transaction(function () use ($order, $stripe) {
             $order->update([

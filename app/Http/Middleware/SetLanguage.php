@@ -16,10 +16,10 @@ class SetLanguage
      */
     public function handle(Request $request, Closure $next)
     {
-        $lang = $request->header('Accept-Language', 'ar');
+        $lang = $request->header('Accept-Language', 'de');
 
-        if (!in_array($lang, ['en', 'ar'])) {
-            $lang = 'ar';
+        if (!in_array($lang, ['en', 'ar', 'de'])) {
+            $lang = 'de';
         }
 
         App::setLocale($lang);

@@ -20,7 +20,7 @@ class CategoryController extends Controller
             return $request->validate($rules);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw new HttpResponseException(
-                $this->errorResponse(__('messages.validation_failed'), 'messages', 422, [
+                $this->errorResponse('validation_failed', 'messages', 422, [
                     'errors' => $e->errors(),
                 ])
             );
@@ -79,7 +79,7 @@ class CategoryController extends Controller
     {
         $category = Category::find($id);
         if (!$category) {
-            return $this->errorResponse(__('not_found'), 'messages', 404);
+            return $this->errorResponse('not_found', 'messages', 404);
         }
 
         $data = $this->validateRequest($request, [
@@ -114,7 +114,7 @@ class CategoryController extends Controller
     {
         $category = Category::find($id);
         if (!$category) {
-            return $this->errorResponse(__('not_found'), 'messages', 404);
+            return $this->errorResponse('not_found', 'messages', 404);
         }
         $category->delete();
         return $this->successResponse([], 'messages', 'deleted');

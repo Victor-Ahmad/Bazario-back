@@ -2,6 +2,7 @@ import { apiRequest } from "./api.js";
 import { getLanguage, setLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
 import { createStatusUI } from "./ui.js";
+import { getAuthSession } from "./auth.js";
 
 const listEl = document.getElementById("list");
 const langSelect = document.getElementById("langSelect");
@@ -41,6 +42,27 @@ function imgUrl(img) {
     if (!img) return null;
     // services images use: { image: "storage/..." }
     return img.image ? `/${img.image}` : null;
+}
+
+function normalizeRoles(roles) {
+    if (!roles) return [];
+    if (Array.isArray(roles)) {
+        return roles
+            .map((role) =>
+                typeof role === "string"
+                    ? role
+                    : role?.name || role?.slug || role?.role || "",
+            )
+            .filter(Boolean);
+    }
+    if (Array.isArray(roles?.data)) return normalizeRoles(roles.data);
+    if (Array.isArray(roles?.roles)) return normalizeRoles(roles.roles);
+    return [];
+}
+
+function isCustomer() {
+    const roles = getAuthSession()?.roles || getAuthSession()?.user?.roles;
+    return normalizeRoles(roles).includes("customer");
 }
 
 function cardService(s) {
@@ -102,6 +124,19 @@ function cardService(s) {
     wrap.appendChild(top);
     wrap.appendChild(meta);
     wrap.appendChild(desc);
+
+    if (isCustomer()) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = t(getLanguage(), "cart_book_btn");
+        btn.style.width = "auto";
+        btn.style.marginTop = "6px";
+        btn.addEventListener("click", () => {
+            sessionStorage.setItem("pending_service", JSON.stringify(s));
+            window.location.href = `/demo/book-service.html?service_id=${s.id}`;
+        });
+        wrap.appendChild(btn);
+    }
 
     return wrap;
 }

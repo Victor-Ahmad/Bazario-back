@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Add Service</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="page">
+            <section class="right">
+                <form id="serviceForm" class="card" novalidate>
+                    <div class="field">
+                        <label id="lblTitleEn" for="title_en"
+                            >Title (EN) *</label
+                        >
+                        <input id="title_en" name="title[en]" type="text" required />
+                        <small class="error" data-error-for="title.en"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblTitleAr" for="title_ar"
+                            >Title (AR) *</label
+                        >
+                        <input id="title_ar" name="title[ar]" type="text" required />
+                        <small class="error" data-error-for="title.ar"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblDescEn" for="desc_en"
+                            >Description (EN)</label
+                        >
+                        <textarea
+                            id="desc_en"
+                            name="description[en]"
+                            rows="3"
+                        ></textarea>
+                        <small
+                            class="error"
+                            data-error-for="description.en"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblDescAr" for="desc_ar"
+                            >Description (AR)</label
+                        >
+                        <textarea
+                            id="desc_ar"
+                            name="description[ar]"
+                            rows="3"
+                        ></textarea>
+                        <small
+                            class="error"
+                            data-error-for="description.ar"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblCategory" for="category_id"
+                            >Category *</label
+                        >
+                        <select id="category_id" name="category_id" required>
+                            <option value="" disabled selected>
+                                --
+                            </option>
+                        </select>
+                        <small
+                            class="error"
+                            data-error-for="category_id"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblPrice" for="price">Price *</label>
+                        <input
+                            id="price"
+                            name="price"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            required
+                        />
+                        <small class="error" data-error-for="price"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblDuration" for="duration_minutes"
+                            >Duration (minutes)</label
+                        >
+                        <input
+                            id="duration_minutes"
+                            name="duration_minutes"
+                            type="number"
+                            min="5"
+                            step="1"
+                        />
+                        <small
+                            class="error"
+                            data-error-for="duration_minutes"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblSlotInterval" for="slot_interval_minutes"
+                            >Slot interval (minutes)</label
+                        >
+                        <input
+                            id="slot_interval_minutes"
+                            name="slot_interval_minutes"
+                            type="number"
+                            min="5"
+                            step="1"
+                        />
+                        <small
+                            class="error"
+                            data-error-for="slot_interval_minutes"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label
+                            id="lblMaxConcurrent"
+                            for="max_concurrent_bookings"
+                            >Max concurrent bookings</label
+                        >
+                        <input
+                            id="max_concurrent_bookings"
+                            name="max_concurrent_bookings"
+                            type="number"
+                            min="1"
+                            step="1"
+                        />
+                        <small
+                            class="error"
+                            data-error-for="max_concurrent_bookings"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblLocationType" for="location_type"
+                            >Location type</label
+                        >
+                        <select id="location_type" name="location_type">
+                            <option value="" selected>--</option>
+                            <option value="remote">Remote</option>
+                            <option value="on_site">On site</option>
+                            <option value="at_customer">At customer</option>
+                        </select>
+                        <small
+                            class="error"
+                            data-error-for="location_type"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblIsActive" for="is_active"
+                            >Active</label
+                        >
+                        <select id="is_active" name="is_active">
+                            <option value="1" selected>Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                        <small class="error" data-error-for="is_active"></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblImages" for="images">Images</label>
+                        <input
+                            id="images"
+                            name="images[]"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                        />
+                        <small class="error" data-error-for="images"></small>
+                    </div>
+
+                    <input type="hidden" name="ad_type" value="service" />
+
+                    <button id="submitBtn" type="submit">Create service</button>
+                </form>
+            </section>
+
+            <section class="left">
+                <div class="brand">
+                    <div class="toolbar">
+                        <div id="badgeText" class="badge">Marketplace Demo</div>
+
+                        <div class="langWrap">
+                            <label class="srOnly" for="langSelect"
+                                >Language</label
+                            >
+                            <select id="langSelect" aria-label="Language">
+                                <option value="en">English</option>
+                                <option value="ar">Arabic</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h1 id="pageTitle">Add Service</h1>
+                    <p id="pageSubtitle" class="subtitle">
+                        Create a new service listing under your provider account.
+                    </p>
+                </div>
+
+                <section class="status">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>POST</code> <code>/api/service</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre
+                        id="debugBox"
+                        class="debugBox"
+                        style="display: none"
+                    ></pre>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/add-service.js"></script>
+    </body>
+</html>

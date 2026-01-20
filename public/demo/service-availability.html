@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Service Availability</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="page">
+            <section class="right">
+                <div class="card" style="display: grid; gap: 14px">
+                    <div>
+                        <h1 id="pageTitle" style="margin: 0 0 6px">
+                            Service Availability
+                        </h1>
+                        <p id="pageSubtitle" class="subtitle" style="max-width: none">
+                            Configure working hours and time off.
+                        </p>
+                    </div>
+
+                    <form id="hoursForm" style="display: grid; gap: 12px">
+                        <div class="field">
+                            <label id="lblTimezone" for="timezone"
+                                >Timezone</label
+                            >
+                            <input
+                                id="timezone"
+                                name="timezone"
+                                type="text"
+                                placeholder="Asia/Dubai"
+                            />
+                            <small class="error" data-error-for="timezone"></small>
+                        </div>
+
+                        <div class="field">
+                            <label id="lblWorkingHours" for="workingHours"
+                                >Working hours JSON</label
+                            >
+                            <textarea
+                                id="workingHours"
+                                name="workingHours"
+                                rows="6"
+                                placeholder='[{"day_of_week":1,"intervals":[{"start_time":"09:00","end_time":"17:00"}]}]'
+                            ></textarea>
+                            <small
+                                class="error"
+                                data-error-for="workingHours"
+                            ></small>
+                        </div>
+
+                        <button id="saveHoursBtn" type="submit">
+                            Save working hours
+                        </button>
+                    </form>
+
+                    <form id="timeOffForm" style="display: grid; gap: 12px">
+                        <div class="field">
+                            <label id="lblTimeOffStart" for="timeoff_start"
+                                >Time off start</label
+                            >
+                            <input
+                                id="timeoff_start"
+                                name="starts_at"
+                                type="datetime-local"
+                                required
+                            />
+                        </div>
+
+                        <div class="field">
+                            <label id="lblTimeOffEnd" for="timeoff_end"
+                                >Time off end</label
+                            >
+                            <input
+                                id="timeoff_end"
+                                name="ends_at"
+                                type="datetime-local"
+                                required
+                            />
+                        </div>
+
+                        <div class="field">
+                            <label id="lblTimeOffReason" for="timeoff_reason"
+                                >Reason</label
+                            >
+                            <input
+                                id="timeoff_reason"
+                                name="reason"
+                                type="text"
+                            />
+                        </div>
+
+                        <div class="field">
+                            <label id="lblTimeOffHoliday" for="timeoff_holiday"
+                                >Holiday</label
+                            >
+                            <select id="timeoff_holiday" name="is_holiday">
+                                <option value="0" selected>No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+
+                        <button id="addTimeOffBtn" type="submit">
+                            Add time off
+                        </button>
+                    </form>
+
+                    <div style="display: grid; gap: 8px">
+                        <h2 id="timeOffTitle">Upcoming time off</h2>
+                        <div id="timeOffList" style="display: grid; gap: 10px"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="left">
+                <div class="brand">
+                    <div class="toolbar">
+                        <div id="badgeText" class="badge">Marketplace Demo</div>
+
+                        <div class="langWrap">
+                            <label class="srOnly" for="langSelect"
+                                >Language</label
+                            >
+                            <select id="langSelect" aria-label="Language">
+                                <option value="en">English</option>
+                                <option value="ar">Arabic</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="status">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>GET</code> <code>/api/service_provider/availability</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre
+                        id="debugBox"
+                        class="debugBox"
+                        style="display: none"
+                    ></pre>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/service-availability.js"></script>
+    </body>
+</html>

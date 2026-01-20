@@ -23,4 +23,6 @@ return [
     'images_must_be_image' => 'Each file must be an image.',
     'images_mimes' => 'Images must be of type jpg, jpeg, png, or webp.',
     'images_size_max' => 'Each image must not exceed 2MB.',
+
+    'product_created_successfully' => 'Product created successfully.',
 ];

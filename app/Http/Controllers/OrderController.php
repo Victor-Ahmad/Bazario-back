@@ -44,7 +44,7 @@ class OrderController extends Controller
     public function addItem(Request $request, Order $order)
     {
         abort_unless($order->buyer_id === $request->user()->id, 403);
-        abort_if($order->status !== 'draft', 422, 'Order is not editable.');
+        abort_if($order->status !== 'draft', 422, __('orders.not_editable'));
 
         $data = $request->validate([
             'type' => ['required', 'in:product,service,listing'],
@@ -67,7 +67,7 @@ class OrderController extends Controller
 
 
                 $payeeUserId = $product->seller->user_id ?? null;
-                abort_if(!$payeeUserId, 422, 'Seller has no user_id.');
+                abort_if(!$payeeUserId, 422, __('orders.seller_user_missing'));
 
                 $unit = (int) round(((float)$product->price) * 100);
                 $gross = $unit * $qty;
@@ -118,10 +118,14 @@ class OrderController extends Controller
                 $service = Service::with('serviceProvider')->findOrFail($data['id']);
 
                 $providerUserId = $service->serviceProvider->user_id ?? null;
-                abort_if(!$providerUserId, 422, 'Service provider has no user_id.');
+                abort_if(!$providerUserId, 422, __('orders.provider_user_missing'));
 
                 // Booking fields required for services
-                abort_if(empty($data['starts_at']) || empty($data['ends_at']), 422, 'starts_at and ends_at are required for service bookings.');
+                abort_if(
+                    empty($data['starts_at']) || empty($data['ends_at']),
+                    422,
+                    __('orders.service_dates_required')
+                );
 
                 $unit = (int) round(((float)$service->price) * 100);
                 $gross = $unit;

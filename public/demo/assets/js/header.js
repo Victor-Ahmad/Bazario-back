@@ -72,6 +72,10 @@ function renderHeader(container) {
         session?.user &&
         !hasRole(roles, "seller") &&
         !hasRole(roles, "service_provider");
+    const isAdmin = hasRole(roles, "admin");
+    const isSeller = hasRole(roles, "seller");
+    const isServiceProvider = hasRole(roles, "service_provider");
+    const isCustomer = hasRole(roles, "customer");
 
     container.innerHTML = "";
 
@@ -80,7 +84,7 @@ function renderHeader(container) {
         "Marketplace Demo",
     ]);
 
-    const nav = el("nav", { class: "topbarNav" }, [
+    const navItems = [
         el(
             "a",
             {
@@ -120,43 +124,126 @@ function renderHeader(container) {
             },
             [t(lang, "nav_ads")],
         ),
-        ...(canUpgrade
-            ? [
-                  el(
-                      "a",
-                      {
-                          class: `navLink ${
-                              isActive("/demo/upgrade-account.html")
-                                  ? "active"
-                                  : ""
-                          }`,
-                          href: "/demo/upgrade-account.html",
-                      },
-                      [t(lang, "nav_upgrade")],
-                  ),
-              ]
-            : []),
-        el(
-            "a",
-            {
-                class: `navLink ${
-                    isActive("/demo/register.html") ? "active" : ""
-                }`,
-                href: "/demo/register.html",
-            },
-            [t(lang, "nav_register")],
-        ),
-        el(
-            "a",
-            {
-                class: `navLink ${
-                    isActive("/demo/login.html") ? "active" : ""
-                }`,
-                href: "/demo/login.html",
-            },
-            [t(lang, "nav_login")],
-        ),
-    ]);
+    ];
+
+    if (canUpgrade) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/upgrade-account.html") ? "active" : ""
+                    }`,
+                    href: "/demo/upgrade-account.html",
+                },
+                [t(lang, "nav_upgrade")],
+            ),
+        );
+    }
+
+    if (isAdmin) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/admin-upgrade-requests.html")
+                            ? "active"
+                            : ""
+                    }`,
+                    href: "/demo/admin-upgrade-requests.html",
+                },
+                [t(lang, "nav_admin_upgrade_requests")],
+            ),
+        );
+    }
+
+    if (isSeller) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/my-products.html") ? "active" : ""
+                    }`,
+                    href: "/demo/my-products.html",
+                },
+                [t(lang, "nav_my_products")],
+            ),
+        );
+    }
+
+    if (isServiceProvider) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/my-services.html") ? "active" : ""
+                    }`,
+                    href: "/demo/my-services.html",
+                },
+                [t(lang, "nav_my_services")],
+            ),
+        );
+
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/service-availability.html") ? "active" : ""
+                    }`,
+                    href: "/demo/service-availability.html",
+                },
+                [t(lang, "nav_service_availability")],
+            ),
+        );
+    }
+
+    if (isCustomer) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/cart.html") ? "active" : ""
+                    }`,
+                    href: "/demo/cart.html",
+                },
+                [t(lang, "nav_cart")],
+            ),
+        );
+    }
+
+    if (!session?.user) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/register.html") ? "active" : ""
+                    }`,
+                    href: "/demo/register.html",
+                },
+                [t(lang, "nav_register")],
+            ),
+        );
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/login.html") ? "active" : ""
+                    }`,
+                    href: "/demo/login.html",
+                },
+                [t(lang, "nav_login")],
+            ),
+        );
+    }
+
+    const nav = el("nav", { class: "topbarNav" }, navItems);
 
     const right = el("div", { class: "topbarRight" });
 

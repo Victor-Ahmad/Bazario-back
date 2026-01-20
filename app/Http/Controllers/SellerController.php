@@ -23,7 +23,7 @@ class SellerController extends Controller
                 ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
-            return $this->successResponse($sellers, 'auth', 'fetched_successfully.');
+            return $this->successResponse($sellers, 'auth', 'fetched_successfully');
         } catch (\Throwable $e) {
 
             return $this->errorResponse('fetch_failed', 'auth', 500, [
@@ -41,7 +41,7 @@ class SellerController extends Controller
                 ->paginate(20);
 
 
-            return $this->successResponse($sellers, 'auth', 'fetched_successfully.');
+            return $this->successResponse($sellers, 'auth', 'fetched_successfully');
         } catch (\Throwable $e) {
 
             return $this->errorResponse('fetch_failed', 'auth', 500, [
@@ -73,22 +73,18 @@ class SellerController extends Controller
             DB::beginTransaction();
             $seller->status = $request->status;
             $seller->save();
-            $role = null;
             if ($seller->status == 'approved') {
-                $role = Role::where('name', 'seller')->where('guard_name', 'api')->first();
+                $role = Role::where('name', 'seller')->where('guard_name', 'web')->first();
+                if (!$role) {
+                    throw new \Exception(__('auth.role_not_found'));
+                }
+                $seller->user->assignRole($role);
+                $seller->user->syncRoles(['customer', 'seller']);
                 $this->forceLogoutUser($seller->user);
-            } else {
-                $role = Role::where('name', 'customer')->where('guard_name', 'api')->first();
             }
-
-            if (!$role) {
-                throw new \Exception(__('auth.role_not_found'));
-            }
-
-            $seller->user->assignRole($role);
 
             DB::commit();
-            return $this->successResponse($seller, 'auth', 'seller_status_updated_successfully.');
+            return $this->successResponse($seller, 'auth', 'seller_status_updated_successfully');
         } catch (Throwable $e) {
             DB::rollBack();
 

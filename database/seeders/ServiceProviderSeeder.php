@@ -23,6 +23,7 @@ class ServiceProviderSeeder extends Seeder
                 'address' => 'Dubai, UAE',
                 'logo' => null,
                 'description' => 'Professional photographer for events and weddings',
+                'timezone' => 'Asia/Dubai',
                 'status' => 'approved',
             ],
             [
@@ -30,6 +31,7 @@ class ServiceProviderSeeder extends Seeder
                 'address' => 'Riyadh, Saudi Arabia',
                 'logo' => null,
                 'description' => 'Private Math & Science Tutor',
+                'timezone' => 'Asia/Riyadh',
                 'status' => 'approved',
             ],
             [
@@ -37,6 +39,7 @@ class ServiceProviderSeeder extends Seeder
                 'address' => 'Istanbul, Turkey',
                 'logo' => null,
                 'description' => 'Event planner and coordinator',
+                'timezone' => 'Europe/Istanbul',
                 'status' => 'approved',
             ],
             [
@@ -44,6 +47,7 @@ class ServiceProviderSeeder extends Seeder
                 'address' => 'Alexandria, Egypt',
                 'logo' => null,
                 'description' => 'Home repair and maintenance specialist',
+                'timezone' => 'Africa/Cairo',
                 'status' => 'approved',
             ],
         ];

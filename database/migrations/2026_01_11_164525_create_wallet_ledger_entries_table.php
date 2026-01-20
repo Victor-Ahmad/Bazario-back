@@ -26,7 +26,7 @@ return new class extends Migration
             $table->timestamp('available_on')->nullable();
             $table->json('metadata')->nullable();
 
-            $table->timestamps();
+
 
             $table->index(['user_id', 'type']);
             $table->index(['available_on']);

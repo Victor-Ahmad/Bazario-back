@@ -20,11 +20,20 @@ class ServiceAvailabilityController extends Controller
         $tz = $data['timezone'] ?? $provider->timezone ?? 'UTC';
 
         $dateLocal = Carbon::createFromFormat('Y-m-d', $data['date'], $tz)->startOfDay();
+        $nowLocal = Carbon::now($tz);
 
         $dow = (int) $dateLocal->dayOfWeek; // 0=Sun..6=Sat
 
         $intervals = $provider->workingHours->where('day_of_week', $dow)->values();
         if ($intervals->isEmpty()) {
+            return response()->json([
+                'date' => $data['date'],
+                'timezone' => $tz,
+                'slots' => [],
+            ]);
+        }
+
+        if ($dateLocal->isBefore($nowLocal->copy()->startOfDay())) {
             return response()->json([
                 'date' => $data['date'],
                 'timezone' => $tz,
@@ -62,6 +71,10 @@ class ServiceAvailabilityController extends Controller
             for ($cursor = $startLocal->copy(); $cursor->copy()->addMinutes($duration)->lte($endLocal); $cursor->addMinutes($step)) {
                 $slotStartLocal = $cursor->copy();
                 $slotEndLocal = $cursor->copy()->addMinutes($duration);
+
+                if ($slotStartLocal->lte($nowLocal)) {
+                    continue;
+                }
 
                 $slotStartUtc = $slotStartLocal->copy()->utc();
                 $slotEndUtc = $slotEndLocal->copy()->utc();

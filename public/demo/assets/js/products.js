@@ -2,6 +2,8 @@ import { apiRequest } from "./api.js";
 import { getLanguage, setLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
 import { createStatusUI } from "./ui.js";
+import { getAuthSession } from "./auth.js";
+import { addProductToCart } from "./cart.js";
 
 const listEl = document.getElementById("list");
 const langSelect = document.getElementById("langSelect");
@@ -41,6 +43,27 @@ function imgUrl(img) {
     if (!img) return null;
     // your product images use: { image: "storage/..." }
     return img.image ? `/${img.image}` : null;
+}
+
+function normalizeRoles(roles) {
+    if (!roles) return [];
+    if (Array.isArray(roles)) {
+        return roles
+            .map((role) =>
+                typeof role === "string"
+                    ? role
+                    : role?.name || role?.slug || role?.role || "",
+            )
+            .filter(Boolean);
+    }
+    if (Array.isArray(roles?.data)) return normalizeRoles(roles.data);
+    if (Array.isArray(roles?.roles)) return normalizeRoles(roles.roles);
+    return [];
+}
+
+function isCustomer() {
+    const roles = getAuthSession()?.roles || getAuthSession()?.user?.roles;
+    return normalizeRoles(roles).includes("customer");
 }
 
 function cardProduct(p) {
@@ -98,6 +121,19 @@ function cardProduct(p) {
     wrap.appendChild(top);
     wrap.appendChild(meta);
     wrap.appendChild(desc);
+
+    if (isCustomer()) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = t(getLanguage(), "cart_add_product_btn");
+        btn.style.width = "auto";
+        btn.style.marginTop = "6px";
+        btn.addEventListener("click", () => {
+            addProductToCart(p);
+            statusUI.setStatus(t(getLanguage(), "cart_add_success"), "ok", 200);
+        });
+        wrap.appendChild(btn);
+    }
 
     return wrap;
 }

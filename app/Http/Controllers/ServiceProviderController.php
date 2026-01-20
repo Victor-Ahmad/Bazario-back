@@ -24,7 +24,7 @@ class ServiceProviderController extends Controller
                 ->where('status', 'approved')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
-            return $this->successResponse($service_providers, 'auth', 'fetched_successfully.');
+            return $this->successResponse($service_providers, 'auth', 'fetched_successfully');
         } catch (\Throwable $e) {
 
             return $this->errorResponse('fetch_failed', 'auth', 500, [
@@ -41,7 +41,7 @@ class ServiceProviderController extends Controller
                 ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
-            return $this->successResponse($service_provider_requests, 'auth', 'fetched_successfully.');
+            return $this->successResponse($service_provider_requests, 'auth', 'fetched_successfully');
         } catch (\Throwable $e) {
 
             return $this->errorResponse('fetch_failed', 'auth', 500, [
@@ -73,21 +73,18 @@ class ServiceProviderController extends Controller
             DB::beginTransaction();
             $service_provider->status = $request->status;
             $service_provider->save();
-            $role = null;
             if ($service_provider->status == 'approved') {
-                $role = Role::where('name', 'seller')->where('guard_name', 'api')->first();
+                $role = Role::where('name', 'service_provider')->where('guard_name', 'web')->first();
+                if (!$role) {
+                    throw new \Exception(__('auth.role_not_found'));
+                }
+                $service_provider->user->assignRole($role);
+                $service_provider->user->syncRoles(['customer', 'service_provider']);
                 $this->forceLogoutUser($service_provider->user);
-            } else {
-                $role = Role::where('name', 'customer')->where('guard_name', 'api')->first();
             }
-            if (!$role) {
-                throw new \Exception(__('auth.role_not_found'));
-            }
-
-            $service_provider->user->assignRole($role);
 
             DB::commit();
-            return $this->successResponse($service_provider, 'auth', 'service_provider_status_updated_successfully.');
+            return $this->successResponse($service_provider, 'auth', 'service_provider_status_updated_successfully');
         } catch (Throwable $e) {
             DB::rollBack();
 

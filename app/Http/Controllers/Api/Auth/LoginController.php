@@ -21,7 +21,7 @@ class LoginController extends Controller
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             return $this->errorResponse(
-                __('auth.failed'),
+                'failed',
                 'auth',
                 401
             );

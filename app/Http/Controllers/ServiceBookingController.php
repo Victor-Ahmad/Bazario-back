@@ -24,7 +24,9 @@ class ServiceBookingController extends Controller
         ]);
 
         if (!$service->is_active) {
-            return response()->json(['message' => 'Service is not active'], 422);
+            return response()->json([
+                'message' => __('bookings.service_not_active'),
+            ], 422);
         }
 
         $provider = ServiceProvider::query()
@@ -33,12 +35,16 @@ class ServiceBookingController extends Controller
             ->first();
 
         if (!$provider) {
-            return response()->json(['message' => 'Service provider not found'], 422);
+            return response()->json([
+                'message' => __('bookings.service_provider_not_found'),
+            ], 422);
         }
 
         $providerUserId = $provider->user_id;
         if (!$providerUserId) {
-            return response()->json(['message' => 'Provider has no user attached'], 422);
+            return response()->json([
+                'message' => __('bookings.provider_no_user'),
+            ], 422);
         }
 
         // Prefer provider timezone unless client explicitly sends one
@@ -56,7 +62,9 @@ class ServiceBookingController extends Controller
         }
 
         if ($endsAtUtc->lessThanOrEqualTo($startsAtUtc)) {
-            return response()->json(['message' => 'Invalid time range'], 422);
+            return response()->json([
+                'message' => __('bookings.invalid_time_range'),
+            ], 422);
         }
 
         $booking = DB::transaction(function () use ($service, $provider, $providerUserId, $user, $startsAtUtc, $endsAtUtc, $data, $tz) {
@@ -71,7 +79,7 @@ class ServiceBookingController extends Controller
             $dayHours = $provider->workingHours->where('day_of_week', $dow);
 
             if ($dayHours->isEmpty()) {
-                abort(422, 'Provider is not available on this day.');
+                abort(422, __('bookings.provider_not_available_day'));
             }
 
             $fits = false;
@@ -86,7 +94,7 @@ class ServiceBookingController extends Controller
             }
 
             if (!$fits) {
-                abort(422, 'Requested time is outside provider working hours.');
+                abort(422, __('bookings.outside_working_hours'));
             }
 
             // 2) Check time off (stored in UTC)
@@ -94,7 +102,7 @@ class ServiceBookingController extends Controller
                 ->contains(fn($t) => $t->starts_at < $endsAtUtc && $t->ends_at > $startsAtUtc);
 
             if ($timeOffOverlap) {
-                abort(422, 'Provider is not available during this time.');
+                abort(422, __('bookings.provider_time_off'));
             }
 
             // 3) Capacity check (per service)
@@ -109,7 +117,7 @@ class ServiceBookingController extends Controller
                 ->count();
 
             if ($overlappingCount >= $capacity) {
-                abort(422, 'This time slot is no longer available.');
+                abort(422, __('bookings.slot_unavailable'));
             }
 
             // 4) Create booking
@@ -164,7 +172,9 @@ class ServiceBookingController extends Controller
         abort_unless($booking->provider_user_id === $user->id, 403);
 
         if (!in_array($booking->status, ['requested'], true)) {
-            return response()->json(['message' => 'Booking cannot be confirmed'], 422);
+            return response()->json([
+                'message' => __('bookings.confirm_not_allowed'),
+            ], 422);
         }
 
         $booking->status = 'confirmed';
@@ -186,7 +196,9 @@ class ServiceBookingController extends Controller
         abort_unless($isProvider || $isCustomer, 403);
 
         if (in_array($booking->status, ['completed', 'cancelled_by_customer', 'cancelled_by_provider'], true)) {
-            return response()->json(['message' => 'Booking already finalized'], 422);
+            return response()->json([
+                'message' => __('bookings.already_finalized'),
+            ], 422);
         }
 
         $booking->status = $isProvider ? 'cancelled_by_provider' : 'cancelled_by_customer';
@@ -203,7 +215,9 @@ class ServiceBookingController extends Controller
         abort_unless($booking->provider_user_id === $user->id, 403);
 
         if (!in_array($booking->status, ['confirmed', 'in_progress'], true)) {
-            return response()->json(['message' => 'Booking cannot be completed'], 422);
+            return response()->json([
+                'message' => __('bookings.complete_not_allowed'),
+            ], 422);
         }
 
         $booking->status = 'completed';

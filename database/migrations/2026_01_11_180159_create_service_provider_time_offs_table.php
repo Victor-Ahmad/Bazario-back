@@ -15,14 +15,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('service_provider_id')->constrained('service_providers')->cascadeOnDelete();
 
-            $table->timestamp('starts_at'); // UTC
-            $table->timestamp('ends_at');   // UTC
+            $table->dateTime('starts_at'); // UTC
+            $table->dateTime('ends_at');   // UTC
             $table->boolean('is_holiday')->default(false);
             $table->string('reason')->nullable();
 
             $table->timestamps();
 
-            $table->index(['service_provider_id', 'starts_at']);
+            $table->index(['service_provider_id', 'starts_at'], 'sp_time_off_provider_start_idx');
         });
     }
 

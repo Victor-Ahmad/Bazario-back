@@ -29,6 +29,11 @@ class ServiceRequest extends FormRequest
                 $rules = array_merge($rules, [
                     'category_id'      => 'required|exists:categories,id',
                     'price'            => 'required|numeric|min:0',
+                    'duration_minutes' => 'nullable|integer|min:5',
+                    'max_concurrent_bookings' => 'nullable|integer|min:1',
+                    'slot_interval_minutes' => 'nullable|integer|min:5',
+                    'location_type' => 'nullable|string|max:32',
+                    'is_active' => 'nullable|boolean',
 
                 ]);
                 break;
