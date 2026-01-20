@@ -126,16 +126,49 @@ function cardService(s) {
     wrap.appendChild(desc);
 
     if (isCustomer()) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.textContent = t(getLanguage(), "cart_book_btn");
-        btn.style.width = "auto";
-        btn.style.marginTop = "6px";
-        btn.addEventListener("click", () => {
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "8px";
+        actions.style.flexWrap = "wrap";
+
+        const btnBook = document.createElement("button");
+        btnBook.type = "button";
+        btnBook.textContent = t(getLanguage(), "cart_book_btn");
+        btnBook.style.width = "auto";
+        btnBook.style.marginTop = "6px";
+        btnBook.addEventListener("click", () => {
             sessionStorage.setItem("pending_service", JSON.stringify(s));
             window.location.href = `/demo/book-service.html?service_id=${s.id}`;
         });
-        wrap.appendChild(btn);
+
+        const btnChat = document.createElement("button");
+        btnChat.type = "button";
+        btnChat.className = "topbarBtn secondary";
+        btnChat.textContent = t(getLanguage(), "chat_contact_provider");
+        btnChat.style.width = "auto";
+        btnChat.style.marginTop = "6px";
+        btnChat.addEventListener("click", () => {
+            const providerUserId =
+                s.service_provider?.user?.id ||
+                s.serviceProvider?.user?.id ||
+                null;
+            if (!providerUserId) return;
+            sessionStorage.setItem(
+                "chat_target_user",
+                JSON.stringify({
+                    id: providerUserId,
+                    name:
+                        s.service_provider?.name ||
+                        s.serviceProvider?.name ||
+                        "Provider",
+                }),
+            );
+            window.location.href = "/demo/chat.html";
+        });
+
+        actions.appendChild(btnBook);
+        actions.appendChild(btnChat);
+        wrap.appendChild(actions);
     }
 
     return wrap;

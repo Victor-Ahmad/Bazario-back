@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Chats</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pusher/8.4.0/pusher.min.js"></script>
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="page">
+            <section class="right">
+                <div class="card" style="display: grid; gap: 12px">
+                    <div class="brand">
+                        <div class="toolbar">
+                            <div id="badgeText" class="badge">
+                                Marketplace Demo
+                            </div>
+
+                            <div class="langWrap">
+                                <label class="srOnly" for="langSelect"
+                                    >Language</label
+                                >
+                                <select id="langSelect" aria-label="Language">
+                                    <option value="en">English</option>
+                                    <option value="ar">Arabic</option>
+                                    <option value="de">German</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h1 id="pageTitle" style="margin: 0 0 6px">Chats</h1>
+                        <p
+                            id="pageSubtitle"
+                            class="subtitle"
+                            style="max-width: none"
+                        >
+                            Start or continue a conversation with other users.
+                        </p>
+                    </div>
+
+                    <div style="display: grid; gap: 10px">
+                        <input
+                            id="searchInput"
+                            type="text"
+                            placeholder="Search chats"
+                        />
+                        <div
+                            id="chatList"
+                            style="display: grid; gap: 8px"
+                        ></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="left">
+                <div class="card" style="display: grid; gap: 12px">
+                    <div
+                        style="
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 12px;
+                            flex-wrap: wrap;
+                            align-items: center;
+                        "
+                    >
+                        <h2 id="threadTitle">—</h2>
+                        <span id="unreadBadge" class="pill">
+                            <span class="code">0</span>
+                            <span class="label">Unread</span>
+                        </span>
+                    </div>
+
+                    <div
+                        id="threadBox"
+                        style="display: grid; gap: 8px; min-height: 260px"
+                    ></div>
+
+                    <form id="messageForm" style="display: grid; gap: 8px">
+                        <textarea
+                            id="messageInput"
+                            rows="3"
+                            placeholder="Type a message..."
+                        ></textarea>
+                        <button id="sendBtn" type="submit">Send</button>
+                    </form>
+                </div>
+
+                <section class="status">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>GET</code> <code>/api/conversations</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre
+                        id="debugBox"
+                        class="debugBox"
+                        style="display: none"
+                    ></pre>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/chat.js"></script>
+    </body>
+</html>

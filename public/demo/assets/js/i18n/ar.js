@@ -30,6 +30,7 @@ export default {
     nav_my_services: "خدماتي",
     nav_service_availability: "أوقات التوفر",
     nav_cart: "السلة",
+    nav_chats: "المحادثات",
 
     // Register
     title: "تسجيل عميل جديد",
@@ -209,4 +210,16 @@ export default {
     booking_selected: "الوقت المحدد",
     booking_missing_service: "بيانات الخدمة غير متوفرة.",
     cart_checkout_pending: "الدفع غير متوفر حاليًا.",
+
+    // Chat
+    chat_title: "المحادثات",
+    chat_subtitle: "ابدأ أو أكمل محادثة مع مستخدمين آخرين.",
+    chat_search: "ابحث في المحادثات",
+    chat_empty: "لا توجد محادثات حتى الآن.",
+    chat_select_prompt: "اختر محادثة للبدء.",
+    chat_message_placeholder: "اكتب رسالة...",
+    chat_send: "إرسال",
+    chat_contact_seller: "تواصل مع البائع",
+    chat_contact_provider: "تواصل مع مقدم الخدمة",
+    chat_contact_ad_owner: "تواصل مع صاحب الإعلان",
 };

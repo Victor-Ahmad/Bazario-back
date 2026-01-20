@@ -123,16 +123,44 @@ function cardProduct(p) {
     wrap.appendChild(desc);
 
     if (isCustomer()) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.textContent = t(getLanguage(), "cart_add_product_btn");
-        btn.style.width = "auto";
-        btn.style.marginTop = "6px";
-        btn.addEventListener("click", () => {
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "8px";
+        actions.style.flexWrap = "wrap";
+
+        const btnAdd = document.createElement("button");
+        btnAdd.type = "button";
+        btnAdd.textContent = t(getLanguage(), "cart_add_product_btn");
+        btnAdd.style.width = "auto";
+        btnAdd.style.marginTop = "6px";
+        btnAdd.addEventListener("click", () => {
             addProductToCart(p);
             statusUI.setStatus(t(getLanguage(), "cart_add_success"), "ok", 200);
         });
-        wrap.appendChild(btn);
+
+        const btnChat = document.createElement("button");
+        btnChat.type = "button";
+        btnChat.className = "topbarBtn secondary";
+        btnChat.textContent = t(getLanguage(), "chat_contact_seller");
+        btnChat.style.width = "auto";
+        btnChat.style.marginTop = "6px";
+        btnChat.addEventListener("click", () => {
+            const sellerUserId =
+                p.seller?.user?.id || p.seller?.user_id || null;
+            if (!sellerUserId) return;
+            sessionStorage.setItem(
+                "chat_target_user",
+                JSON.stringify({
+                    id: sellerUserId,
+                    name: p.seller?.user?.name || p.seller?.store_name || "Seller",
+                }),
+            );
+            window.location.href = "/demo/chat.html";
+        });
+
+        actions.appendChild(btnAdd);
+        actions.appendChild(btnChat);
+        wrap.appendChild(actions);
     }
 
     return wrap;

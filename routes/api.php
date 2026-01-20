@@ -26,14 +26,6 @@ use App\Http\Controllers\ServiceBookingController;
 use App\Http\Controllers\ServiceProviderAvailabilityController;
 use App\Http\Controllers\HomeController;
 
-Broadcast::routes([
-    'middleware' => ['auth:sanctum'],
-    // 'middleware' => ['auth:api'],
-]);
-
-
-
-
 Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
     Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);

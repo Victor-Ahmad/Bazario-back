@@ -30,6 +30,7 @@ export default {
     nav_my_services: "My Services",
     nav_service_availability: "Availability",
     nav_cart: "Cart",
+    nav_chats: "Chats",
 
     // Register
     title: "Customer Registration",
@@ -208,4 +209,16 @@ export default {
     booking_selected: "Selected slot",
     booking_missing_service: "Missing service data.",
     cart_checkout_pending: "Checkout not implemented yet.",
+
+    // Chat
+    chat_title: "Chats",
+    chat_subtitle: "Start or continue a conversation with other users.",
+    chat_search: "Search chats",
+    chat_empty: "No conversations yet.",
+    chat_select_prompt: "Select a conversation to start chatting.",
+    chat_message_placeholder: "Type a message...",
+    chat_send: "Send",
+    chat_contact_seller: "Contact seller",
+    chat_contact_provider: "Contact provider",
+    chat_contact_ad_owner: "Contact ad owner",
 };

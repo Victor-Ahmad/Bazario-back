@@ -1,7 +1,17 @@
 import { apiRequest } from "./api.js";
-import { getAuthSession, clearAuthSession } from "./auth.js";
+import { getAuthSession, clearAuthSession, getToken } from "./auth.js";
 import { getLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
+import { config } from "./config.js";
+
+const PUSHER_CDN =
+    "https://cdnjs.cloudflare.com/ajax/libs/pusher/8.4.0/pusher.min.js";
+
+let unreadBadgeEl = null;
+let unreadPusher = null;
+let unreadChannel = null;
+let unreadUserId = null;
+let pusherLoadPromise = null;
 
 function el(tag, attrs = {}, children = []) {
     const node = document.createElement(tag);
@@ -216,6 +226,32 @@ function renderHeader(container) {
         );
     }
 
+    if (session?.user) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/chat.html") ? "active" : ""
+                    }`,
+                    href: "/demo/chat.html",
+                },
+                [
+                    t(lang, "nav_chats"),
+                    el(
+                        "span",
+                        {
+                            class: "navBadge",
+                            id: "navChatUnread",
+                            "aria-live": "polite",
+                        },
+                        ["0"],
+                    ),
+                ],
+            ),
+        );
+    }
+
     if (!session?.user) {
         navItems.push(
             el(
@@ -296,6 +332,9 @@ function renderHeader(container) {
     const header = el("header", { class: "topbar" }, [inner, msg]);
 
     container.appendChild(header);
+
+    unreadBadgeEl = container.querySelector("#navChatUnread");
+    syncUnreadCount(session);
 }
 
 export function initHeader() {
@@ -307,6 +346,92 @@ export function initHeader() {
     // Re-render when auth or language changes
     window.addEventListener("demo:auth-changed", () => renderHeader(container));
     window.addEventListener("demo:lang-changed", () => renderHeader(container));
+}
+
+function setNavUnreadCount(count) {
+    if (!unreadBadgeEl) return;
+    const total = Number(count || 0);
+    unreadBadgeEl.textContent = String(total);
+    unreadBadgeEl.style.display = total > 0 ? "inline-flex" : "none";
+}
+
+async function loadUnreadCount() {
+    try {
+        const res = await apiRequest("/conversations/unread-count", {
+            method: "GET",
+        });
+        setNavUnreadCount(res?.result?.total || 0);
+    } catch {
+        setNavUnreadCount(0);
+    }
+}
+
+function cleanupUnreadRealtime() {
+    if (unreadChannel && unreadPusher) {
+        unreadChannel.unbind_all();
+        unreadPusher.unsubscribe(unreadChannel.name);
+    }
+    if (unreadPusher) unreadPusher.disconnect();
+    unreadChannel = null;
+    unreadPusher = null;
+    unreadUserId = null;
+}
+
+function loadPusherScript() {
+    if (window.Pusher) return Promise.resolve(window.Pusher);
+    if (pusherLoadPromise) return pusherLoadPromise;
+
+    pusherLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = PUSHER_CDN;
+        script.async = true;
+        script.onload = () => resolve(window.Pusher);
+        script.onerror = () => reject(new Error("Failed to load Pusher"));
+        document.head.appendChild(script);
+    });
+
+    return pusherLoadPromise;
+}
+
+async function initUnreadRealtime(session) {
+    const token = getToken();
+    const userId = session?.user?.id;
+    if (!token || !userId || !config?.pusher?.key) {
+        cleanupUnreadRealtime();
+        return;
+    }
+    if (unreadPusher && unreadUserId === userId) return;
+
+    cleanupUnreadRealtime();
+
+    await loadPusherScript();
+    if (!window.Pusher) return;
+
+    unreadPusher = new window.Pusher(config.pusher.key, {
+        cluster: config.pusher.cluster,
+        authEndpoint: config.pusher.authEndpoint,
+        auth: {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        },
+    });
+    unreadUserId = userId;
+
+    unreadChannel = unreadPusher.subscribe(`private-user.${userId}`);
+    unreadChannel.bind("conversations.unread", (payload) => {
+        setNavUnreadCount(payload?.total || 0);
+    });
+}
+
+function syncUnreadCount(session) {
+    if (!session?.user) {
+        setNavUnreadCount(0);
+        cleanupUnreadRealtime();
+        return;
+    }
+    loadUnreadCount();
+    initUnreadRealtime(session);
 }
 
 // Auto-init if the placeholder exists

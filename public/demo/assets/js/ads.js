@@ -2,6 +2,7 @@ import { apiRequest } from "./api.js";
 import { getLanguage, setLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
 import { createStatusUI } from "./ui.js";
+import { getAuthSession } from "./auth.js";
 
 const listEl = document.getElementById("list");
 const langSelect = document.getElementById("langSelect");
@@ -34,6 +35,27 @@ function safeText(v, fallback = "—") {
 function typeShort(adableType) {
     if (!adableType) return "—";
     return String(adableType).split("\\").pop(); // App\Models\Product -> Product
+}
+
+function normalizeRoles(roles) {
+    if (!roles) return [];
+    if (Array.isArray(roles)) {
+        return roles
+            .map((role) =>
+                typeof role === "string"
+                    ? role
+                    : role?.name || role?.slug || role?.role || "",
+            )
+            .filter(Boolean);
+    }
+    if (Array.isArray(roles?.data)) return normalizeRoles(roles.data);
+    if (Array.isArray(roles?.roles)) return normalizeRoles(roles.roles);
+    return [];
+}
+
+function isCustomer() {
+    const roles = getAuthSession()?.roles || getAuthSession()?.user?.roles;
+    return normalizeRoles(roles).includes("customer");
 }
 
 function adImgUrl(img) {
@@ -117,6 +139,43 @@ function cardAd(a) {
     wrap.appendChild(top);
     wrap.appendChild(meta);
     wrap.appendChild(sub);
+
+    if (isCustomer()) {
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "8px";
+        actions.style.flexWrap = "wrap";
+
+        const btnChat = document.createElement("button");
+        btnChat.type = "button";
+        btnChat.className = "topbarBtn secondary";
+        btnChat.textContent = t(getLanguage(), "chat_contact_ad_owner");
+        btnChat.style.width = "auto";
+        btnChat.style.marginTop = "6px";
+        btnChat.addEventListener("click", () => {
+            const userId =
+                a.adable?.user?.id ||
+                a.adable?.seller?.user?.id ||
+                a.adable?.serviceProvider?.user?.id ||
+                null;
+            if (!userId) return;
+            sessionStorage.setItem(
+                "chat_target_user",
+                JSON.stringify({
+                    id: userId,
+                    name:
+                        a.adable?.user?.name ||
+                        a.adable?.store_name ||
+                        a.adable?.name ||
+                        "Owner",
+                }),
+            );
+            window.location.href = "/demo/chat.html";
+        });
+
+        actions.appendChild(btnChat);
+        wrap.appendChild(actions);
+    }
 
     return wrap;
 }
