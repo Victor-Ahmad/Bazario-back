@@ -223,7 +223,6 @@ export default {
     // Chat
     chat_title: "Chats",
     chat_subtitle: "Starte oder fuehre Gespraeche mit anderen Nutzern.",
-    chat_search: "Chats suchen",
     chat_empty: "Keine Gespraeche vorhanden.",
     chat_select_prompt: "Waehle einen Chat aus.",
     chat_message_placeholder: "Nachricht schreiben...",

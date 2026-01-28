@@ -74,6 +74,9 @@ class ServiceController extends Controller
         $data = $request->except('images');
         $user = auth()->guard()->user();
         $service_provider = ServiceProvider::where('user_id', $user->id)->first();
+        if (!$service_provider) {
+            return $this->errorResponse('service_provider_not_found', 'messages', 404);
+        }
 
         $data['provider_id'] = $service_provider->id;
         $service = Service::create($data);

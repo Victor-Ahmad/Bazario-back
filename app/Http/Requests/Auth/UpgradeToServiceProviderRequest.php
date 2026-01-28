@@ -21,7 +21,7 @@ class UpgradeToServiceProviderRequest extends FormRequest
         return [
             'name'        => 'required|string|max:255',
             'address'     => 'required|string',
-            'logo'        => 'nullable|image',
+            'logo'        => 'nullable|image|max:4096',
             'description' => 'nullable|string',
 
             'email' => [
@@ -37,8 +37,8 @@ class UpgradeToServiceProviderRequest extends FormRequest
                 Rule::unique('users', 'phone')->ignore($userId),
             ],
 
-            'attachments'   => 'nullable|array',
-            'attachments.*' => 'file',
+            'attachments'   => 'nullable|array|max:5',
+            'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png,webp|max:8192',
         ];
     }
 

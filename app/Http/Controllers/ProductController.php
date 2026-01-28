@@ -87,6 +87,9 @@ class ProductController extends Controller
         $data = $request->except('images');
         $user = auth()->guard()->user();
         $seller = Seller::where('user_id', $user->id)->first();
+        if (!$seller) {
+            return $this->errorResponse('seller_not_found', 'messages', 404);
+        }
 
         $data['seller_id'] = $seller->id;
         $product = Product::create($data);

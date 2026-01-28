@@ -22,12 +22,13 @@ return [
     'images_max' => 'Du kannst maximal 5 Bilder hochladen.',
     'images_must_be_image' => 'Jede Datei muss ein Bild sein.',
     'images_mimes' => 'Bilder müssen vom Typ jpg, jpeg, png oder webp sein.',
-    'images_size_max' => 'Jedes Bild darf maximal 2MB groß sein.',
+    'images_size_max' => 'Jedes Bild darf maximal 4MB gross sein.',
 
     // General
     'invalid_adable_type' => 'Ungültiger Anzeigentyp.',
     'seller_not_found' => 'Verkäufer nicht gefunden.',
     'service_provider_not_found' => 'Dienstleister nicht gefunden.',
+    'not_authorized' => 'Keine Berechtigung, diese Anzeige zu verwalten.',
     'create_failed' => 'Anzeige konnte nicht erstellt werden.',
     'deleted' => 'Anzeige gelöscht.',
 ];

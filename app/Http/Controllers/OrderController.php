@@ -8,9 +8,11 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\Listing;
+use App\Models\ServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\ServiceBooking;
+use Carbon\Carbon;
 
 class OrderController extends Controller
 {
@@ -120,11 +122,48 @@ class OrderController extends Controller
                 $providerUserId = $service->serviceProvider->user_id ?? null;
                 abort_if(!$providerUserId, 422, __('orders.provider_user_missing'));
 
+                if (!$service->is_active) {
+                    abort(422, __('bookings.service_not_active'));
+                }
+
                 // Booking fields required for services
                 abort_if(
-                    empty($data['starts_at']) || empty($data['ends_at']),
+                    empty($data['starts_at']),
                     422,
                     __('orders.service_dates_required')
+                );
+
+                $provider = ServiceProvider::query()
+                    ->whereKey($service->provider_id)
+                    ->with(['workingHours', 'timeOffs'])
+                    ->first();
+
+                abort_if(!$provider, 422, __('bookings.service_provider_not_found'));
+
+                $tz = $data['timezone'] ?? $provider->timezone ?? 'UTC';
+                $startsAtUtc = Carbon::parse($data['starts_at'], $tz)->utc();
+
+                if ($startsAtUtc->lessThanOrEqualTo(Carbon::now('UTC'))) {
+                    abort(422, __('bookings.start_time_in_past'));
+                }
+
+                if (!empty($data['ends_at'])) {
+                    $endsAtUtc = Carbon::parse($data['ends_at'], $tz)->utc();
+                } else {
+                    $duration = (int) ($service->duration_minutes ?? 60);
+                    $endsAtUtc = $startsAtUtc->copy()->addMinutes($duration);
+                }
+
+                if ($endsAtUtc->lessThanOrEqualTo($startsAtUtc)) {
+                    abort(422, __('bookings.invalid_time_range'));
+                }
+
+                $this->assertSlotAvailable(
+                    $service,
+                    $provider,
+                    $startsAtUtc,
+                    $endsAtUtc,
+                    $tz
                 );
 
                 $unit = (int) round(((float)$service->price) * 100);
@@ -151,10 +190,11 @@ class OrderController extends Controller
                     'order_item_id' => $item->id,
                     'service_id' => $service->id,
                     'provider_user_id' => $providerUserId,
+                    'customer_user_id' => $order->buyer_id,
                     'status' => 'requested',
-                    'starts_at' => $data['starts_at'],
-                    'ends_at' => $data['ends_at'],
-                    'timezone' => $data['timezone'] ?? null,
+                    'starts_at' => $startsAtUtc,
+                    'ends_at' => $endsAtUtc,
+                    'timezone' => $tz,
                     'location_type' => $data['location_type'] ?? $service->location_type,
                     'location_payload' => $data['location_payload'] ?? null,
                 ]);
@@ -168,5 +208,59 @@ class OrderController extends Controller
 
             return response()->json($order->load(['items', 'items.serviceBooking']));
         });
+    }
+
+    protected function assertSlotAvailable(
+        Service $service,
+        ServiceProvider $provider,
+        Carbon $startsAtUtc,
+        Carbon $endsAtUtc,
+        string $tz
+    ): void {
+        $startLocal = $startsAtUtc->copy()->tz($tz);
+        $endLocal = $endsAtUtc->copy()->tz($tz);
+
+        $dow = (int) $startLocal->dayOfWeek; // 0=Sun..6=Sat
+        $dayHours = $provider->workingHours->where('day_of_week', $dow);
+
+        if ($dayHours->isEmpty()) {
+            abort(422, __('bookings.provider_not_available_day'));
+        }
+
+        $fits = false;
+        foreach ($dayHours as $wh) {
+            $whStart = Carbon::parse($startLocal->toDateString() . ' ' . $wh->start_time, $tz);
+            $whEnd = Carbon::parse($startLocal->toDateString() . ' ' . $wh->end_time, $tz);
+
+            if ($startLocal->gte($whStart) && $endLocal->lte($whEnd)) {
+                $fits = true;
+                break;
+            }
+        }
+
+        if (!$fits) {
+            abort(422, __('bookings.outside_working_hours'));
+        }
+
+        $timeOffOverlap = $provider->timeOffs
+            ->contains(fn($t) => $t->starts_at < $endsAtUtc && $t->ends_at > $startsAtUtc);
+
+        if ($timeOffOverlap) {
+            abort(422, __('bookings.provider_time_off'));
+        }
+
+        $capacity = (int) ($service->max_concurrent_bookings ?? 1);
+
+        $overlappingCount = ServiceBooking::query()
+            ->where('provider_user_id', $provider->user_id)
+            ->where('service_id', $service->id)
+            ->whereIn('status', ['requested', 'confirmed', 'in_progress'])
+            ->where('starts_at', '<', $endsAtUtc)
+            ->where('ends_at', '>', $startsAtUtc)
+            ->count();
+
+        if ($overlappingCount >= $capacity) {
+            abort(422, __('bookings.slot_unavailable'));
+        }
     }
 }

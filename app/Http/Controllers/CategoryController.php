@@ -7,10 +7,12 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
     use ApiResponseTrait;
+    private const ALLOWED_TYPES = ['product', 'service', 'ad', 'listing'];
     /**
      * Display a listing of the resource.
      */
@@ -31,6 +33,9 @@ class CategoryController extends Controller
         $query = Category::query();
 
         if ($request->has('type')) {
+            if (!in_array($request->type, self::ALLOWED_TYPES, true)) {
+                return $this->errorResponse('invalid_category_type', 'messages', 422);
+            }
             $query->where('type', $request->type);
         }
 
@@ -49,9 +54,9 @@ class CategoryController extends Controller
             'name.ar' => 'required|string|max:255',
             'parent_id' => 'nullable|exists:categories,id',
             'slug' => 'nullable|string|max:255|unique:categories,slug',
-            'type' => 'nullable|string',
+            'type' => ['nullable', 'string', Rule::in(self::ALLOWED_TYPES)],
             'description' => 'nullable|string',
-            'image' => 'nullable|image'
+            'image' => 'nullable|image|max:4096'
         ]);
 
         if ($request->hasFile('image')) {
@@ -87,10 +92,10 @@ class CategoryController extends Controller
             'name.en' => 'required_with:name|string|max:255',
             'name.ar' => 'required_with:name|string|max:255',
             'parent_id' => 'nullable|exists:categories,id',
-            'type' => 'nullable|string',
+            'type' => ['nullable', 'string', Rule::in(self::ALLOWED_TYPES)],
             'slug' => 'sometimes|string|max:255|unique:categories,slug,' . $id,
             'description' => 'nullable|string',
-            'image' => 'nullable|image'
+            'image' => 'nullable|image|max:4096'
         ]);
 
         if ($request->hasFile('image')) {

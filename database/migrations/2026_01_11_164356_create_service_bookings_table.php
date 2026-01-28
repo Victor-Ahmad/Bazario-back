@@ -14,7 +14,11 @@ return new class extends Migration
         Schema::create('service_bookings', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('order_item_id')->unique()->constrained('order_items')->cascadeOnDelete();
+            $table->foreignId('order_item_id')
+                ->nullable()
+                ->unique()
+                ->constrained('order_items')
+                ->nullOnDelete();
 
             $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
 

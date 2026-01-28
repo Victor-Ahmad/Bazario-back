@@ -27,9 +27,9 @@ class ServiceProviderAvailabilityController extends Controller
 
         $data = $request->validate([
             'timezone' => ['nullable', 'string', 'max:64'],
-            'days' => ['required', 'array'],
+            'days' => ['required', 'array', 'max:7'],
             'days.*.day_of_week' => ['required', 'integer', 'min:0', 'max:6'],
-            'days.*.intervals' => ['required', 'array'],
+            'days.*.intervals' => ['required', 'array', 'max:6'],
             'days.*.intervals.*.start_time' => ['required', 'date_format:H:i'],
             'days.*.intervals.*.end_time' => ['required', 'date_format:H:i'],
         ]);
@@ -44,10 +44,17 @@ class ServiceProviderAvailabilityController extends Controller
             $provider->workingHours()->delete();
 
             foreach ($data['days'] as $day) {
-                foreach ($day['intervals'] as $interval) {
+                $intervals = $day['intervals'] ?? [];
+                usort($intervals, fn($a, $b) => strcmp($a['start_time'], $b['start_time']));
 
+                $lastEnd = null;
+                foreach ($intervals as $interval) {
                     if ($interval['end_time'] <= $interval['start_time']) {
                         abort(422, __('availability.end_time_after_start'));
+                    }
+
+                    if ($lastEnd && $interval['start_time'] < $lastEnd) {
+                        abort(422, __('availability.intervals_overlap'));
                     }
 
                     $provider->workingHours()->create([
@@ -55,6 +62,8 @@ class ServiceProviderAvailabilityController extends Controller
                         'start_time' => $interval['start_time'],
                         'end_time' => $interval['end_time'],
                     ]);
+
+                    $lastEnd = $interval['end_time'];
                 }
             }
 

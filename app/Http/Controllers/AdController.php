@@ -14,6 +14,13 @@ use App\Models\ServiceProvider;
 
 class AdController extends Controller
 {
+    private const ALLOWED_ADABLES = [
+        'product' => \App\Models\Product::class,
+        'service' => \App\Models\Service::class,
+        'seller'  => \App\Models\Seller::class,
+        'service_provider'  => \App\Models\ServiceProvider::class,
+        'listing'  => \App\Models\Listing::class,
+    ];
 
     public function index()
     {
@@ -123,55 +130,53 @@ class AdController extends Controller
             'price'      => 'nullable|numeric|min:0|max:999999999.99',
             'expires_at' => 'nullable|date',
             'ad_position_id' => 'nullable|exists:ad_positions,id',
-            'adable_type' => 'nullable|string',
+            'adable_type' => 'required|string',
             'adable_id' => 'nullable|integer',
-            'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp',
+            'images' => 'nullable|array|max:5',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
         ]);
 
-        // Optionally check adable_type is allowed, e.g.:
-        // $allowedTypes = [
-        //     \App\Models\Product::class,
-        //     \App\Models\Service::class,
-        //     \App\Models\Seller::class,
-        //     \App\Models\ServiceProvider::class,
-        // ];
-        $map = [
-            'product' => \App\Models\Product::class,
-            'service' => \App\Models\Service::class,
-            'seller'  => \App\Models\Seller::class,
-            'service_provider'  => \App\Models\ServiceProvider::class,
-            'listing'  => \App\Models\Listing::class,
-        ];
         $type = strtolower((string) $validated['adable_type'] ?? '');
-        if (!isset($map[$type])) {
+        if (!isset(self::ALLOWED_ADABLES[$type])) {
             return response()->json([
                 'success' => 0,
                 'message' => __('ads.invalid_adable_type'),
             ], 422);
         }
-        $validated['adable_type'] = $map[$type];
+        $validated['adable_type'] = self::ALLOWED_ADABLES[$type];
+
+        $user = $request->user();
+        $adableId = $validated['adable_id'] ?? null;
+
         if (empty($validated['adable_id'])) {
             if ($validated['adable_type'] === \App\Models\Seller::class) {
-                $seller = auth()->guard()->user()->seller;
+                $seller = $user->seller;
                 if (!$seller) {
                     return response()->json([
                         'success' => 0,
                         'message' => __('ads.seller_not_found'),
                     ], 422);
                 }
-                $validated['adable_id'] = $seller->id;
+                $adableId = $seller->id;
             }
             if ($validated['adable_type'] === \App\Models\ServiceProvider::class) {
-                $service_provider = auth()->guard()->user()->service_provider;
+                $service_provider = $user->service_provider;
                 if (!$service_provider) {
                     return response()->json([
                         'success' => 0,
                         'message' => __('ads.service_provider_not_found'),
                     ], 422);
                 }
-                $validated['adable_id'] = $service_provider->id;
+                $adableId = $service_provider->id;
             }
+        }
+        $validated['adable_id'] = $adableId;
+
+        if (!$adableId || !$this->authorizeAdableOwner($user, $validated['adable_type'], $adableId)) {
+            return response()->json([
+                'success' => 0,
+                'message' => __('ads.not_authorized'),
+            ], 403);
         }
         DB::beginTransaction();
         try {
@@ -230,6 +235,7 @@ class AdController extends Controller
     public function update(Request $request, $id)
     {
         $ad = Ad::findOrFail($id);
+        $this->authorizeAdOwner($request->user(), $ad);
 
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -249,6 +255,7 @@ class AdController extends Controller
     public function destroy($id)
     {
         $ad = Ad::findOrFail($id);
+        $this->authorizeAdOwner(request()->user(), $ad);
         $ad->delete();
 
         return response()->json([
@@ -261,9 +268,10 @@ class AdController extends Controller
     public function addImages(Request $request, $id)
     {
         $ad = Ad::findOrFail($id);
+        $this->authorizeAdOwner($request->user(), $ad);
         $validated = $request->validate([
-            'images' => 'required|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp',
+            'images' => 'required|array|max:5',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
         ]);
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $idx => $imgFile) {
@@ -275,6 +283,45 @@ class AdController extends Controller
             }
         }
         return response()->json(['success' => 1, 'result' => $ad->images]);
+    }
+
+    private function authorizeAdOwner($user, Ad $ad): void
+    {
+        if (!$user) abort(401);
+
+        $adable = $ad->adable;
+        if (!$adable) abort(404);
+
+        if (!$this->authorizeAdableOwner($user, $ad->adable_type, $ad->adable_id)) {
+            abort(403, __('ads.not_authorized'));
+        }
+    }
+
+    private function authorizeAdableOwner($user, string $adableType, int $adableId): bool
+    {
+        if ($adableType === \App\Models\Seller::class) {
+            return (int) ($user->seller?->id ?? 0) === $adableId;
+        }
+        if ($adableType === \App\Models\ServiceProvider::class) {
+            return (int) ($user->service_provider?->id ?? 0) === $adableId;
+        }
+        if ($adableType === \App\Models\Product::class) {
+            return \App\Models\Product::whereKey($adableId)
+                ->whereHas('seller', fn($q) => $q->where('user_id', $user->id))
+                ->exists();
+        }
+        if ($adableType === \App\Models\Service::class) {
+            return \App\Models\Service::whereKey($adableId)
+                ->whereHas('serviceProvider', fn($q) => $q->where('user_id', $user->id))
+                ->exists();
+        }
+        if ($adableType === \App\Models\Listing::class) {
+            return \App\Models\Listing::whereKey($adableId)
+                ->where('user_id', $user->id)
+                ->exists();
+        }
+
+        return false;
     }
 
     public function timedAds(Request $request)

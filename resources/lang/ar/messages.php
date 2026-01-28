@@ -14,4 +14,5 @@ return [
     'home_retrieved_successfully' => 'تم جلب بيانات الصفحة الرئيسية بنجاح.',
     'products_retrieved_successfully' => 'تم جلب المنتجات بنجاح.',
     'services_retrieved_successfully' => 'تم جلب الخدمات بنجاح.',
+    'invalid_category_type' => 'نوع التصنيف غير صالح.',
 ];

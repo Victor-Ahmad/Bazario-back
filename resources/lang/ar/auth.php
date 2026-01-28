@@ -28,8 +28,12 @@ return [
     'address_required' => 'العنوان مطلوب.',
     'logo_required' => 'الشعار مطلوب.',
     'logo_image' => 'يجب أن يكون الشعار صورة.',
+    'logo_must_be_image' => 'يجب أن يكون الشعار صورة.',
     'description_required' => 'الوصف مطلوب.',
     'phone_required' => 'رقم الهاتف مطلوب.',
+    'attachments_array' => 'يجب أن تكون المرفقات على شكل مصفوفة.',
+    'attachments_file' => 'يجب أن يكون كل مرفق ملفًا صالحًا.',
+    'attachments_file_max' => 'يجب ألا يتجاوز حجم كل مرفق 8 ميغابايت.',
 
     'password_updated' => 'تم تحديث كلمة المرور بنجاح.',
     'invalid_old_password' => 'كلمة المرور الحالية غير صحيحة.',

@@ -27,8 +27,12 @@ return [
     'address_required' => 'Address is required.',
     'logo_required' => 'Logo is required.',
     'logo_image' => 'Logo must be an image.',
+    'logo_must_be_image' => 'Logo must be an image.',
     'description_required' => 'Description is required.',
     'phone_required' => 'Phone number is required.',
+    'attachments_array' => 'Attachments must be an array.',
+    'attachments_file' => 'Each attachment must be a valid file.',
+    'attachments_file_max' => 'Each attachment must not exceed 8MB.',
 
     'password_updated' => 'Password updated successfully.',
     'invalid_old_password' => 'The current password is incorrect.',

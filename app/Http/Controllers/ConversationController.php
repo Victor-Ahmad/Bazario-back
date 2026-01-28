@@ -47,13 +47,11 @@ class ConversationController extends Controller
     public function index(Request $r)
     {
         $userId  = $r->user()->id;
-        $q       = (string) $r->query('q', '');
-        $perPage = (int) $r->query('per_page', 20);
+        $perPage = min(50, max(1, (int) $r->query('per_page', 20)));
 
         $conversations = Conversation::query()
             ->forUser($userId)
             ->withChatListData($userId)
-            ->search($q, $userId)
             ->orderByDesc('last_message_at')
             ->orderByDesc('id')
             ->paginate($perPage);

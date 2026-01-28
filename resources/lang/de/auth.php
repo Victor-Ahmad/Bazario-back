@@ -25,8 +25,12 @@ return [
     'address_required' => 'Adresse ist erforderlich.',
     'logo_required' => 'Logo ist erforderlich.',
     'logo_image' => 'Logo muss ein Bild sein.',
+    'logo_must_be_image' => 'Logo muss ein Bild sein.',
     'description_required' => 'Beschreibung ist erforderlich.',
     'phone_required' => 'Telefonnummer ist erforderlich.',
+    'attachments_array' => 'Anhaenge muessen ein Array sein.',
+    'attachments_file' => 'Jeder Anhang muss eine gueltige Datei sein.',
+    'attachments_file_max' => 'Jeder Anhang darf maximal 8MB gross sein.',
 
     'password_updated' => 'Passwort erfolgreich aktualisiert.',
     'invalid_old_password' => 'Das aktuelle Passwort ist falsch.',

@@ -14,4 +14,5 @@ return [
     'complete_not_allowed' => 'Buchung kann nicht abgeschlossen werden.',
     'cancel_not_allowed_time' => 'Stornierungsfrist ist abgelaufen.',
     'edit_not_allowed_time' => 'Bearbeitungsfrist ist abgelaufen.',
+    'start_time_in_past' => 'Startzeit muss in der Zukunft liegen.',
 ];

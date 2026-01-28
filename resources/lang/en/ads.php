@@ -22,12 +22,13 @@ return [
     'images_max' => 'You can upload a maximum of 5 images.',
     'images_must_be_image' => 'Each file must be an image.',
     'images_mimes' => 'Images must be of type jpg, jpeg, png, or webp.',
-    'images_size_max' => 'Each image must not exceed 2MB.',
+    'images_size_max' => 'Each image must not exceed 4MB.',
 
     // General
     'invalid_adable_type' => 'Invalid adable type.',
     'seller_not_found' => 'Seller not found.',
     'service_provider_not_found' => 'Service provider not found.',
+    'not_authorized' => 'Not authorized to manage this ad.',
     'create_failed' => 'Failed to create ad.',
     'deleted' => 'Ad deleted.',
 ];

@@ -13,4 +13,5 @@ return [
     'home_retrieved_successfully' => 'Home-Daten erfolgreich abgerufen.',
     'products_retrieved_successfully' => 'Produkte erfolgreich abgerufen.',
     'services_retrieved_successfully' => 'Services erfolgreich abgerufen.',
+    'invalid_category_type' => 'Ungueltiger Kategorie-Typ.',
 ];

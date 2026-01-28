@@ -216,7 +216,6 @@ export default {
     // Chat
     chat_title: "المحادثات",
     chat_subtitle: "ابدأ أو أكمل محادثة مع مستخدمين آخرين.",
-    chat_search: "ابحث في المحادثات",
     chat_empty: "لا توجد محادثات حتى الآن.",
     chat_select_prompt: "اختر محادثة للبدء.",
     chat_message_placeholder: "اكتب رسالة...",

@@ -14,4 +14,5 @@ return [
     'complete_not_allowed' => 'Booking cannot be completed.',
     'cancel_not_allowed_time' => 'Cancellation window has passed.',
     'edit_not_allowed_time' => 'Editing window has passed.',
+    'start_time_in_past' => 'Start time must be in the future.',
 ];

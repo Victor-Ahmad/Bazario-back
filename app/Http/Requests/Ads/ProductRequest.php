@@ -19,20 +19,12 @@ class ProductRequest extends FormRequest
             'name'         => 'required|array',
             'name.en'      => 'required|string|max:255',
             'name.ar'      => 'required|string|max:255',
-            'description'   => 'nullable|array',
-            'images'   => 'nullable|array|max:5',
-            'images.*' => 'image|mimes:jpg,jpeg,png,webp',
+            'description'  => 'nullable|array',
+            'category_id'  => 'required|exists:categories,id',
+            'price'        => 'required|numeric|min:0',
+            'images'       => 'nullable|array|max:5',
+            'images.*'     => 'image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
-
-        switch ($this->ad_type) {
-            case 'product':
-                $rules = array_merge($rules, [
-                    'category_id'      => 'required|exists:categories,id',
-                    'price'            => 'required|numeric|min:0',
-
-                ]);
-                break;
-        }
 
         return $rules;
     }

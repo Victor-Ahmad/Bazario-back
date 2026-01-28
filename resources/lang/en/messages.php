@@ -13,5 +13,6 @@ return [
     'home_retrieved_successfully' => 'Home data retrieved successfully.',
     'products_retrieved_successfully' => 'Products retrieved successfully.',
     'services_retrieved_successfully' => 'Services retrieved successfully.',
+    'invalid_category_type' => 'Invalid category type.',
 
 ];

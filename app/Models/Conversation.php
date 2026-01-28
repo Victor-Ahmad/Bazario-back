@@ -66,28 +66,6 @@ class Conversation extends Model
             ]);
     }
 
-    public function scopeSearch(Builder $q, string $term, int $userId): Builder
-    {
-        $term = trim($term);
-        if ($term === '') return $q;
-
-        return $q->where(function (Builder $w) use ($term, $userId) {
-            $w->whereHas('participants', function (Builder $p) use ($term, $userId) {
-                $p->where('users.id', '!=', $userId)
-                    ->where(
-                        fn(Builder $pp) =>
-                        $pp->where('users.name', 'like', "%{$term}%")
-                            ->orWhere('users.email', 'like', "%{$term}%")
-                    );
-            })->orWhereHas(
-                'messages',
-                fn(Builder $m) =>
-                $m->where('body', 'like', "%{$term}%")
-            );
-        });
-    }
-
-
     // response shap
     public function toChatListItem(int $userId): array
     {

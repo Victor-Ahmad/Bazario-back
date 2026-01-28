@@ -19,7 +19,6 @@ const pageTitle = document.getElementById("pageTitle");
 const pageSubtitle = document.getElementById("pageSubtitle");
 const statusTitle = document.getElementById("statusTitle");
 
-const searchInput = document.getElementById("searchInput");
 const chatList = document.getElementById("chatList");
 
 const threadTitle = document.getElementById("threadTitle");
@@ -38,7 +37,6 @@ let pusher = null;
 function applyTranslations(lang) {
     pageTitle.textContent = t(lang, "chat_title");
     pageSubtitle.textContent = t(lang, "chat_subtitle");
-    searchInput.placeholder = t(lang, "chat_search");
     messageInput.placeholder = t(lang, "chat_message_placeholder");
     sendBtn.textContent = t(lang, "chat_send");
     statusTitle.textContent = t(lang, "status");
@@ -166,11 +164,11 @@ function appendMessage(payload) {
     threadBox.appendChild(bubble);
 }
 
-async function loadConversations(query = "") {
+async function loadConversations() {
     try {
         statusUI.setRequestMeta("GET", "/api/conversations");
         statusUI.setStatus("Loading conversations...", "neutral", null);
-        const qs = new URLSearchParams({ q: query, per_page: "20" });
+        const qs = new URLSearchParams({ per_page: "20" });
         const res = await apiRequest(`/conversations?${qs.toString()}`, {
             method: "GET",
         });
@@ -359,6 +357,4 @@ messageForm.addEventListener("submit", async (e) => {
     }
 });
 
-searchInput.addEventListener("input", () => {
-    loadConversations(searchInput.value);
-});
+// search removed

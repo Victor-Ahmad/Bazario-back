@@ -32,7 +32,7 @@ class ListingWithAdRequest extends FormRequest
             'attributes'   => ['nullable', 'array'],
 
             'images'       => ['required', 'array', 'max:12'],
-            'images.*'     => ['file', 'image'],
+            'images.*'     => ['file', 'image', 'max:4096'],
             'cover_index'  => ['nullable', 'integer', 'min:0'],
 
             // Ad (placement)
@@ -44,7 +44,7 @@ class ListingWithAdRequest extends FormRequest
 
             // Optional: provide separate creatives for the ad (if omitted, we’ll reuse listing images)
             'ad.images'         => ['nullable', 'array', 'max:5'],
-            'ad.images.*'       => ['file', 'image'],
+            'ad.images.*'       => ['file', 'image', 'max:4096'],
         ];
     }
 }

@@ -20,26 +20,18 @@ class ServiceRequest extends FormRequest
             'title.en'      => 'required|string|max:255',
             'title.ar'      => 'required|string|max:255',
             'description'   => 'nullable|array',
+            'category_id'   => 'required|exists:categories,id',
+            'price'         => 'required|numeric|min:0',
+            'duration_minutes' => 'nullable|integer|min:5',
+            'max_concurrent_bookings' => 'nullable|integer|min:1',
+            'slot_interval_minutes' => 'nullable|integer|min:5',
+            'cancel_cutoff_hours' => 'nullable|integer|min:0',
+            'edit_cutoff_hours' => 'nullable|integer|min:0',
+            'location_type' => 'nullable|string|max:32',
+            'is_active' => 'nullable|boolean',
             'images'   => 'nullable|array|max:5',
-            'images.*' => 'image|mimes:jpg,jpeg,png,webp',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
-
-        switch ($this->ad_type) {
-            case 'service':
-                $rules = array_merge($rules, [
-                    'category_id'      => 'required|exists:categories,id',
-                    'price'            => 'required|numeric|min:0',
-                    'duration_minutes' => 'nullable|integer|min:5',
-                    'max_concurrent_bookings' => 'nullable|integer|min:1',
-                    'slot_interval_minutes' => 'nullable|integer|min:5',
-                    'cancel_cutoff_hours' => 'nullable|integer|min:0',
-                    'edit_cutoff_hours' => 'nullable|integer|min:0',
-                    'location_type' => 'nullable|string|max:32',
-                    'is_active' => 'nullable|boolean',
-
-                ]);
-                break;
-        }
 
         return $rules;
     }

@@ -14,4 +14,5 @@ return [
     'complete_not_allowed' => 'لا يمكن إكمال الحجز.',
     'cancel_not_allowed_time' => 'انتهت مدة الإلغاء.',
     'edit_not_allowed_time' => 'انتهت مدة التعديل.',
+    'start_time_in_past' => 'يجب أن يكون وقت البدء في المستقبل.',
 ];

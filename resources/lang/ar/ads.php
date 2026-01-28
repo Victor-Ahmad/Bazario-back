@@ -22,12 +22,13 @@ return [
     'images_max' => 'يمكنك رفع 5 صور كحد أقصى.',
     'images_must_be_image' => 'يجب أن يكون كل ملف صورة.',
     'images_mimes' => 'يجب أن تكون الصور من نوع jpg أو jpeg أو png أو webp.',
-    'images_size_max' => 'يجب ألا يتجاوز حجم كل صورة 2 ميجابايت.',
+    'images_size_max' => 'يجب ألا يتجاوز حجم كل صورة 4 ميجابايت.',
 
     // General
     'invalid_adable_type' => 'نوع الإعلان غير صالح.',
     'seller_not_found' => 'البائع غير موجود.',
     'service_provider_not_found' => 'مقدم الخدمة غير موجود.',
+    'not_authorized' => 'غير مصرح لك بإدارة هذا الإعلان.',
     'create_failed' => 'فشل إنشاء الإعلان.',
     'deleted' => 'تم حذف الإعلان.',
 ];
