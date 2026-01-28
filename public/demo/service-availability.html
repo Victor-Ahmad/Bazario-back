@@ -22,6 +22,13 @@
                         </p>
                     </div>
 
+                    <div style="display: grid; gap: 8px">
+                        <h2 style="margin: 0">Working hours</h2>
+                        <p class="subtitle" style="max-width: none; margin: 0">
+                            Set your weekly schedule. Use 24h time format.
+                        </p>
+                    </div>
+
                     <form id="hoursForm" style="display: grid; gap: 12px">
                         <div class="field">
                             <label id="lblTimezone" for="timezone"
@@ -31,21 +38,38 @@
                                 id="timezone"
                                 name="timezone"
                                 type="text"
-                                placeholder="Asia/Dubai"
+                                list="timezoneOptions"
+                                placeholder="e.g. Europe/Berlin"
                             />
+                            <datalist id="timezoneOptions">
+                                <option value="UTC"></option>
+                                <option value="Europe/Berlin"></option>
+                                <option value="Europe/London"></option>
+                                <option value="America/New_York"></option>
+                                <option value="America/Los_Angeles"></option>
+                                <option value="Asia/Dubai"></option>
+                                <option value="Asia/Riyadh"></option>
+                            </datalist>
+                            <small class="hint"
+                                >Use your local timezone. Example:
+                                <code>Europe/Berlin</code></small
+                            >
                             <small class="error" data-error-for="timezone"></small>
                         </div>
 
                         <div class="field">
-                            <label id="lblWorkingHours" for="workingHours"
-                                >Working hours JSON</label
+                            <label id="lblWorkingHours" for="workingHoursGrid"
+                                >Working hours</label
                             >
-                            <textarea
-                                id="workingHours"
-                                name="workingHours"
-                                rows="6"
-                                placeholder='[{"day_of_week":1,"intervals":[{"start_time":"09:00","end_time":"17:00"}]}]'
-                            ></textarea>
+                            <div
+                                id="workingHoursGrid"
+                                class="scheduleGrid"
+                                aria-live="polite"
+                            ></div>
+                            <small class="hint"
+                                >Add one or more time ranges for each day.
+                                Times use 24h format.</small
+                            >
                             <small
                                 class="error"
                                 data-error-for="workingHours"
@@ -56,6 +80,13 @@
                             Save working hours
                         </button>
                     </form>
+
+                    <div style="display: grid; gap: 8px">
+                        <h2 style="margin: 0">Time off</h2>
+                        <p class="subtitle" style="max-width: none; margin: 0">
+                            Add vacations, holidays, or temporary unavailability.
+                        </p>
+                    </div>
 
                     <form id="timeOffForm" style="display: grid; gap: 12px">
                         <div class="field">
@@ -68,6 +99,9 @@
                                 type="datetime-local"
                                 required
                             />
+                            <small class="hint"
+                                >Pick a start date/time in your local time.</small
+                            >
                         </div>
 
                         <div class="field">
@@ -80,6 +114,9 @@
                                 type="datetime-local"
                                 required
                             />
+                            <small class="hint"
+                                >End must be after start.</small
+                            >
                         </div>
 
                         <div class="field">
@@ -90,6 +127,7 @@
                                 id="timeoff_reason"
                                 name="reason"
                                 type="text"
+                                placeholder="e.g. Vacation, Doctor, Holiday"
                             />
                         </div>
 

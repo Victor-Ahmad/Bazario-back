@@ -123,6 +123,44 @@
 
                     <div class="field">
                         <label
+                            id="lblCancelCutoff"
+                            for="cancel_cutoff_hours"
+                            >Free cancel cutoff (hours)</label
+                        >
+                        <input
+                            id="cancel_cutoff_hours"
+                            name="cancel_cutoff_hours"
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="24"
+                        />
+                        <small
+                            class="error"
+                            data-error-for="cancel_cutoff_hours"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblEditCutoff" for="edit_cutoff_hours"
+                            >Edit cutoff (hours)</label
+                        >
+                        <input
+                            id="edit_cutoff_hours"
+                            name="edit_cutoff_hours"
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="24"
+                        />
+                        <small
+                            class="error"
+                            data-error-for="edit_cutoff_hours"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label
                             id="lblMaxConcurrent"
                             for="max_concurrent_bookings"
                             >Max concurrent bookings</label

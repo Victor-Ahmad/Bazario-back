@@ -22,11 +22,18 @@ class Service extends Model
         'is_active',
         'max_concurrent_bookings',
         'slot_interval_minutes',
+        'cancel_cutoff_hours',
+        'edit_cutoff_hours',
 
     ];
     protected $appends = ['isNew'];
     protected $dates = ['created_at'];
-    protected $casts = ['title' => 'array', 'description' => 'array'];
+    protected $casts = [
+        'title' => 'array',
+        'description' => 'array',
+        'cancel_cutoff_hours' => 'integer',
+        'edit_cutoff_hours' => 'integer',
+    ];
 
     public function getIsNewAttribute()
     {

@@ -32,6 +32,8 @@ class ServiceRequest extends FormRequest
                     'duration_minutes' => 'nullable|integer|min:5',
                     'max_concurrent_bookings' => 'nullable|integer|min:1',
                     'slot_interval_minutes' => 'nullable|integer|min:5',
+                    'cancel_cutoff_hours' => 'nullable|integer|min:0',
+                    'edit_cutoff_hours' => 'nullable|integer|min:0',
                     'location_type' => 'nullable|string|max:32',
                     'is_active' => 'nullable|boolean',
 

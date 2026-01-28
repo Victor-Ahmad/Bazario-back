@@ -182,6 +182,63 @@ small.error {
     color: var(--danger);
 }
 
+small.hint {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.scheduleGrid {
+    display: grid;
+    gap: 10px;
+}
+
+.dayCard {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.12);
+    padding: 10px 12px;
+    display: grid;
+    gap: 8px;
+}
+
+.dayHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.dayTitle {
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.intervalList {
+    display: grid;
+    gap: 8px;
+}
+
+.intervalRow {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: center;
+}
+
+.miniBtn {
+    width: auto;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-top: 0;
+}
+
+.miniBtn.secondary {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
 /* Button */
 button {
     margin-top: 6px;

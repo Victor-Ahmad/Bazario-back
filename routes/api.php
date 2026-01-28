@@ -147,6 +147,9 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
         // customer or provider cancels booking
         Route::patch('/bookings/{booking}/cancel', [ServiceBookingController::class, 'cancel']);
 
+        // customer or provider reschedules booking
+        Route::patch('/bookings/{booking}/reschedule', [ServiceBookingController::class, 'reschedule']);
+
         // provider marks completed
         Route::patch('/bookings/{booking}/complete', [ServiceBookingController::class, 'complete']);
 

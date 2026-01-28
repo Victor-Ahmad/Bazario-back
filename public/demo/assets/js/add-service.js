@@ -29,6 +29,8 @@ const lblPrice = document.getElementById("lblPrice");
 const lblImages = document.getElementById("lblImages");
 const lblDuration = document.getElementById("lblDuration");
 const lblSlotInterval = document.getElementById("lblSlotInterval");
+const lblCancelCutoff = document.getElementById("lblCancelCutoff");
+const lblEditCutoff = document.getElementById("lblEditCutoff");
 const lblMaxConcurrent = document.getElementById("lblMaxConcurrent");
 const lblLocationType = document.getElementById("lblLocationType");
 const lblIsActive = document.getElementById("lblIsActive");
@@ -47,6 +49,8 @@ function applyTranslations(lang) {
     lblPrice.textContent = t(lang, "add_service_price");
     lblDuration.textContent = t(lang, "add_service_duration");
     lblSlotInterval.textContent = t(lang, "add_service_slot_interval");
+    lblCancelCutoff.textContent = t(lang, "add_service_cancel_cutoff");
+    lblEditCutoff.textContent = t(lang, "add_service_edit_cutoff");
     lblMaxConcurrent.textContent = t(lang, "add_service_max_concurrent");
     lblLocationType.textContent = t(lang, "add_service_location_type");
     lblIsActive.textContent = t(lang, "add_service_is_active");

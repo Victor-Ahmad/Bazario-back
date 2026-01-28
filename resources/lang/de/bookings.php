@@ -12,4 +12,6 @@ return [
     'confirm_not_allowed' => 'Buchung kann nicht bestätigt werden.',
     'already_finalized' => 'Buchung ist bereits abgeschlossen.',
     'complete_not_allowed' => 'Buchung kann nicht abgeschlossen werden.',
+    'cancel_not_allowed_time' => 'Stornierungsfrist ist abgelaufen.',
+    'edit_not_allowed_time' => 'Bearbeitungsfrist ist abgelaufen.',
 ];

@@ -25,7 +25,7 @@ const lblTimeOffReason = document.getElementById("lblTimeOffReason");
 const lblTimeOffHoliday = document.getElementById("lblTimeOffHoliday");
 
 const timezoneInput = document.getElementById("timezone");
-const workingHoursInput = document.getElementById("workingHours");
+const workingHoursGrid = document.getElementById("workingHoursGrid");
 const timeOffList = document.getElementById("timeOffList");
 
 const hoursForm = document.getElementById("hoursForm");
@@ -119,6 +119,124 @@ function renderTimeOff(items) {
     });
 }
 
+const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function createIntervalRow(dayIndex, interval = {}) {
+    const row = document.createElement("div");
+    row.className = "intervalRow";
+    row.dataset.day = String(dayIndex);
+
+    const start = document.createElement("input");
+    start.type = "time";
+    start.value = interval.start_time || "";
+    start.placeholder = "09:00";
+
+    const end = document.createElement("input");
+    end.type = "time";
+    end.value = interval.end_time || "";
+    end.placeholder = "17:00";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "miniBtn secondary";
+    removeBtn.textContent = "Remove";
+    removeBtn.addEventListener("click", () => row.remove());
+
+    row.appendChild(start);
+    row.appendChild(end);
+    row.appendChild(removeBtn);
+
+    return row;
+}
+
+function renderWorkingHours(workingHours = []) {
+    workingHoursGrid.innerHTML = "";
+
+    const dayMap = new Map();
+    workingHours.forEach((wh) => {
+        if (!dayMap.has(wh.day_of_week)) dayMap.set(wh.day_of_week, []);
+        dayMap.get(wh.day_of_week).push({
+            start_time: wh.start_time,
+            end_time: wh.end_time,
+        });
+    });
+
+    for (let i = 0; i < 7; i += 1) {
+        const card = document.createElement("div");
+        card.className = "dayCard";
+        card.dataset.day = String(i);
+
+        const header = document.createElement("div");
+        header.className = "dayHeader";
+
+        const title = document.createElement("div");
+        title.className = "dayTitle";
+        title.textContent = dayLabels[i];
+
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        addBtn.className = "miniBtn";
+        addBtn.textContent = "Add interval";
+
+        const list = document.createElement("div");
+        list.className = "intervalList";
+
+        addBtn.addEventListener("click", () => {
+            list.appendChild(createIntervalRow(i));
+        });
+
+        header.appendChild(title);
+        header.appendChild(addBtn);
+        card.appendChild(header);
+        card.appendChild(list);
+
+        const intervals = dayMap.get(i) || [];
+        intervals.forEach((interval) => {
+            list.appendChild(createIntervalRow(i, interval));
+        });
+
+        workingHoursGrid.appendChild(card);
+    }
+}
+
+function collectWorkingHours() {
+    const days = [];
+    const dayCards = workingHoursGrid.querySelectorAll(".dayCard");
+    let hasError = false;
+
+    dayCards.forEach((card) => {
+        const day = Number(card.dataset.day);
+        const intervals = [];
+        card.querySelectorAll(".intervalRow").forEach((row) => {
+            const inputs = row.querySelectorAll("input");
+            const start = inputs[0]?.value || "";
+            const end = inputs[1]?.value || "";
+
+            if (!start || !end) {
+                hasError = true;
+                return;
+            }
+
+            intervals.push({ start_time: start, end_time: end });
+        });
+
+        if (intervals.length) {
+            days.push({ day_of_week: day, intervals });
+        }
+    });
+
+    if (hasError) {
+        statusUI.setStatus(
+            t(getLanguage(), "availability_hours_invalid"),
+            "bad",
+            422,
+        );
+        return null;
+    }
+
+    return days;
+}
+
 async function loadAvailability() {
     try {
         statusUI.setRequestMeta("GET", "/api/service_provider/availability");
@@ -131,14 +249,7 @@ async function loadAvailability() {
 
         timezoneInput.value = res?.timezone || "";
         const workingHours = res?.workingHours ?? res?.working_hours ?? [];
-        workingHoursInput.value = JSON.stringify(
-            workingHours.map((wh) => ({
-                day_of_week: wh.day_of_week,
-                intervals: [{ start_time: wh.start_time, end_time: wh.end_time }],
-            })),
-            null,
-            2,
-        );
+        renderWorkingHours(workingHours);
 
         const timeOffs = res?.timeOffs ?? res?.time_offs ?? [];
         renderTimeOff(timeOffs);
@@ -151,6 +262,7 @@ async function loadAvailability() {
             "bad",
             err.status || 0,
         );
+        renderWorkingHours([]);
         setEmpty();
     }
 }
@@ -162,13 +274,8 @@ hoursForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearErrors(hoursForm);
 
-    let days = [];
-    try {
-        days = JSON.parse(workingHoursInput.value || "[]");
-    } catch (err) {
-        statusUI.setStatus(t(getLanguage(), "availability_hours_invalid"), "bad", 422);
-        return;
-    }
+    const days = collectWorkingHours();
+    if (!days) return;
 
     saveHoursBtn.disabled = true;
     try {

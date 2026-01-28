@@ -52,6 +52,11 @@ class ServiceBookingController extends Controller
 
         // Convert to UTC for storage
         $startsAtUtc = Carbon::parse($data['starts_at'], $tz)->utc();
+        if ($startsAtUtc->lessThanOrEqualTo(Carbon::now('UTC'))) {
+            return response()->json([
+                'message' => __('bookings.start_time_in_past'),
+            ], 422);
+        }
 
         // Compute end
         if (!empty($data['ends_at'])) {
@@ -71,56 +76,14 @@ class ServiceBookingController extends Controller
             // Serialize booking attempts per provider to prevent race conditions
             ServiceProvider::whereKey($provider->id)->lockForUpdate()->first();
 
-            // 1) Check within working hours (provider local time)
-            $startLocal = $startsAtUtc->copy()->tz($tz);
-            $endLocal = $endsAtUtc->copy()->tz($tz);
+            $this->assertSlotAvailable(
+                $service,
+                $provider,
+                $startsAtUtc,
+                $endsAtUtc,
+                $tz
+            );
 
-            $dow = (int) $startLocal->dayOfWeek; // 0=Sun..6=Sat
-            $dayHours = $provider->workingHours->where('day_of_week', $dow);
-
-            if ($dayHours->isEmpty()) {
-                abort(422, __('bookings.provider_not_available_day'));
-            }
-
-            $fits = false;
-            foreach ($dayHours as $wh) {
-                $whStart = Carbon::parse($startLocal->toDateString() . ' ' . $wh->start_time, $tz);
-                $whEnd   = Carbon::parse($startLocal->toDateString() . ' ' . $wh->end_time, $tz);
-
-                if ($startLocal->gte($whStart) && $endLocal->lte($whEnd)) {
-                    $fits = true;
-                    break;
-                }
-            }
-
-            if (!$fits) {
-                abort(422, __('bookings.outside_working_hours'));
-            }
-
-            // 2) Check time off (stored in UTC)
-            $timeOffOverlap = $provider->timeOffs
-                ->contains(fn($t) => $t->starts_at < $endsAtUtc && $t->ends_at > $startsAtUtc);
-
-            if ($timeOffOverlap) {
-                abort(422, __('bookings.provider_time_off'));
-            }
-
-            // 3) Capacity check (per service)
-            $capacity = (int) ($service->max_concurrent_bookings ?? 1);
-
-            $overlappingCount = ServiceBooking::query()
-                ->where('provider_user_id', $providerUserId)
-                ->where('service_id', $service->id)
-                ->whereIn('status', ['requested', 'confirmed', 'in_progress'])
-                ->where('starts_at', '<', $endsAtUtc)
-                ->where('ends_at', '>', $startsAtUtc)
-                ->count();
-
-            if ($overlappingCount >= $capacity) {
-                abort(422, __('bookings.slot_unavailable'));
-            }
-
-            // 4) Create booking
             return ServiceBooking::create([
                 'order_item_id' => null,
                 'service_id' => $service->id,
@@ -201,6 +164,16 @@ class ServiceBookingController extends Controller
             ], 422);
         }
 
+        if ($isCustomer) {
+            $service = $booking->service()->first();
+            $cutoff = (int) ($service?->cancel_cutoff_hours ?? 0);
+            if ($cutoff > 0 && $this->isAfterCutoff($booking->starts_at, $cutoff)) {
+                return response()->json([
+                    'message' => __('bookings.cancel_not_allowed_time'),
+                ], 422);
+            }
+        }
+
         $booking->status = $isProvider ? 'cancelled_by_provider' : 'cancelled_by_customer';
         $booking->cancelled_at = now();
         $booking->cancellation_reason = $data['reason'] ?? null;
@@ -224,5 +197,166 @@ class ServiceBookingController extends Controller
         $booking->save();
 
         return response()->json($booking);
+    }
+
+    public function reschedule(Request $request, ServiceBooking $booking)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'starts_at' => ['required', 'date'],
+            'timezone' => ['nullable', 'string', 'max:64'],
+            'ends_at' => ['nullable', 'date'],
+        ]);
+
+        $isProvider = $booking->provider_user_id === $user->id;
+        $isCustomer = $booking->customer_user_id === $user->id;
+        abort_unless($isProvider || $isCustomer, 403);
+
+        if (in_array($booking->status, ['completed', 'cancelled_by_customer', 'cancelled_by_provider'], true)) {
+            return response()->json([
+                'message' => __('bookings.already_finalized'),
+            ], 422);
+        }
+
+        $service = $booking->service()->first();
+        if (!$service || !$service->is_active) {
+            return response()->json([
+                'message' => __('bookings.service_not_active'),
+            ], 422);
+        }
+
+        $provider = ServiceProvider::query()
+            ->whereKey($service->provider_id)
+            ->with(['workingHours', 'timeOffs'])
+            ->first();
+
+        if (!$provider) {
+            return response()->json([
+                'message' => __('bookings.service_provider_not_found'),
+            ], 422);
+        }
+
+        // Prefer provider timezone unless client explicitly sends one
+        $tz = $data['timezone'] ?? $provider->timezone ?? 'UTC';
+        $startsAtUtc = Carbon::parse($data['starts_at'], $tz)->utc();
+        if ($startsAtUtc->lessThanOrEqualTo(Carbon::now('UTC'))) {
+            return response()->json([
+                'message' => __('bookings.start_time_in_past'),
+            ], 422);
+        }
+
+        if (!empty($data['ends_at'])) {
+            $endsAtUtc = Carbon::parse($data['ends_at'], $tz)->utc();
+        } else {
+            $duration = (int) ($service->duration_minutes ?? 60);
+            $endsAtUtc = $startsAtUtc->copy()->addMinutes($duration);
+        }
+
+        if ($endsAtUtc->lessThanOrEqualTo($startsAtUtc)) {
+            return response()->json([
+                'message' => __('bookings.invalid_time_range'),
+            ], 422);
+        }
+
+        if ($isCustomer) {
+            $cutoff = (int) ($service->edit_cutoff_hours ?? 0);
+            if ($cutoff > 0 && $this->isAfterCutoff($booking->starts_at, $cutoff)) {
+                return response()->json([
+                    'message' => __('bookings.edit_not_allowed_time'),
+                ], 422);
+            }
+        }
+
+        $updated = DB::transaction(function () use ($service, $provider, $booking, $startsAtUtc, $endsAtUtc, $tz) {
+            ServiceProvider::whereKey($provider->id)->lockForUpdate()->first();
+
+            $this->assertSlotAvailable(
+                $service,
+                $provider,
+                $startsAtUtc,
+                $endsAtUtc,
+                $tz,
+                $booking->id
+            );
+
+            $booking->starts_at = $startsAtUtc;
+            $booking->ends_at = $endsAtUtc;
+            $booking->timezone = $tz;
+            $booking->status = 'requested';
+            $booking->save();
+
+            return $booking;
+        });
+
+        return response()->json($updated->load('service'));
+    }
+
+    protected function isAfterCutoff($startsAt, int $cutoffHours): bool
+    {
+        if (!$startsAt || $cutoffHours <= 0) return false;
+        $now = Carbon::now('UTC');
+        $startUtc = $startsAt instanceof Carbon ? $startsAt : Carbon::parse($startsAt, 'UTC');
+        return $now->copy()->addHours($cutoffHours)->gt($startUtc);
+    }
+
+    protected function assertSlotAvailable(
+        Service $service,
+        ServiceProvider $provider,
+        Carbon $startsAtUtc,
+        Carbon $endsAtUtc,
+        string $tz,
+        ?int $ignoreBookingId = null
+    ): void {
+        $startLocal = $startsAtUtc->copy()->tz($tz);
+        $endLocal = $endsAtUtc->copy()->tz($tz);
+
+        $dow = (int) $startLocal->dayOfWeek; // 0=Sun..6=Sat
+        $dayHours = $provider->workingHours->where('day_of_week', $dow);
+
+        if ($dayHours->isEmpty()) {
+            abort(422, __('bookings.provider_not_available_day'));
+        }
+
+        $fits = false;
+        foreach ($dayHours as $wh) {
+            $whStart = Carbon::parse($startLocal->toDateString() . ' ' . $wh->start_time, $tz);
+            $whEnd = Carbon::parse($startLocal->toDateString() . ' ' . $wh->end_time, $tz);
+
+            if ($startLocal->gte($whStart) && $endLocal->lte($whEnd)) {
+                $fits = true;
+                break;
+            }
+        }
+
+        if (!$fits) {
+            abort(422, __('bookings.outside_working_hours'));
+        }
+
+        $timeOffOverlap = $provider->timeOffs
+            ->contains(fn($t) => $t->starts_at < $endsAtUtc && $t->ends_at > $startsAtUtc);
+
+        if ($timeOffOverlap) {
+            abort(422, __('bookings.provider_time_off'));
+        }
+
+        $capacity = (int) ($service->max_concurrent_bookings ?? 1);
+
+        $overlapQuery = ServiceBooking::query()
+            ->where('provider_user_id', $provider->user_id)
+            ->where('service_id', $service->id)
+            ->whereIn('status', ['requested', 'confirmed', 'in_progress'])
+            ->where('starts_at', '<', $endsAtUtc)
+            ->where('ends_at', '>', $startsAtUtc);
+
+        if ($ignoreBookingId) {
+            $overlapQuery->where('id', '!=', $ignoreBookingId);
+        }
+
+        $overlappingCount = $overlapQuery->count();
+
+        if ($overlappingCount >= $capacity) {
+            abort(422, __('bookings.slot_unavailable'));
+        }
     }
 }

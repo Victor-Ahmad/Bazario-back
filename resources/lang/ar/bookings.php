@@ -12,4 +12,6 @@ return [
     'confirm_not_allowed' => 'لا يمكن تأكيد الحجز.',
     'already_finalized' => 'تم إنهاء الحجز مسبقًا.',
     'complete_not_allowed' => 'لا يمكن إكمال الحجز.',
+    'cancel_not_allowed_time' => 'انتهت مدة الإلغاء.',
+    'edit_not_allowed_time' => 'انتهت مدة التعديل.',
 ];
