@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Service;
 use App\Models\Seller;
 use App\Models\ServiceProvider;
+use App\Models\Listing;
 
 
 class AdController extends Controller
@@ -330,6 +331,44 @@ class AdController extends Controller
             ->whereNotNull('expires_at')
             // ->where('status', 'approved')
             ->orderBy('expires_at', 'asc')
+            ->paginate(20);
+
+        return response()->json(['success' => 1, 'result' => $ads]);
+    }
+
+    public function myAds(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $ads = Ad::with(['images', 'position', 'adable'])
+            ->where(function ($q) use ($userId) {
+                $q->whereHasMorph(
+                    'adable',
+                    [Product::class],
+                    fn($m) => $m->whereHas('seller', fn($s) => $s->where('user_id', $userId))
+                )
+                ->orWhereHasMorph(
+                    'adable',
+                    [Service::class],
+                    fn($m) => $m->whereHas('serviceProvider', fn($s) => $s->where('user_id', $userId))
+                )
+                ->orWhereHasMorph(
+                    'adable',
+                    [Seller::class],
+                    fn($m) => $m->where('user_id', $userId)
+                )
+                ->orWhereHasMorph(
+                    'adable',
+                    [ServiceProvider::class],
+                    fn($m) => $m->where('user_id', $userId)
+                )
+                ->orWhereHasMorph(
+                    'adable',
+                    [Listing::class],
+                    fn($m) => $m->where('user_id', $userId)
+                );
+            })
+            ->orderByDesc('created_at')
             ->paginate(20);
 
         return response()->json(['success' => 1, 'result' => $ads]);

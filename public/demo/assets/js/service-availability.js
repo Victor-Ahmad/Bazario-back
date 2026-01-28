@@ -2,6 +2,7 @@ import { apiRequest } from "./api.js";
 import { getLanguage, setLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
 import { createStatusUI, clearErrors } from "./ui.js";
+import { getTimezones } from "./timezones.js";
 
 const statusUI = createStatusUI({
     statusBox: document.getElementById("statusBox"),
@@ -68,6 +69,16 @@ function initLang() {
     });
 }
 
+function populateTimezoneOptions() {
+    if (!timezoneInput) return;
+    timezoneInput.innerHTML = "";
+    getTimezones().forEach((tz) => {
+        const opt = document.createElement("option");
+        opt.value = tz;
+        opt.textContent = tz;
+        timezoneInput.appendChild(opt);
+    });
+}
 function setEmpty() {
     timeOffList.innerHTML = "";
     const el = document.createElement("div");
@@ -268,6 +279,7 @@ async function loadAvailability() {
 }
 
 initLang();
+populateTimezoneOptions();
 loadAvailability();
 
 hoursForm.addEventListener("submit", async (e) => {

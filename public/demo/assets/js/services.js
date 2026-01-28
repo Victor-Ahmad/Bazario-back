@@ -32,8 +32,18 @@ function safeText(v, fallback = "—") {
     return v === null || v === undefined || v === "" ? fallback : String(v);
 }
 
+function resolveLocalized(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+        const lang = getLanguage();
+        return value[lang] || value.en || value.ar || "";
+    }
+    return String(value);
+}
+
 function snippet(text, max = 140) {
-    const s = safeText(text, "");
+    const s = safeText(resolveLocalized(text), "");
     if (!s) return "—";
     return s.length > max ? s.slice(0, max).trim() + "…" : s;
 }
@@ -82,7 +92,7 @@ function cardService(s) {
 
     const title = document.createElement("div");
     title.style.fontWeight = "700";
-    title.textContent = `${safeText(s.title)} (#${s.id})`;
+    title.textContent = `${safeText(resolveLocalized(s.title))} (#${s.id})`;
 
     const price = document.createElement("div");
     price.style.color = "rgba(255,255,255,0.75)";
@@ -95,7 +105,9 @@ function cardService(s) {
     meta.style.color = "rgba(255,255,255,0.68)";
     meta.style.fontSize = "13px";
 
-    const category = s.category?.name ? s.category.name : "—";
+    const category = s.category?.name
+        ? resolveLocalized(s.category.name)
+        : "—";
     const provider =
         s.service_provider?.name ||
         s.serviceProvider?.name ||
@@ -112,7 +124,7 @@ function cardService(s) {
     if (firstImg) {
         const img = document.createElement("img");
         img.src = firstImg;
-        img.alt = s.title || "Service image";
+        img.alt = resolveLocalized(s.title) || "Service image";
         img.style.width = "100%";
         img.style.maxHeight = "180px";
         img.style.objectFit = "cover";

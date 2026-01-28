@@ -31,6 +31,7 @@ export default {
     nav_service_availability: "أوقات التوفر",
     nav_cart: "السلة",
     nav_chats: "المحادثات",
+    nav_my_ads: "إعلاناتي",
 
     // Register
     title: "تسجيل عميل جديد",
@@ -124,6 +125,9 @@ export default {
     my_services_subtitle: "الخدمات التي أنشأها مقدم الخدمة.",
     my_products_add_button: "إضافة منتج",
     my_services_add_button: "إضافة خدمة",
+    my_ads_title: "إعلاناتي",
+    my_ads_subtitle: "الإعلانات المرتبطة بحسابك وقوائمك.",
+    my_ads_empty: "لا توجد إعلانات لحسابك حتى الآن.",
 
     // Add product
     add_product_title: "إضافة منتج",
@@ -211,6 +215,12 @@ export default {
     booking_add: "أضف الحجز إلى السلة",
     booking_selected: "الوقت المحدد",
     booking_missing_service: "بيانات الخدمة غير متوفرة.",
+    booking_availability_overview_title: "توافر المزود",
+    booking_availability_overview_note: "ملخص الأيام السبعة القادمة",
+    booking_availability_loading: "جار تحميل التوافر...",
+    booking_availability_empty: "لا توجد بيانات توافر.",
+    booking_availability_slots: "المواعيد",
+    booking_availability_no_times: "لا توجد أوقات متاحة",
     cart_checkout_pending: "الدفع غير متوفر حاليًا.",
 
     // Chat

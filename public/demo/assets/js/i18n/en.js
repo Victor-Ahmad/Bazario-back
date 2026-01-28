@@ -31,6 +31,7 @@ export default {
     nav_service_availability: "Availability",
     nav_cart: "Cart",
     nav_chats: "Chats",
+    nav_my_ads: "My Ads",
 
     // Register
     title: "Customer Registration",
@@ -123,6 +124,9 @@ export default {
     my_services_subtitle: "Services created by the logged-in provider.",
     my_products_add_button: "Add Product",
     my_services_add_button: "Add Service",
+    my_ads_title: "My Ads",
+    my_ads_subtitle: "Ads linked to your account and listings.",
+    my_ads_empty: "No ads found for your account yet.",
 
     // Add product
     add_product_title: "Add Product",
@@ -210,6 +214,12 @@ export default {
     booking_add: "Add booking to cart",
     booking_selected: "Selected slot",
     booking_missing_service: "Missing service data.",
+    booking_availability_overview_title: "Provider availability",
+    booking_availability_overview_note: "Next 7 days summary",
+    booking_availability_loading: "Loading availability...",
+    booking_availability_empty: "No availability data.",
+    booking_availability_slots: "Slots",
+    booking_availability_no_times: "No available times",
     cart_checkout_pending: "Checkout not implemented yet.",
 
     // Chat

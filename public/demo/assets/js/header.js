@@ -86,6 +86,8 @@ function renderHeader(container) {
     const isSeller = hasRole(roles, "seller");
     const isServiceProvider = hasRole(roles, "service_provider");
     const isCustomer = hasRole(roles, "customer");
+    const isCustomerOnly =
+        isCustomer && !isAdmin && !isSeller && !isServiceProvider;
 
     container.innerHTML = "";
 
@@ -211,7 +213,7 @@ function renderHeader(container) {
         );
     }
 
-    if (isCustomer) {
+    if (isCustomerOnly) {
         navItems.push(
             el(
                 "a",
@@ -227,6 +229,18 @@ function renderHeader(container) {
     }
 
     if (session?.user) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/my-ads.html") ? "active" : ""
+                    }`,
+                    href: "/demo/my-ads.html",
+                },
+                [t(lang, "nav_my_ads")],
+            ),
+        );
         navItems.push(
             el(
                 "a",

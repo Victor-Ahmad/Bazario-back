@@ -168,6 +168,15 @@ textarea {
     outline: none;
 }
 
+select {
+    color-scheme: dark;
+}
+
+select option {
+    background: var(--bg);
+    color: var(--text);
+}
+
 input:focus,
 select:focus,
 textarea:focus {

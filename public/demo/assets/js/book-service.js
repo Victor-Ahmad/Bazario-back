@@ -3,6 +3,7 @@ import { addServiceBookingToCart } from "./cart.js";
 import { getLanguage, setLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
 import { createStatusUI } from "./ui.js";
+import { getTimezones } from "./timezones.js";
 
 const statusUI = createStatusUI({
     statusBox: document.getElementById("statusBox"),
@@ -17,6 +18,13 @@ const pageTitle = document.getElementById("pageTitle");
 const pageSubtitle = document.getElementById("pageSubtitle");
 const statusTitle = document.getElementById("statusTitle");
 const slotsTitle = document.getElementById("slotsTitle");
+const availabilityOverviewTitle = document.getElementById(
+    "availabilityOverviewTitle",
+);
+const availabilityOverviewNote = document.getElementById(
+    "availabilityOverviewNote",
+);
+const availabilitySummary = document.getElementById("availabilitySummary");
 const selectedSlotEl = document.getElementById("selectedSlot");
 const addBookingBtn = document.getElementById("addBookingBtn");
 const checkAvailabilityBtn = document.getElementById("checkAvailabilityBtn");
@@ -38,10 +46,15 @@ function applyTranslations(lang) {
     pageSubtitle.textContent = t(lang, "booking_subtitle");
     statusTitle.textContent = t(lang, "status");
     slotsTitle.textContent = t(lang, "booking_slots");
+    availabilityOverviewTitle.textContent = t(
+        lang,
+        "booking_availability_overview_title",
+    );
     lblDate.textContent = t(lang, "booking_date");
     lblTimezone.textContent = t(lang, "booking_timezone");
     checkAvailabilityBtn.textContent = t(lang, "booking_check");
     addBookingBtn.textContent = t(lang, "booking_add");
+    updateAvailabilityNote();
     updateSelectedSlot();
     statusUI.setStatus(t(lang, "ready"), "neutral", null);
 }
@@ -64,6 +77,28 @@ function formatTime(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDateLabel(dateString) {
+    const [year, month, day] = dateString.split("-").map(Number);
+    if (!year || !month || !day) return dateString;
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const lang = getLanguage();
+    const locale =
+        lang === "ar" ? "ar-EG" : lang === "de" ? "de-DE" : "en-US";
+    return date.toLocaleDateString(locale, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+    });
+}
+
+function updateAvailabilityNote() {
+    const tz = timezoneInput?.value || "UTC";
+    availabilityOverviewNote.textContent = `${t(
+        getLanguage(),
+        "booking_availability_overview_note",
+    )} (${tz})`;
 }
 
 function updateSelectedSlot() {
@@ -151,6 +186,126 @@ function renderSlots() {
     slotsGrid.appendChild(grid);
 }
 
+function renderAvailabilitySummary(days) {
+    availabilitySummary.innerHTML = "";
+    if (!days.length) {
+        const empty = document.createElement("div");
+        empty.style.color = "rgba(255,255,255,0.7)";
+        empty.style.fontSize = "13px";
+        empty.textContent = t(getLanguage(), "booking_availability_empty");
+        availabilitySummary.appendChild(empty);
+        return;
+    }
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(170px, 1fr))";
+    grid.style.gap = "8px";
+
+    days.forEach((day) => {
+        const card = document.createElement("div");
+        card.style.border = "1px solid rgba(255,255,255,0.08)";
+        card.style.borderRadius = "12px";
+        card.style.padding = "10px";
+        card.style.background = "rgba(255,255,255,0.03)";
+        card.style.display = "grid";
+        card.style.gap = "6px";
+
+        const title = document.createElement("div");
+        title.style.fontWeight = "600";
+        title.textContent = formatDateLabel(day.date);
+
+        const count = document.createElement("div");
+        count.style.fontSize = "13px";
+        count.style.color = "rgba(255,255,255,0.7)";
+        count.textContent = `${t(
+            getLanguage(),
+            "booking_availability_slots",
+        )}: ${day.count}`;
+
+        const range = document.createElement("div");
+        range.style.fontSize = "13px";
+        range.style.color = "rgba(255,255,255,0.7)";
+        if (day.first && day.last) {
+            range.textContent = `${formatTime(day.first)} - ${formatTime(
+                day.last,
+            )}`;
+        } else {
+            range.textContent = t(
+                getLanguage(),
+                "booking_availability_no_times",
+            );
+        }
+
+        card.appendChild(title);
+        card.appendChild(count);
+        card.appendChild(range);
+        grid.appendChild(card);
+    });
+
+    availabilitySummary.appendChild(grid);
+}
+
+function formatDateForTimezone(date, timeZone) {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    });
+    return formatter.format(date);
+}
+
+async function loadAvailabilitySummary() {
+    if (!service?.id) return;
+
+    availabilitySummary.innerHTML = "";
+    const loading = document.createElement("div");
+    loading.style.color = "rgba(255,255,255,0.7)";
+    loading.style.fontSize = "13px";
+    loading.textContent = t(getLanguage(), "booking_availability_loading");
+    availabilitySummary.appendChild(loading);
+
+    const tz = timezoneInput.value || "UTC";
+    const base = new Date();
+    const days = Array.from({ length: 7 }, (_, idx) => {
+        const next = new Date(base);
+        next.setDate(base.getDate() + idx);
+        return formatDateForTimezone(next, tz);
+    });
+
+    try {
+        const results = await Promise.allSettled(
+            days.map((date) =>
+                apiRequest(
+                    `/services/${service.id}/availability?${new URLSearchParams({
+                        date,
+                        timezone: tz,
+                    })}`,
+                    { method: "GET" },
+                ),
+            ),
+        );
+
+        const summary = results.map((result, idx) => {
+            if (result.status !== "fulfilled") {
+                return { date: days[idx], count: 0, first: null, last: null };
+            }
+            const slots = result.value?.slots ?? [];
+            return {
+                date: days[idx],
+                count: slots.length,
+                first: slots[0]?.starts_at || null,
+                last: slots[slots.length - 1]?.ends_at || null,
+            };
+        });
+
+        renderAvailabilitySummary(summary);
+    } catch (err) {
+        renderAvailabilitySummary([]);
+    }
+}
+
 async function loadAvailability() {
     if (!service?.id) return;
     if (!dateInput.value) {
@@ -194,30 +349,16 @@ async function loadAvailability() {
 async function initPage() {
     initLang();
 
-    const timezones = [
-        "UTC",
-        "Europe/Berlin",
-        "Europe/London",
-        "Europe/Istanbul",
-        "Asia/Dubai",
-        "Asia/Riyadh",
-        "Asia/Amman",
-        "Asia/Beirut",
-        "Asia/Damascus",
-        "Africa/Cairo",
-        "America/New_York",
-        "America/Los_Angeles",
-    ];
-    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    const allTz = Array.from(new Set([browserTz, ...timezones]));
+    const allTz = getTimezones();
     timezoneInput.innerHTML = "";
     allTz.forEach((tz) => {
         const opt = document.createElement("option");
         opt.value = tz;
         opt.textContent = tz;
-        if (tz === browserTz) opt.selected = true;
         timezoneInput.appendChild(opt);
     });
+    timezoneInput.value = allTz[0] || "UTC";
+    updateAvailabilityNote();
 
     service = JSON.parse(sessionStorage.getItem("pending_service") || "null");
     if (!service) {
@@ -244,12 +385,18 @@ async function initPage() {
     }
 
     checkAvailabilityBtn.addEventListener("click", loadAvailability);
+    timezoneInput.addEventListener("change", () => {
+        updateAvailabilityNote();
+        loadAvailabilitySummary();
+    });
 
     addBookingBtn.addEventListener("click", () => {
         if (!service || !selectedSlot) return;
         addServiceBookingToCart(service, selectedSlot, timezoneInput.value);
         statusUI.setStatus(t(getLanguage(), "cart_add_success"), "ok", 200);
     });
+
+    loadAvailabilitySummary();
 }
 
 initPage();

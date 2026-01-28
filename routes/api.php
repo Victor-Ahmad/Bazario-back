@@ -104,6 +104,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
         Route::post('ads/{ad}/images', [AdController::class, 'addImages']);
         Route::post('ads', [AdController::class, 'store']);
         Route::post('/listing-ads', [ListingAdController::class, 'store']);
+        Route::get('my-ads', [AdController::class, 'myAds']);
 
 
         Route::get('/customers', [CustomerController::class, 'index']);

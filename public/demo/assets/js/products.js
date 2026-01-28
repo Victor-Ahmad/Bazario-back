@@ -33,8 +33,18 @@ function safeText(v, fallback = "—") {
     return v === null || v === undefined || v === "" ? fallback : String(v);
 }
 
+function resolveLocalized(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+        const lang = getLanguage();
+        return value[lang] || value.en || value.ar || "";
+    }
+    return String(value);
+}
+
 function snippet(text, max = 140) {
-    const s = safeText(text, "");
+    const s = safeText(resolveLocalized(text), "");
     if (!s) return "—";
     return s.length > max ? s.slice(0, max).trim() + "…" : s;
 }
@@ -83,7 +93,7 @@ function cardProduct(p) {
 
     const title = document.createElement("div");
     title.style.fontWeight = "700";
-    title.textContent = `${safeText(p.name)} (#${p.id})`;
+    title.textContent = `${safeText(resolveLocalized(p.name))} (#${p.id})`;
 
     const price = document.createElement("div");
     price.style.color = "rgba(255,255,255,0.75)";
@@ -96,7 +106,9 @@ function cardProduct(p) {
     meta.style.color = "rgba(255,255,255,0.68)";
     meta.style.fontSize = "13px";
 
-    const category = p.category?.name ? p.category.name : "—";
+    const category = p.category?.name
+        ? resolveLocalized(p.category.name)
+        : "—";
     const seller = p.seller?.store_name || p.seller?.user?.name || "—";
     meta.textContent = `Category: ${category} • Seller: ${seller} • Created: ${safeText(p.created_at)}`;
 
@@ -109,7 +121,7 @@ function cardProduct(p) {
     if (firstImg) {
         const img = document.createElement("img");
         img.src = firstImg;
-        img.alt = p.name || "Product image";
+        img.alt = resolveLocalized(p.name) || "Product image";
         img.style.width = "100%";
         img.style.maxHeight = "180px";
         img.style.objectFit = "cover";

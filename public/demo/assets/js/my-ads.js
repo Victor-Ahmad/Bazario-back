@@ -9,7 +9,6 @@ const badgeText = document.getElementById("badgeText");
 const pageTitle = document.getElementById("pageTitle");
 const pageSubtitle = document.getElementById("pageSubtitle");
 const statusTitle = document.getElementById("statusTitle");
-const addBtn = document.getElementById("addBtn");
 
 const statusUI = createStatusUI({
     statusBox: document.getElementById("statusBox"),
@@ -23,20 +22,16 @@ function applyLang() {
     langSelect.value = lang;
     setLanguage(lang);
     badgeText.textContent = t(lang, "badge");
-    pageTitle.textContent = t(lang, "my_services_title");
-    pageSubtitle.textContent = t(lang, "my_services_subtitle");
+    pageTitle.textContent = t(lang, "my_ads_title");
+    pageSubtitle.textContent = t(lang, "my_ads_subtitle");
     statusTitle.textContent = t(lang, "status");
-    addBtn.textContent = t(lang, "my_services_add_button");
 }
+
 applyLang();
 
 langSelect.addEventListener("change", () => {
     setLanguage(langSelect.value);
     applyLang();
-});
-
-addBtn.addEventListener("click", () => {
-    window.location.href = "/demo/add-service.html";
 });
 
 function safeText(v, fallback = "—") {
@@ -61,10 +56,22 @@ function snippet(text, max = 140) {
 
 function imgUrl(img) {
     if (!img) return null;
-    return img.image ? `/${img.image}` : null;
+    return img.image_url ? `/${img.image_url}` : img.image ? `/${img.image}` : null;
 }
 
-function cardService(s) {
+function adTargetName(adable) {
+    if (!adable) return "—";
+    return (
+        resolveLocalized(adable.title) ||
+        resolveLocalized(adable.name) ||
+        adable.store_name ||
+        adable.store_owner_name ||
+        adable.email ||
+        `#${adable.id}`
+    );
+}
+
+function cardAd(ad) {
     const wrap = document.createElement("div");
     wrap.style.border = "1px solid rgba(255,255,255,0.12)";
     wrap.style.borderRadius = "12px";
@@ -81,34 +88,32 @@ function cardService(s) {
 
     const title = document.createElement("div");
     title.style.fontWeight = "700";
-    title.textContent = `${safeText(resolveLocalized(s.title))} (#${s.id})`;
+    title.textContent = `${safeText(ad.title)} (#${ad.id})`;
 
-    const price = document.createElement("div");
-    price.style.color = "rgba(255,255,255,0.75)";
-    price.textContent = `Price: ${safeText(s.price)}`;
+    const status = document.createElement("div");
+    status.style.color = "rgba(255,255,255,0.75)";
+    status.textContent = `Status: ${safeText(ad.status)}`;
 
     top.appendChild(title);
-    top.appendChild(price);
+    top.appendChild(status);
 
     const meta = document.createElement("div");
     meta.style.color = "rgba(255,255,255,0.68)";
     meta.style.fontSize = "13px";
-
-    const category = s.category?.name
-        ? resolveLocalized(s.category.name)
-        : "—";
-    meta.textContent = `Category: ${category} • Created: ${safeText(s.created_at)}`;
+    const position = ad.position?.name || "—";
+    const target = adTargetName(ad.adable);
+    meta.textContent = `Position: ${position} • Target: ${target}`;
 
     const desc = document.createElement("div");
     desc.style.color = "rgba(255,255,255,0.70)";
     desc.style.fontSize = "13px";
-    desc.textContent = `Description: ${snippet(s.description)}`;
+    desc.textContent = `Subtitle: ${snippet(ad.subtitle)}`;
 
-    const firstImg = s.images?.[0] ? imgUrl(s.images[0]) : null;
+    const firstImg = ad.images?.[0] ? imgUrl(ad.images[0]) : null;
     if (firstImg) {
         const img = document.createElement("img");
         img.src = firstImg;
-        img.alt = resolveLocalized(s.title) || "Service image";
+        img.alt = ad.title || "Ad image";
         img.style.width = "100%";
         img.style.maxHeight = "180px";
         img.style.objectFit = "cover";
@@ -126,23 +131,31 @@ function cardService(s) {
 
 async function load() {
     try {
-        statusUI.setRequestMeta("GET", "/api/my-services");
-        statusUI.setStatus("Loading services...", "neutral", null);
+        statusUI.setRequestMeta("GET", "/api/my-ads");
+        statusUI.setStatus("Loading ads...", "neutral", null);
 
-        const res = await apiRequest("/my-services", { method: "GET" });
+        const res = await apiRequest("/my-ads", { method: "GET" });
         statusUI.setDebug(res);
 
         const result = res?.result ?? res;
         const items = result?.data ?? [];
 
         listEl.innerHTML = "";
-        items.forEach((s) => listEl.appendChild(cardService(s)));
+        if (!items.length) {
+            const empty = document.createElement("div");
+            empty.style.color = "rgba(255,255,255,0.7)";
+            empty.style.fontSize = "13px";
+            empty.textContent = t(getLanguage(), "my_ads_empty");
+            listEl.appendChild(empty);
+        } else {
+            items.forEach((ad) => listEl.appendChild(cardAd(ad)));
+        }
 
-        statusUI.setStatus(`Loaded ${items.length} services.`, "ok", 200);
+        statusUI.setStatus(`Loaded ${items.length} ads.`, "ok", 200);
     } catch (err) {
         statusUI.setDebug(err.data || { error: err.message });
         statusUI.setStatus(
-            err.message || "Failed to load services.",
+            err.message || "Failed to load ads.",
             "bad",
             err.status || 0,
         );

@@ -31,6 +31,7 @@ export default {
     nav_service_availability: "Verfuegbarkeit",
     nav_cart: "Warenkorb",
     nav_chats: "Chats",
+    nav_my_ads: "Meine Anzeigen",
 
     // Register
     title: "Kundenregistrierung",
@@ -131,6 +132,9 @@ export default {
     my_services_subtitle: "Services, die vom angemeldeten Dienstleister erstellt wurden.",
     my_products_add_button: "Produkt hinzufügen",
     my_services_add_button: "Service hinzufügen",
+    my_ads_title: "Meine Anzeigen",
+    my_ads_subtitle: "Anzeigen, die mit deinem Konto verbunden sind.",
+    my_ads_empty: "Noch keine Anzeigen für dein Konto.",
 
     // Add product
     add_product_title: "Produkt hinzufügen",
@@ -218,6 +222,12 @@ export default {
     booking_add: "Buchung zur Cart hinzufuegen",
     booking_selected: "Ausgewaehlter Slot",
     booking_missing_service: "Service-Daten fehlen.",
+    booking_availability_overview_title: "Verfuegbarkeit Anbieter",
+    booking_availability_overview_note: "Uebersicht der naechsten 7 Tage",
+    booking_availability_loading: "Verfuegbarkeit wird geladen...",
+    booking_availability_empty: "Keine Verfuegbarkeit vorhanden.",
+    booking_availability_slots: "Slots",
+    booking_availability_no_times: "Keine Zeiten verfuegbar",
     cart_checkout_pending: "Checkout noch nicht implementiert.",
 
     // Chat
