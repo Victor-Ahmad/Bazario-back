@@ -9,6 +9,8 @@ use App\Models\Product;
 use App\Models\Service;
 use App\Models\Listing;
 use App\Models\ServiceProvider;
+use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\ServiceBooking;
@@ -43,6 +45,43 @@ class OrderController extends Controller
         );
     }
 
+    public function myOrders(Request $request)
+    {
+        $user = $request->user();
+
+        $orders = Order::query()
+            ->where('buyer_id', $user->id)
+            ->with(['items', 'items.serviceBooking'])
+            ->orderByDesc('id')
+            ->paginate(20);
+
+        return response()->json($orders);
+    }
+
+    public function mySales(Request $request)
+    {
+        $user = $request->user();
+
+        $query = OrderItem::query()
+            ->with(['order.buyer', 'serviceBooking'])
+            ->whereHas('order', function ($q) {
+                $q->where('status', 'paid');
+            })
+            ->orderByDesc('id');
+
+        if ($user->hasRole('admin') && $request->filled('user_id')) {
+            $targetId = (int) $request->query('user_id');
+            $target = User::query()->findOrFail($targetId);
+            $query->where('payee_user_id', $target->id);
+        } else {
+            $query->where('payee_user_id', $user->id);
+        }
+
+        return response()->json([
+            'items' => $query->get(),
+        ]);
+    }
+
     public function addItem(Request $request, Order $order)
     {
         abort_unless($order->buyer_id === $request->user()->id, 403);
@@ -62,6 +101,8 @@ class OrderController extends Controller
         ]);
 
         return DB::transaction(function () use ($order, $data) {
+            $feePercent = (float) Setting::getValue('platform_fee_percent', 10);
+            $feeRate = max(0, min(100, $feePercent)) / 100;
             $qty = (int)($data['quantity'] ?? 1);
 
             if ($data['type'] === 'product') {
@@ -74,7 +115,7 @@ class OrderController extends Controller
                 $unit = (int) round(((float)$product->price) * 100);
                 $gross = $unit * $qty;
 
-                $fee = (int) round($gross * 0.10); //  10% fee 
+                $fee = (int) round($gross * $feeRate);
                 $net = $gross - $fee;
 
                 OrderItem::create([
@@ -97,7 +138,7 @@ class OrderController extends Controller
 
                 $unit = (int) round(((float)$listing->price) * 100);
                 $gross = $unit * $qty;
-                $fee = (int) round($gross * 0.10);
+                $fee = (int) round($gross * $feeRate);
                 $net = $gross - $fee;
 
                 OrderItem::create([
@@ -168,7 +209,7 @@ class OrderController extends Controller
 
                 $unit = (int) round(((float)$service->price) * 100);
                 $gross = $unit;
-                $fee = (int) round($gross * 0.10);
+                $fee = (int) round($gross * $feeRate);
                 $net = $gross - $fee;
 
                 $item = OrderItem::create([

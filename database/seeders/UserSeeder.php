@@ -5,11 +5,16 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
     public function run()
     {
+        $customerRole = Role::where('name', 'customer')
+            ->where('guard_name', 'web')
+            ->first();
+
         $users = [
             // Sellers
 
@@ -70,6 +75,21 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'remember_token' => null,
             ],
+            // Customers
+            [
+                'name' => 'Yara Customer',
+                'email' => 'yara.customer@example.com',
+                'email_verified_at' => now(),
+                'password' => Hash::make('password'),
+                'remember_token' => null,
+            ],
+            [
+                'name' => 'Hadi Customer',
+                'email' => 'hadi.customer@example.com',
+                'email_verified_at' => now(),
+                'password' => Hash::make('password'),
+                'remember_token' => null,
+            ],
 
 
             [
@@ -82,7 +102,13 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($users as $user) {
-            User::create($user);
+            $created = User::create($user);
+
+            if ($customerRole && str_contains($created->email, 'customer@example.com')) {
+                if (! $created->hasRole($customerRole)) {
+                    $created->assignRole($customerRole);
+                }
+            }
         }
     }
 }

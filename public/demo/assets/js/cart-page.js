@@ -1,8 +1,10 @@
-import { getCart } from "./cart.js";
+import { getCart, clearCart } from "./cart.js";
 import { apiRequest } from "./api.js";
+import { getToken } from "./auth.js";
 import { getLanguage, setLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
 import { createStatusUI } from "./ui.js";
+import { config } from "./config.js";
 
 const statusUI = createStatusUI({
     statusBox: document.getElementById("statusBox"),
@@ -20,9 +22,20 @@ const productsTitle = document.getElementById("productsTitle");
 const servicesTitle = document.getElementById("servicesTitle");
 const totalsBox = document.getElementById("totalsBox");
 const checkoutBtn = document.getElementById("checkoutBtn");
+const paymentSection = document.getElementById("paymentSection");
+const paymentTitle = document.getElementById("paymentTitle");
+const paymentSubtitle = document.getElementById("paymentSubtitle");
+const cardElement = document.getElementById("cardElement");
+const paymentError = document.getElementById("paymentError");
+const payNowBtn = document.getElementById("payNowBtn");
 
 const productsList = document.getElementById("productsList");
 const servicesList = document.getElementById("servicesList");
+
+let stripeClient = null;
+let stripeElements = null;
+let stripeCard = null;
+let currentClientSecret = null;
 
 function applyTranslations(lang) {
     badgeText.textContent = t(lang, "badge");
@@ -32,6 +45,9 @@ function applyTranslations(lang) {
     productsTitle.textContent = t(lang, "cart_products_title");
     servicesTitle.textContent = t(lang, "cart_services_title");
     checkoutBtn.textContent = t(lang, "cart_checkout");
+    paymentTitle.textContent = t(lang, "cart_payment_title");
+    paymentSubtitle.textContent = t(lang, "cart_payment_subtitle");
+    payNowBtn.textContent = t(lang, "cart_pay_now");
     statusUI.setStatus(t(lang, "ready"), "neutral", null);
 }
 
@@ -171,8 +187,22 @@ checkoutBtn.addEventListener("click", () => {
 
 async function recheckBookings() {
     const cart = getCart();
+    if (!cart.products.length && !cart.services.length) {
+        statusUI.setStatus(t(getLanguage(), "cart_checkout_empty"), "bad", 400);
+        return;
+    }
+
+    if (!getToken()) {
+        statusUI.setStatus(
+            t(getLanguage(), "cart_checkout_auth_required"),
+            "bad",
+            401,
+        );
+        return;
+    }
+
     if (!cart.services.length) {
-        statusUI.setStatus(t(getLanguage(), "cart_checkout_pending"), "neutral", 0);
+        await startCheckout();
         return;
     }
 
@@ -208,5 +238,154 @@ async function recheckBookings() {
         return;
     }
 
-    statusUI.setStatus(t(getLanguage(), "cart_checkout_pending"), "neutral", 0);
+    await startCheckout();
 }
+
+async function startCheckout() {
+    try {
+        statusUI.setRequestMeta("POST", "/api/orders");
+        statusUI.setStatus(t(getLanguage(), "cart_checkout_creating"), "neutral", null);
+
+        const order = await apiRequest("/orders", { method: "POST" });
+        statusUI.setDebug(order);
+
+        const orderId = order?.id || order?.result?.id;
+        if (!orderId) {
+            statusUI.setStatus(t(getLanguage(), "cart_checkout_failed"), "bad", 500);
+            return;
+        }
+
+        sessionStorage.setItem("last_order_id", String(orderId));
+
+        const cart = getCart();
+        const items = [];
+
+        cart.products.forEach((p) => {
+            items.push({
+                type: "product",
+                id: p.id,
+                quantity: p.qty,
+            });
+        });
+
+        cart.services.forEach((s) => {
+            items.push({
+                type: "service",
+                id: s.service_id,
+                starts_at: s.starts_at,
+                ends_at: s.ends_at,
+                timezone: s.timezone,
+            });
+        });
+
+        for (const item of items) {
+            statusUI.setRequestMeta("POST", `/api/orders/${orderId}/items`);
+            statusUI.setStatus(
+                t(getLanguage(), "cart_checkout_items"),
+                "neutral",
+                null,
+            );
+            await apiRequest(`/orders/${orderId}/items`, {
+                method: "POST",
+                body: JSON.stringify(item),
+            });
+        }
+
+        statusUI.setRequestMeta("POST", `/api/orders/${orderId}/checkout`);
+        statusUI.setStatus(t(getLanguage(), "cart_checkout_intent"), "neutral", null);
+
+        const intent = await apiRequest(`/orders/${orderId}/checkout`, {
+            method: "POST",
+        });
+        statusUI.setDebug(intent);
+
+        currentClientSecret = intent?.client_secret;
+        if (!currentClientSecret) {
+            statusUI.setStatus(t(getLanguage(), "cart_checkout_failed"), "bad", 500);
+            return;
+        }
+
+        await setupStripe();
+        paymentSection.style.display = "grid";
+        statusUI.setStatus(t(getLanguage(), "cart_checkout_ready"), "ok", 200);
+    } catch (err) {
+        statusUI.setDebug(err.data || { error: err.message });
+        statusUI.setStatus(
+            err.message || t(getLanguage(), "cart_checkout_failed"),
+            "bad",
+            err.status || 0,
+        );
+    }
+}
+
+async function setupStripe() {
+    if (stripeClient && stripeCard) return;
+
+    const key = config?.stripe?.publishableKey;
+    if (!key || !window.Stripe) {
+        statusUI.setStatus(t(getLanguage(), "cart_checkout_failed"), "bad", 500);
+        return;
+    }
+
+    stripeClient = window.Stripe(key);
+    stripeElements = stripeClient.elements();
+    stripeCard = stripeElements.create("card", {
+        style: {
+            base: {
+                color: "#f9fafb",
+                fontSize: "14px",
+                iconColor: "#c7d2fe",
+                "::placeholder": { color: "rgba(255,255,255,0.55)" },
+            },
+            invalid: { color: "#ff4d4f" },
+        },
+    });
+
+    cardElement.innerHTML = "";
+    stripeCard.mount(cardElement);
+}
+
+payNowBtn.addEventListener("click", async () => {
+    if (!stripeClient || !currentClientSecret) {
+        return;
+    }
+
+    payNowBtn.disabled = true;
+    paymentError.textContent = "";
+    statusUI.setStatus(t(getLanguage(), "cart_checkout_processing"), "neutral", null);
+
+    const result = await stripeClient.confirmCardPayment(currentClientSecret, {
+        payment_method: {
+            card: stripeCard,
+        },
+    });
+
+    if (result.error) {
+        paymentError.textContent = result.error.message || "Payment failed.";
+        statusUI.setStatus(result.error.message, "bad", 400);
+        payNowBtn.disabled = false;
+        return;
+    }
+
+    if (result.paymentIntent?.status === "succeeded") {
+        const orderId =
+            result.paymentIntent.metadata?.order_id ||
+            sessionStorage.getItem("last_order_id");
+        const params = orderId ? new URLSearchParams({ order_id: String(orderId) }) : null;
+        clearCart();
+        loadCart();
+        paymentSection.style.display = "none";
+        statusUI.setStatus(t(getLanguage(), "cart_checkout_success"), "ok", 200);
+        if (params) {
+            window.location.href = `/demo/order-success.html?${params}`;
+        }
+        return;
+    }
+
+    statusUI.setStatus(
+        t(getLanguage(), "cart_checkout_pending_state"),
+        "neutral",
+        200,
+    );
+    payNowBtn.disabled = false;
+});

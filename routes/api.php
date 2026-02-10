@@ -25,6 +25,9 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\ServiceBookingController;
 use App\Http\Controllers\ServiceProviderAvailabilityController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ConnectAccountController;
+use App\Http\Controllers\Api\Admin\PlatformSettingsController;
+use App\Http\Controllers\Api\Admin\PayoutController;
 
 Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
@@ -69,6 +72,11 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
         Route::post('logout-all', [LoginController::class, 'logoutAll']);
 
         Route::post('update-password', [PasswordUpdateController::class, 'update']);
+
+        Route::prefix('connect')->group(function () {
+            Route::post('/onboard', [ConnectAccountController::class, 'start']);
+            Route::get('/status', [ConnectAccountController::class, 'status']);
+        });
 
         Route::get('/conversations/unread-count', [ConversationController::class, 'unreadCount']);
 
@@ -128,6 +136,8 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
         Route::prefix('orders')->group(function () {
             Route::post('/', [OrderController::class, 'store']);
+            Route::get('/my-sales', [OrderController::class, 'mySales']);
+            Route::get('/my-orders', [OrderController::class, 'myOrders']);
             Route::get('/{order}', [OrderController::class, 'show']);
             Route::post('/{order}/items', [OrderController::class, 'addItem']);
             Route::post('/{order}/checkout', [OrderCheckoutController::class, 'createPaymentIntent']);
@@ -169,6 +179,13 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
                     Route::post('/service-provider/{service_provider}/approve', [UpgradeRequestController::class, 'approveServiceProvider']);
                     Route::post('/service-provider/{service_provider}/reject', [UpgradeRequestController::class, 'rejectServiceProvider']);
                 });
+
+                Route::get('/settings', [PlatformSettingsController::class, 'show']);
+                Route::put('/settings', [PlatformSettingsController::class, 'update']);
+
+                Route::get('/payouts', [PayoutController::class, 'index']);
+                Route::post('/payouts/{user}/pay', [PayoutController::class, 'payUser']);
+                Route::post('/payouts/pay-all', [PayoutController::class, 'payAll']);
             });
 
             Route::prefix('seller')->group(function () {

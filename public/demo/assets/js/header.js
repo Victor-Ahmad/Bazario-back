@@ -168,6 +168,18 @@ function renderHeader(container) {
                 [t(lang, "nav_admin_upgrade_requests")],
             ),
         );
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/admin-payouts.html") ? "active" : ""
+                    }`,
+                    href: "/demo/admin-payouts.html",
+                },
+                [t(lang, "nav_admin_payouts")],
+            ),
+        );
     }
 
     if (isSeller) {
@@ -211,6 +223,34 @@ function renderHeader(container) {
                 [t(lang, "nav_service_availability")],
             ),
         );
+
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/provider-bookings.html") ? "active" : ""
+                    }`,
+                    href: "/demo/provider-bookings.html",
+                },
+                [t(lang, "nav_provider_bookings")],
+            ),
+        );
+    }
+
+    if (isSeller || isServiceProvider || isAdmin) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/my-sales.html") ? "active" : ""
+                    }`,
+                    href: "/demo/my-sales.html",
+                },
+                [t(lang, "nav_my_sales")],
+            ),
+        );
     }
 
     if (isCustomerOnly) {
@@ -224,6 +264,30 @@ function renderHeader(container) {
                     href: "/demo/cart.html",
                 },
                 [t(lang, "nav_cart")],
+            ),
+        );
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/my-orders.html") ? "active" : ""
+                    }`,
+                    href: "/demo/my-orders.html",
+                },
+                [t(lang, "nav_my_orders")],
+            ),
+        );
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/my-bookings.html") ? "active" : ""
+                    }`,
+                    href: "/demo/my-bookings.html",
+                },
+                [t(lang, "nav_my_bookings")],
             ),
         );
     }

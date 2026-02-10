@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ServiceSeeder::class,
             AdPositionSeeder::class,
             AdsSeeder::class,
+            OrderBookingSeeder::class,
         ]);
     }
 }

@@ -6,4 +6,7 @@ export const config = {
         cluster: "mt1",
         authEndpoint: "/broadcasting/auth",
     },
+    stripe: {
+        publishableKey: "pk_live_xxx",
+    },
 };

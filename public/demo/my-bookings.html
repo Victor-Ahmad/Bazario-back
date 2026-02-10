@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>My Bookings</title>
+        <link rel="stylesheet" href="./assets/css/app.css" />
+    </head>
+    <body>
+        <div id="appHeader"></div>
+        <script type="module" src="./assets/js/header.js"></script>
+
+        <main class="page">
+            <section class="right">
+                <div class="card" style="display: grid; gap: 12px">
+                    <div>
+                        <h1 id="pageTitle" style="margin: 0 0 6px">My Bookings</h1>
+                        <p id="pageSubtitle" class="subtitle" style="max-width: none">
+                            View, reschedule, or cancel your service bookings.
+                        </p>
+                    </div>
+
+                    <div id="bookingsList" style="display: grid; gap: 10px"></div>
+                </div>
+            </section>
+
+            <section class="left">
+                <div class="brand">
+                    <div class="toolbar">
+                        <div id="badgeText" class="badge">Marketplace Demo</div>
+
+                        <div class="langWrap">
+                            <label class="srOnly" for="langSelect">Language</label>
+                            <select id="langSelect" aria-label="Language">
+                                <option value="en">English</option>
+                                <option value="ar">Arabic</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="status">
+                    <div class="statusHeader">
+                        <h2 id="statusTitle">Status</h2>
+                        <span id="statusPill" class="pill">
+                            <span class="code">—</span>
+                            <span class="label">Not sent</span>
+                        </span>
+                    </div>
+
+                    <div id="statusMeta" class="statusMeta">
+                        <code>GET</code> <code>/api/me/bookings</code>
+                    </div>
+
+                    <div id="statusBox" class="statusBox">Ready.</div>
+                    <pre id="debugBox" class="debugBox" style="display: none"></pre>
+                </section>
+            </section>
+        </main>
+
+        <script type="module" src="./assets/js/my-bookings.js"></script>
+    </body>
+</html>
