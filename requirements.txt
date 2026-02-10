@@ -1,0 +1,63 @@
+Functional requirements
+1) Authentication & roles
+- Users can register, login, logout, and logout-all.
+- Roles: customer, seller, service provider, admin (RBAC enforced).
+- Account upgrade requests require admin approval.
+
+2) Marketplace content
+- Products and services can be created and managed by approved sellers/providers.
+- Listings and advertisements are supported with images and approval workflow.
+- Users can browse products/services/ads and view details.
+
+3) Orders & checkout (Stripe)
+- Customers can create orders, add products and services to a cart, and checkout.
+- Stripe PaymentIntents are created and completed; order status updates on webhook.
+- Platform fees are applied (admin-configurable).
+- Order items store gross, net, and fee amounts.
+
+4) Service booking & availability
+- Service providers define working hours and time off.
+- Customers can view availability, select slots, and book services via the cart.
+- Booking status flow: requested → confirmed/in progress → completed or cancelled.
+- Capacity and time conflicts are enforced.
+
+5) Messaging & conversations
+- Users can start direct conversations and exchange messages.
+- Unread counts update in real time.
+- Messages are stored and retrievable with pagination.
+
+6) Admin moderation
+- Admin can approve/reject seller/service provider upgrade requests.
+- Admin can approve/reject ads.
+- Admin can manage platform fee settings.
+
+7) Payouts (Stripe Connect)
+- Sellers/service providers onboard to Stripe Connect.
+- Admin can view balances and trigger payouts per user or pay all.
+- Transfers are recorded and tracked.
+
+8) Localization
+- UI and API responses support English, Arabic, and German.
+
+Non-functional requirements
+1) Security
+- Sanctum token auth for protected endpoints.
+- Role-based access control for seller/provider/admin routes.
+- Encrypted message storage at rest.
+- OWASP-aligned protections (input validation, CSRF safety for web, etc.).
+
+2) Reliability & data integrity
+- Orders, bookings, and payouts are transactional and consistent.
+- Webhook processing is idempotent and queued.
+
+3) Performance
+- API endpoints respond within acceptable latency for demo usage.
+- Pagination applied to large data sets.
+
+4) Availability & resilience
+- Background jobs handle webhook processing.
+- Retry mechanisms for external integrations (Stripe, Pusher).
+
+5) Compliance & privacy
+- Sensitive data stored and transmitted securely.
+- Payment flows comply with Stripe’s PCI responsibilities.
