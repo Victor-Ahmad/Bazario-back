@@ -66,11 +66,16 @@ class ProcessStripeEventJob implements ShouldQueue
         $order = Order::with('items')->whereKey($orderId)->lockForUpdate()->first();
         if (!$order) return;
 
-        // Update StripePayment row
-        StripePayment::where('order_id', $order->id)->update([
-            'status' => $pi['status'] ?? 'succeeded',
-            'charge_id' => $pi['latest_charge'] ?? null,
-        ]);
+        StripePayment::updateOrCreate(
+            ['order_id' => $order->id],
+            [
+                'payment_intent_id' => $pi['id'] ?? ('pi_missing_' . $order->id),
+                'status' => $pi['status'] ?? 'succeeded',
+                'charge_id' => $pi['latest_charge'] ?? null,
+                'amount' => (int) ($pi['amount'] ?? $order->total_amount),
+                'currency_iso' => strtoupper($pi['currency'] ?? $order->currency_iso),
+            ]
+        );
 
         // Idempotency: if already marked paid, don't re-create ledger
         if ($order->paid_at) {
@@ -126,10 +131,15 @@ class ProcessStripeEventJob implements ShouldQueue
         $order = Order::whereKey($orderId)->lockForUpdate()->first();
         if (!$order) return;
 
-        // Update payment status
-        StripePayment::where('order_id', $order->id)->update([
-            'status' => $pi['status'] ?? 'failed',
-        ]);
+        StripePayment::updateOrCreate(
+            ['order_id' => $order->id],
+            [
+                'payment_intent_id' => $pi['id'] ?? ('pi_missing_' . $order->id),
+                'status' => $pi['status'] ?? 'failed',
+                'amount' => (int) ($pi['amount'] ?? $order->total_amount),
+                'currency_iso' => strtoupper($pi['currency'] ?? $order->currency_iso),
+            ]
+        );
 
         // Keep order editable or set back to requires_payment
         if (!$order->paid_at) {

@@ -1,4 +1,5 @@
 import { apiRequest } from "./api.js";
+import { clearCart } from "./cart.js";
 import { getLanguage, setLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
 import { createStatusUI } from "./ui.js";
@@ -111,6 +112,19 @@ function renderSummary(order) {
     )}: ${total} ${currency} (Subtotal: ${subtotal} ${currency})`;
 }
 
+function handleOrderStatus(order) {
+    if (order?.status === "paid") {
+        clearCart();
+        pageSubtitle.textContent = t(getLanguage(), "order_success_subtitle");
+        statusUI.setStatus(t(getLanguage(), "order_success_paid"), "ok", 200);
+        return true;
+    }
+
+    pageSubtitle.textContent = t(getLanguage(), "order_success_pending_subtitle");
+    statusUI.setStatus(t(getLanguage(), "order_success_pending"), "neutral", 202);
+    return false;
+}
+
 async function loadOrder() {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("order_id");
@@ -131,7 +145,17 @@ async function loadOrder() {
         renderSummary(res);
         renderItems(res?.items || []);
 
-        statusUI.setStatus(t(getLanguage(), "ready"), "neutral", null);
+        const isPaid = handleOrderStatus(res);
+        if (!isPaid) {
+            // Webhook may still be processing. Retry a few times.
+            for (let i = 0; i < 5; i += 1) {
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+                const next = await apiRequest(`/orders/${orderId}`, { method: "GET" });
+                renderSummary(next);
+                renderItems(next?.items || []);
+                if (handleOrderStatus(next)) break;
+            }
+        }
     } catch (err) {
         statusUI.setDebug(err.data || { error: err.message });
         statusUI.setStatus(err.message || t(getLanguage(), "error"), "bad", err.status || 0);

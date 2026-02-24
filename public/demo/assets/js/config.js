@@ -7,6 +7,7 @@ export const config = {
         authEndpoint: "/broadcasting/auth",
     },
     stripe: {
-        publishableKey: "pk_live_xxx",
+        publishableKey:
+            "pk_test_51SybpZDoWOc1Wt5yaQblcdEjWH6sLOjpiyARQp3oK1arufahBDCKqzOjFzlXihEJKsxqfijxDnunYdUqYGIE7f5700f788ZRQI",
     },
 };

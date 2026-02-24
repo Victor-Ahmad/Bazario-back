@@ -80,6 +80,14 @@ function toInputValue(value) {
 }
 
 function bookingCard(booking) {
+    const status = String(booking.status || "").toLowerCase();
+    const isFinal = [
+        "completed",
+        "cancelled_by_customer",
+        "cancelled_by_provider",
+        "no_show",
+    ].includes(status);
+
     const card = document.createElement("div");
     card.style.border = "1px solid rgba(255,255,255,0.12)";
     card.style.borderRadius = "12px";
@@ -99,10 +107,28 @@ function bookingCard(booking) {
     meta.style.color = "rgba(255,255,255,0.75)";
     meta.textContent = `${formatDateTime(booking.starts_at)} → ${formatDateTime(
         booking.ends_at,
-    )} • ${t(
-        getLanguage(),
-        "provider_bookings_status",
-    )}: ${booking.status}`;
+    )}`;
+
+    const statusBadge = document.createElement("span");
+    statusBadge.textContent = booking.status;
+    statusBadge.style.display = "inline-flex";
+    statusBadge.style.alignItems = "center";
+    statusBadge.style.width = "fit-content";
+    statusBadge.style.padding = "4px 8px";
+    statusBadge.style.borderRadius = "999px";
+    statusBadge.style.fontSize = "12px";
+    statusBadge.style.fontWeight = "700";
+    statusBadge.style.border = "1px solid rgba(255,255,255,0.18)";
+    if (status.includes("cancelled")) {
+        statusBadge.style.color = "#fecaca";
+        statusBadge.style.background = "rgba(185, 28, 28, 0.35)";
+    } else if (status === "completed") {
+        statusBadge.style.color = "#bbf7d0";
+        statusBadge.style.background = "rgba(21, 128, 61, 0.3)";
+    } else {
+        statusBadge.style.color = "#bfdbfe";
+        statusBadge.style.background = "rgba(30, 64, 175, 0.28)";
+    }
 
     const customer = document.createElement("div");
     customer.style.fontSize = "12px";
@@ -165,13 +191,18 @@ function bookingCard(booking) {
     row.appendChild(btnReschedule);
     row.appendChild(btnCancel);
 
-    actions.appendChild(row);
-    actions.appendChild(rescheduleHint);
+    if (!isFinal) {
+        actions.appendChild(row);
+        actions.appendChild(rescheduleHint);
+    }
 
     card.appendChild(title);
     card.appendChild(meta);
+    card.appendChild(statusBadge);
     card.appendChild(customer);
-    card.appendChild(actions);
+    if (!isFinal) {
+        card.appendChild(actions);
+    }
     return card;
 }
 

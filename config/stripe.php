@@ -7,4 +7,6 @@ return [
     'connect_country' => env('STRIPE_CONNECT_COUNTRY', 'DE'),
     'connect_return_url' => env('STRIPE_CONNECT_RETURN_URL'),
     'connect_refresh_url' => env('STRIPE_CONNECT_REFRESH_URL'),
+    'checkout_success_url' => env('STRIPE_CHECKOUT_SUCCESS_URL'),
+    'checkout_cancel_url' => env('STRIPE_CHECKOUT_CANCEL_URL'),
 ];

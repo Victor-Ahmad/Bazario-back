@@ -141,6 +141,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
             Route::get('/{order}', [OrderController::class, 'show']);
             Route::post('/{order}/items', [OrderController::class, 'addItem']);
             Route::post('/{order}/checkout', [OrderCheckoutController::class, 'createPaymentIntent']);
+            Route::post('/{order}/checkout-session', [OrderCheckoutController::class, 'createCheckoutSession']);
         });
 
         // customer creates booking for a service (order flow only)
