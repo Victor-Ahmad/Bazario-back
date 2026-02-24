@@ -2,8 +2,8 @@ export const config = {
     apiBase: "/api",
     debug: true,
     pusher: {
-        key: "886ffa931b99f50946be",
-        cluster: "mt1",
+        key: "e5522d137bf0f04ea59c",
+        cluster: "eu",
         authEndpoint: "/broadcasting/auth",
     },
     stripe: {
