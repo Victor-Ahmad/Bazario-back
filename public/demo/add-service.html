@@ -125,7 +125,7 @@
                         <label
                             id="lblCancelCutoff"
                             for="cancel_cutoff_hours"
-                            >Free cancel cutoff (hours)</label
+                            >Cancel cutoff (hours)</label
                         >
                         <input
                             id="cancel_cutoff_hours"
@@ -138,6 +138,29 @@
                         <small
                             class="error"
                             data-error-for="cancel_cutoff_hours"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label
+                            id="lblCancelLatePolicy"
+                            for="cancel_late_policy"
+                            >Late cancel policy</label
+                        >
+                        <select id="cancel_late_policy" name="cancel_late_policy">
+                            <option value="deny" selected>Not allowed</option>
+                            <option value="allow">Still allow</option>
+                        </select>
+                        <small
+                            id="txtCancelPolicyHelp"
+                            class="subtitle"
+                            style="max-width: none"
+                        >
+                            What should happen if the customer cancels after the cutoff.
+                        </small>
+                        <small
+                            class="error"
+                            data-error-for="cancel_late_policy"
                         ></small>
                     </div>
 
@@ -156,6 +179,27 @@
                         <small
                             class="error"
                             data-error-for="edit_cutoff_hours"
+                        ></small>
+                    </div>
+
+                    <div class="field">
+                        <label id="lblEditLatePolicy" for="edit_late_policy"
+                            >Late reschedule policy</label
+                        >
+                        <select id="edit_late_policy" name="edit_late_policy">
+                            <option value="deny" selected>Not allowed</option>
+                            <option value="allow">Still allow</option>
+                        </select>
+                        <small
+                            id="txtEditPolicyHelp"
+                            class="subtitle"
+                            style="max-width: none"
+                        >
+                            What should happen if the customer reschedules after the cutoff.
+                        </small>
+                        <small
+                            class="error"
+                            data-error-for="edit_late_policy"
                         ></small>
                     </div>
 

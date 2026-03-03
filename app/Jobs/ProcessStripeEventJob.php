@@ -32,7 +32,7 @@ class ProcessStripeEventJob implements ShouldQueue
             return;
         }
 
-        DB::transaction(function () use ($eventId, $eventType) {
+        DB::transaction(function () use ($eventId, $eventType, $payments) {
             // Lock event row to avoid double processing in race conditions
             $row = StripeWebhookEvent::where('event_id', $eventId)->lockForUpdate()->first();
 

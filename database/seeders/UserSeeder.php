@@ -90,15 +90,6 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'remember_token' => null,
             ],
-
-
-            [
-                'name' => 'Admin',
-                'email' => 'migrate:fresh --seed',
-                'email_verified_at' => now(),
-                'password' => Hash::make('12345678'),
-                'remember_token' => null,
-            ],
         ];
 
         foreach ($users as $user) {

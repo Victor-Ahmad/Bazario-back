@@ -92,6 +92,20 @@ export function addServiceBookingToCart(service, slot, timezone) {
     return cart;
 }
 
+export function removeProductFromCart(productId) {
+    const cart = getCart();
+    cart.products = cart.products.filter((item) => item.id !== productId);
+    saveCart(cart);
+    return cart;
+}
+
+export function removeServiceBookingFromCart(bookingId) {
+    const cart = getCart();
+    cart.services = cart.services.filter((item) => item.id !== bookingId);
+    saveCart(cart);
+    return cart;
+}
+
 export function clearCart() {
     saveCart(defaultCart());
 }

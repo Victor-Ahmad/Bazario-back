@@ -30,10 +30,16 @@ const lblImages = document.getElementById("lblImages");
 const lblDuration = document.getElementById("lblDuration");
 const lblSlotInterval = document.getElementById("lblSlotInterval");
 const lblCancelCutoff = document.getElementById("lblCancelCutoff");
+const lblCancelLatePolicy = document.getElementById("lblCancelLatePolicy");
 const lblEditCutoff = document.getElementById("lblEditCutoff");
+const lblEditLatePolicy = document.getElementById("lblEditLatePolicy");
 const lblMaxConcurrent = document.getElementById("lblMaxConcurrent");
 const lblLocationType = document.getElementById("lblLocationType");
 const lblIsActive = document.getElementById("lblIsActive");
+const txtCancelPolicyHelp = document.getElementById("txtCancelPolicyHelp");
+const txtEditPolicyHelp = document.getElementById("txtEditPolicyHelp");
+const cancelLatePolicy = document.getElementById("cancel_late_policy");
+const editLatePolicy = document.getElementById("edit_late_policy");
 
 function applyTranslations(lang) {
     badgeText.textContent = t(lang, "badge");
@@ -50,14 +56,31 @@ function applyTranslations(lang) {
     lblDuration.textContent = t(lang, "add_service_duration");
     lblSlotInterval.textContent = t(lang, "add_service_slot_interval");
     lblCancelCutoff.textContent = t(lang, "add_service_cancel_cutoff");
+    lblCancelLatePolicy.textContent = t(lang, "add_service_cancel_late_policy");
     lblEditCutoff.textContent = t(lang, "add_service_edit_cutoff");
+    lblEditLatePolicy.textContent = t(lang, "add_service_edit_late_policy");
     lblMaxConcurrent.textContent = t(lang, "add_service_max_concurrent");
     lblLocationType.textContent = t(lang, "add_service_location_type");
     lblIsActive.textContent = t(lang, "add_service_is_active");
     lblImages.textContent = t(lang, "add_service_images");
     submitBtn.textContent = t(lang, "add_service_submit");
+    txtCancelPolicyHelp.textContent = t(lang, "add_service_cancel_late_help");
+    txtEditPolicyHelp.textContent = t(lang, "add_service_edit_late_help");
+    syncPolicyOptionLabels(lang);
 
     statusUI.setStatus(t(lang, "ready"), "neutral", null);
+}
+
+function syncPolicyOptionLabels(lang) {
+    if (cancelLatePolicy) {
+        cancelLatePolicy.options[0].textContent = t(lang, "add_service_policy_deny");
+        cancelLatePolicy.options[1].textContent = t(lang, "add_service_policy_allow");
+    }
+
+    if (editLatePolicy) {
+        editLatePolicy.options[0].textContent = t(lang, "add_service_policy_deny");
+        editLatePolicy.options[1].textContent = t(lang, "add_service_policy_allow");
+    }
 }
 
 function initLang() {

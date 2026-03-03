@@ -232,8 +232,7 @@ function renderHeader(container) {
         !isAdmin &&
         !isSeller &&
         !isServiceProvider;
-    const isCustomerOnly =
-        isCustomer && !isAdmin && !isSeller && !isServiceProvider;
+    const canUseCart = session?.user && !isAdmin;
 
     container.innerHTML = "";
 
@@ -295,6 +294,21 @@ function renderHeader(container) {
                     href: "/demo/upgrade-account.html",
                 },
                 [t(lang, "nav_upgrade")],
+            ),
+        );
+    }
+
+    if (session?.user) {
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/update-password.html") ? "active" : ""
+                    }`,
+                    href: "/demo/update-password.html",
+                },
+                [t(lang, "nav_update_password")],
             ),
         );
     }
@@ -399,7 +413,7 @@ function renderHeader(container) {
         );
     }
 
-    if (isCustomerOnly) {
+    if (canUseCart) {
         navItems.push(
             el(
                 "a",

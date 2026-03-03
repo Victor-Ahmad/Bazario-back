@@ -27,6 +27,8 @@ class ServiceRequest extends FormRequest
             'slot_interval_minutes' => 'nullable|integer|min:5',
             'cancel_cutoff_hours' => 'nullable|integer|min:0',
             'edit_cutoff_hours' => 'nullable|integer|min:0',
+            'cancel_late_policy' => 'nullable|in:deny,allow',
+            'edit_late_policy' => 'nullable|in:deny,allow',
             'location_type' => 'nullable|string|max:32',
             'is_active' => 'nullable|boolean',
             'images'   => 'nullable|array|max:5',

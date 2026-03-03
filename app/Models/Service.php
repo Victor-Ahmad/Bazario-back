@@ -24,6 +24,8 @@ class Service extends Model
         'slot_interval_minutes',
         'cancel_cutoff_hours',
         'edit_cutoff_hours',
+        'cancel_late_policy',
+        'edit_late_policy',
 
     ];
     protected $appends = ['isNew'];
@@ -33,6 +35,8 @@ class Service extends Model
         'description' => 'array',
         'cancel_cutoff_hours' => 'integer',
         'edit_cutoff_hours' => 'integer',
+        'cancel_late_policy' => 'string',
+        'edit_late_policy' => 'string',
     ];
 
     public function getIsNewAttribute()

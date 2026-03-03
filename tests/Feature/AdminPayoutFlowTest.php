@@ -355,4 +355,127 @@ class AdminPayoutFlowTest extends TestCase
             'type' => 'transfer_out',
         ]);
     }
+
+    public function test_admin_pay_all_releases_only_eligible_connected_accounts(): void
+    {
+        Role::create(['name' => 'admin']);
+        Role::create(['name' => 'seller']);
+        Role::create(['name' => 'service_provider']);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $seller = User::factory()->create();
+        $seller->assignRole('seller');
+
+        $provider = User::factory()->create();
+        $provider->assignRole('service_provider');
+
+        $customer = User::factory()->create();
+
+        ConnectAccount::create([
+            'user_id' => $seller->id,
+            'stripe_account_id' => 'acct_pay_all_seller',
+            'type' => 'express',
+            'charges_enabled' => true,
+            'payouts_enabled' => true,
+            'details_submitted' => true,
+        ]);
+
+        ConnectAccount::create([
+            'user_id' => $provider->id,
+            'stripe_account_id' => 'acct_pay_all_provider',
+            'type' => 'express',
+            'charges_enabled' => true,
+            'payouts_enabled' => false,
+            'details_submitted' => true,
+        ]);
+
+        $buyer = User::factory()->create();
+        $sellerOrder = Order::create([
+            'buyer_id' => $buyer->id,
+            'status' => 'paid',
+            'currency_iso' => 'EUR',
+            'subtotal_amount' => 1700,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'total_amount' => 1700,
+            'transfer_group' => 'order_pay_all_seller',
+        ]);
+
+        $providerOrder = Order::create([
+            'buyer_id' => $buyer->id,
+            'status' => 'paid',
+            'currency_iso' => 'EUR',
+            'subtotal_amount' => 2200,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'total_amount' => 2200,
+            'transfer_group' => 'order_pay_all_provider',
+        ]);
+
+        WalletLedgerEntry::create([
+            'user_id' => $seller->id,
+            'order_id' => $sellerOrder->id,
+            'order_item_id' => null,
+            'type' => 'sale_pending',
+            'amount' => 1700,
+            'currency_iso' => 'EUR',
+            'available_on' => now()->subDay(),
+            'metadata' => [],
+        ]);
+
+        WalletLedgerEntry::create([
+            'user_id' => $provider->id,
+            'order_id' => $providerOrder->id,
+            'order_item_id' => null,
+            'type' => 'sale_pending',
+            'amount' => 2200,
+            'currency_iso' => 'EUR',
+            'available_on' => now()->subDay(),
+            'metadata' => [],
+        ]);
+
+        WalletLedgerEntry::create([
+            'user_id' => $customer->id,
+            'order_id' => null,
+            'order_item_id' => null,
+            'type' => 'sale_pending',
+            'amount' => 900,
+            'currency_iso' => 'EUR',
+            'available_on' => now()->subDay(),
+            'metadata' => [],
+        ]);
+
+        $this->app->instance(\Stripe\StripeClient::class, $this->fakeStripeClient());
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson('/api/admin/payouts/pay-all')
+            ->assertStatus(200);
+
+        $results = collect($response->json('results'));
+
+        $this->assertCount(2, $results);
+        $this->assertSame('ok', $results->firstWhere('user_id', $seller->id)['status']);
+        $this->assertSame('skipped', $results->firstWhere('user_id', $provider->id)['status']);
+
+        $this->assertDatabaseHas('wallet_ledger_entries', [
+            'user_id' => $seller->id,
+            'type' => 'transfer_out',
+            'amount' => 1700,
+        ]);
+
+        $this->assertDatabaseHas('wallet_ledger_entries', [
+            'user_id' => $provider->id,
+            'type' => 'sale_pending',
+            'amount' => 2200,
+        ]);
+
+        $this->assertDatabaseHas('wallet_ledger_entries', [
+            'user_id' => $customer->id,
+            'type' => 'sale_pending',
+            'amount' => 900,
+        ]);
+    }
 }

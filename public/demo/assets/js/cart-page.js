@@ -1,4 +1,8 @@
-import { getCart } from "./cart.js";
+import {
+    getCart,
+    removeProductFromCart,
+    removeServiceBookingFromCart,
+} from "./cart.js";
 import { apiRequest } from "./api.js";
 import { getToken } from "./auth.js";
 import { getLanguage, setLanguage } from "./lang.js";
@@ -55,6 +59,30 @@ function money(value) {
     return num.toFixed(2);
 }
 
+function createRemoveButton(onClick) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "×";
+    btn.title = t(getLanguage(), "cart_remove");
+    btn.setAttribute("aria-label", t(getLanguage(), "cart_remove"));
+    btn.className = "topbarBtn secondary";
+    btn.style.width = "32px";
+    btn.style.minWidth = "32px";
+    btn.style.height = "32px";
+    btn.style.marginTop = "0";
+    btn.style.padding = "0";
+    btn.style.lineHeight = "1";
+    btn.style.fontSize = "20px";
+    btn.style.justifySelf = "end";
+    btn.addEventListener("click", onClick);
+    return btn;
+}
+
+function rerenderCart(messageKey = "ready") {
+    loadCart();
+    statusUI.setStatus(t(getLanguage(), messageKey), "neutral", null);
+}
+
 function renderProducts(items) {
     productsList.innerHTML = "";
     if (!items.length) {
@@ -79,6 +107,20 @@ function renderProducts(items) {
         title.style.fontWeight = "700";
         title.textContent = `${item.name} (#${item.id})`;
 
+        const header = document.createElement("div");
+        header.style.display = "grid";
+        header.style.gridTemplateColumns = "1fr auto";
+        header.style.gap = "8px";
+        header.style.alignItems = "start";
+
+        header.appendChild(title);
+        header.appendChild(
+            createRemoveButton(() => {
+                removeProductFromCart(item.id);
+                rerenderCart("cart_remove_success");
+            }),
+        );
+
         const meta = document.createElement("div");
         meta.style.fontSize = "13px";
         meta.style.color = "rgba(255,255,255,0.75)";
@@ -98,7 +140,7 @@ function renderProducts(items) {
             card.appendChild(img);
         }
 
-        card.appendChild(title);
+        card.appendChild(header);
         card.appendChild(meta);
         productsList.appendChild(card);
     });
@@ -128,13 +170,27 @@ function renderServices(items) {
         title.style.fontWeight = "700";
         title.textContent = `${item.title} (#${item.service_id})`;
 
+        const header = document.createElement("div");
+        header.style.display = "grid";
+        header.style.gridTemplateColumns = "1fr auto";
+        header.style.gap = "8px";
+        header.style.alignItems = "start";
+
+        header.appendChild(title);
+        header.appendChild(
+            createRemoveButton(() => {
+                removeServiceBookingFromCart(item.id);
+                rerenderCart("cart_remove_success");
+            }),
+        );
+
         const meta = document.createElement("div");
         meta.style.fontSize = "13px";
         meta.style.color = "rgba(255,255,255,0.75)";
         const unit = money(item.price);
         meta.textContent = `${item.starts_at} → ${item.ends_at} • ${t(getLanguage(), "cart_unit_price")}: ${unit}`;
 
-        card.appendChild(title);
+        card.appendChild(header);
         card.appendChild(meta);
         servicesList.appendChild(card);
     });

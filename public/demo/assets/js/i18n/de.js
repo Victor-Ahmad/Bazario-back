@@ -25,6 +25,7 @@ export default {
     nav_services: "Services",
     nav_ads: "Anzeigen",
     nav_upgrade: "Konto upgraden",
+    nav_update_password: "Passwort ändern",
     nav_admin_upgrade_requests: "Upgrade-Anfragen",
     nav_my_products: "Meine Produkte",
     nav_my_services: "Meine Services",
@@ -97,6 +98,16 @@ export default {
     reset_resetting: "Passwort wird zurückgesetzt...",
     reset_success:
         "Passwort erfolgreich zurückgesetzt ✅ Du kannst dich jetzt anmelden.",
+    update_password_title: "Passwort ändern",
+    update_password_subtitle:
+        "Gib dein aktuelles Passwort ein und wähle ein neues.",
+    update_password_old: "Aktuelles Passwort",
+    update_password_new: "Neues Passwort",
+    update_password_confirmation: "Neues Passwort bestätigen",
+    update_password_submit: "Passwort aktualisieren",
+    update_password_submitting: "Passwort wird aktualisiert...",
+    update_password_success: "Passwort erfolgreich aktualisiert ✅",
+    update_password_min: "Das Passwort muss mindestens 6 Zeichen lang sein.",
 
     // Upgrade account
     upgrade_title: "Konto upgraden",
@@ -192,8 +203,16 @@ export default {
     add_service_success: "Service erfolgreich erstellt ✅",
     add_service_duration: "Dauer (Minuten)",
     add_service_slot_interval: "Slot-Intervall (Minuten)",
-    add_service_cancel_cutoff: "Kostenlose Storno-Frist (Stunden)",
+    add_service_cancel_cutoff: "Storno-Frist (Stunden)",
+    add_service_cancel_late_policy: "Regel bei spaeter Stornierung",
+    add_service_cancel_late_help:
+        "Was passieren soll, wenn der Kunde nach Ablauf der Frist storniert.",
     add_service_edit_cutoff: "Aenderungsfrist (Stunden)",
+    add_service_edit_late_policy: "Regel bei spaeter Umbuchung",
+    add_service_edit_late_help:
+        "Was passieren soll, wenn der Kunde nach Ablauf der Frist umbucht.",
+    add_service_policy_deny: "Nicht erlaubt",
+    add_service_policy_allow: "Trotzdem erlauben",
     add_service_max_concurrent: "Max. gleichzeitige Buchungen",
     add_service_location_type: "Ortstyp",
     add_service_is_active: "Aktiv",
@@ -237,6 +256,8 @@ export default {
     cart_recheck_failed: "Ein oder mehrere Slots sind nicht mehr verfuegbar.",
     cart_book_btn: "Buchen",
     cart_add_product_btn: "In den Warenkorb",
+    cart_remove: "Aus Warenkorb entfernen",
+    cart_remove_success: "Artikel aus dem Warenkorb entfernt.",
     cart_payment_title: "Zahlung",
     cart_payment_subtitle: "Kartendaten eingeben, um den Checkout abzuschliessen.",
     cart_pay_now: "Jetzt bezahlen",

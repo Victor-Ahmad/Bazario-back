@@ -56,6 +56,47 @@ class BookingPolicyTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_customer_can_cancel_after_cutoff_when_service_policy_allows_it(): void
+    {
+        $customer = User::factory()->create();
+        $providerUser = User::factory()->create();
+        $provider = ServiceProvider::factory()->create([
+            'user_id' => $providerUser->id,
+            'timezone' => 'UTC',
+        ]);
+
+        $start = Carbon::now('UTC')->addHours(2)->setTime(10, 0);
+        ServiceProviderWorkingHour::create([
+            'service_provider_id' => $provider->id,
+            'day_of_week' => $start->dayOfWeek,
+            'start_time' => '08:00',
+            'end_time' => '18:00',
+        ]);
+
+        $service = Service::factory()->create([
+            'provider_id' => $provider->id,
+            'is_active' => true,
+            'cancel_cutoff_hours' => 24,
+            'cancel_late_policy' => 'allow',
+        ]);
+
+        $booking = ServiceBooking::create([
+            'service_id' => $service->id,
+            'provider_user_id' => $providerUser->id,
+            'customer_user_id' => $customer->id,
+            'status' => 'confirmed',
+            'starts_at' => $start,
+            'ends_at' => (clone $start)->addHour(),
+            'timezone' => 'UTC',
+        ]);
+
+        Sanctum::actingAs($customer);
+
+        $this->patchJson("/api/bookings/{$booking->id}/cancel", [], [
+            'Accept-Language' => 'en',
+        ])->assertStatus(200);
+    }
+
     public function test_customer_can_reschedule_before_cutoff(): void
     {
         $customer = User::factory()->create();
@@ -103,5 +144,59 @@ class BookingPolicyTest extends TestCase
         );
 
         $response->assertStatus(200);
+    }
+
+    public function test_customer_can_reschedule_after_cutoff_when_service_policy_allows_it(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-03-03 08:00:00', 'UTC'));
+
+        $customer = User::factory()->create();
+        $providerUser = User::factory()->create();
+        $provider = ServiceProvider::factory()->create([
+            'user_id' => $providerUser->id,
+            'timezone' => 'UTC',
+        ]);
+
+        $initial = Carbon::now('UTC')->addHours(18)->startOfHour();
+        $newStart = $initial->copy()->addHours(2);
+
+        ServiceProviderWorkingHour::create([
+            'service_provider_id' => $provider->id,
+            'day_of_week' => $initial->dayOfWeek,
+            'start_time' => '00:00',
+            'end_time' => '23:59',
+        ]);
+
+        $service = Service::factory()->create([
+            'provider_id' => $provider->id,
+            'is_active' => true,
+            'edit_cutoff_hours' => 24,
+            'edit_late_policy' => 'allow',
+        ]);
+
+        $booking = ServiceBooking::create([
+            'service_id' => $service->id,
+            'provider_user_id' => $providerUser->id,
+            'customer_user_id' => $customer->id,
+            'status' => 'requested',
+            'starts_at' => $initial,
+            'ends_at' => (clone $initial)->addHour(),
+            'timezone' => 'UTC',
+        ]);
+
+        Sanctum::actingAs($customer);
+
+        $response = $this->patchJson(
+            "/api/bookings/{$booking->id}/reschedule",
+            [
+                'starts_at' => $newStart->toDateTimeString(),
+                'timezone' => 'UTC',
+            ],
+            ['Accept-Language' => 'en']
+        );
+
+        $response->assertStatus(200);
+
+        Carbon::setTestNow();
     }
 }

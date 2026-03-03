@@ -167,7 +167,12 @@ class ServiceBookingController extends Controller
         if ($isCustomer) {
             $service = $booking->service()->first();
             $cutoff = (int) ($service?->cancel_cutoff_hours ?? 0);
-            if ($cutoff > 0 && $this->isAfterCutoff($booking->starts_at, $cutoff)) {
+            $latePolicy = (string) ($service?->cancel_late_policy ?? 'deny');
+            if (
+                $cutoff > 0
+                && $latePolicy === 'deny'
+                && $this->isAfterCutoff($booking->starts_at, $cutoff)
+            ) {
                 return response()->json([
                     'message' => __('bookings.cancel_not_allowed_time'),
                 ], 422);
@@ -261,7 +266,12 @@ class ServiceBookingController extends Controller
 
         if ($isCustomer) {
             $cutoff = (int) ($service->edit_cutoff_hours ?? 0);
-            if ($cutoff > 0 && $this->isAfterCutoff($booking->starts_at, $cutoff)) {
+            $latePolicy = (string) ($service->edit_late_policy ?? 'deny');
+            if (
+                $cutoff > 0
+                && $latePolicy === 'deny'
+                && $this->isAfterCutoff($booking->starts_at, $cutoff)
+            ) {
                 return response()->json([
                     'message' => __('bookings.edit_not_allowed_time'),
                 ], 422);
