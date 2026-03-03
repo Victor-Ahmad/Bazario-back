@@ -72,7 +72,7 @@ function stripeAccountTypeForRoles(roles) {
 
 function stripeStatusLabel(lang, data) {
     if (!data?.connected) return t(lang, "nav_stripe_setup");
-    if (data?.account?.details_submitted || data?.account?.payouts_enabled) {
+    if (data?.account?.details_submitted && data?.account?.payouts_enabled) {
         return t(lang, "nav_stripe_connected");
     }
     return t(lang, "nav_stripe_pending");
@@ -176,7 +176,7 @@ function renderStripeAction(right, session, roles, setMsg) {
 
     button.addEventListener("click", async () => {
         const status = await loadConnectStatus(session, roles);
-        if (status?.account?.details_submitted || status?.account?.payouts_enabled) {
+        if (status?.account?.details_submitted && status?.account?.payouts_enabled) {
             window.location.href = "/demo/stripe-account.html";
             return;
         }
@@ -188,7 +188,7 @@ function renderStripeAction(right, session, roles, setMsg) {
 
     loadConnectStatus(session, roles).then((status) => {
         const nextLang = getLanguage();
-        if (status?.account?.details_submitted || status?.account?.payouts_enabled) {
+        if (status?.account?.details_submitted && status?.account?.payouts_enabled) {
             button.className = "topbarBtn stripeStatusBtn stripeStatusBtnReady";
             button.textContent = t(nextLang, "nav_stripe_connected");
             button.title = t(nextLang, "nav_stripe_account_page");
