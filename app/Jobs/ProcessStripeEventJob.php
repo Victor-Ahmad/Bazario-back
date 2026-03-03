@@ -3,10 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\ConnectAccount;
-use App\Models\Order;
-use App\Models\StripePayment;
 use App\Models\StripeWebhookEvent;
-use App\Models\WalletLedgerEntry;
+use App\Services\StripeOrderPaymentService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -25,7 +23,7 @@ class ProcessStripeEventJob implements ShouldQueue
         $this->event = $event;
     }
 
-    public function handle(): void
+    public function handle(StripeOrderPaymentService $payments): void
     {
         $eventId = $this->event['id'] ?? null;
         $eventType = $this->event['type'] ?? null;
@@ -43,8 +41,9 @@ class ProcessStripeEventJob implements ShouldQueue
             }
 
             match ($eventType) {
-                'payment_intent.succeeded' => $this->handlePaymentIntentSucceeded(),
-                'payment_intent.payment_failed' => $this->handlePaymentIntentFailed(),
+                'payment_intent.succeeded' => $this->handlePaymentIntentSucceeded($payments),
+                'payment_intent.payment_failed' => $this->handlePaymentIntentFailed($payments),
+                'checkout.session.completed' => $this->handleCheckoutSessionCompleted($payments),
                 'account.updated' => $this->handleAccountUpdated(),
                 default => null,
             };
@@ -54,98 +53,30 @@ class ProcessStripeEventJob implements ShouldQueue
         });
     }
 
-    private function handlePaymentIntentSucceeded(): void
+    private function handlePaymentIntentSucceeded(StripeOrderPaymentService $payments): void
     {
         $pi = $this->event['data']['object'] ?? null;
         if (!$pi) return;
-
-        $orderId = $pi['metadata']['order_id'] ?? null;
-        if (!$orderId) return;
-
-        /** @var Order|null $order */
-        $order = Order::with('items')->whereKey($orderId)->lockForUpdate()->first();
-        if (!$order) return;
-
-        StripePayment::updateOrCreate(
-            ['order_id' => $order->id],
-            [
-                'payment_intent_id' => $pi['id'] ?? ('pi_missing_' . $order->id),
-                'status' => $pi['status'] ?? 'succeeded',
-                'charge_id' => $pi['latest_charge'] ?? null,
-                'amount' => (int) ($pi['amount'] ?? $order->total_amount),
-                'currency_iso' => strtoupper($pi['currency'] ?? $order->currency_iso),
-            ]
-        );
-
-        // Idempotency: if already marked paid, don't re-create ledger
-        if ($order->paid_at) {
-            return;
-        }
-
-        $order->update([
-            'status' => 'paid',
-            'paid_at' => now(),
-        ]);
-
-        // Create "pending wallet" ledger credits per order item
-        // (per item is better than aggregated, for refunds/cancellations)
-        foreach ($order->items as $item) {
-            // If you only want to credit after fulfillment, do NOT credit here.
-            // In your model (admin releases later), credit pending here is good.
-
-            $exists = WalletLedgerEntry::where('order_item_id', $item->id)
-                ->where('type', 'sale_pending')
-                ->exists();
-
-            if ($exists) {
-                continue;
-            }
-
-            WalletLedgerEntry::create([
-                'user_id' => $item->payee_user_id,
-                'order_id' => $order->id,
-                'order_item_id' => $item->id,
-                'type' => 'sale_pending',
-                'amount' => (int) $item->net_amount, // + credit
-                'currency_iso' => $order->currency_iso,
-                // optional hold window:
-                // 'available_on' => now()->addDays(7),
-                'metadata' => [
-                    'payment_intent_id' => $pi['id'] ?? null,
-                    'gross_amount' => (int) $item->gross_amount,
-                    'platform_fee_amount' => (int) $item->platform_fee_amount,
-                ],
-            ]);
-        }
+        $payments->handleSuccessfulPaymentObject($pi);
     }
 
-    private function handlePaymentIntentFailed(): void
+    private function handlePaymentIntentFailed(StripeOrderPaymentService $payments): void
     {
         $pi = $this->event['data']['object'] ?? null;
         if (!$pi) return;
+        $payments->handleFailedPaymentObject($pi);
+    }
 
-        $orderId = $pi['metadata']['order_id'] ?? null;
-        if (!$orderId) return;
+    private function handleCheckoutSessionCompleted(StripeOrderPaymentService $payments): void
+    {
+        $session = $this->event['data']['object'] ?? null;
+        if (!$session) return;
 
-        /** @var Order|null $order */
-        $order = Order::whereKey($orderId)->lockForUpdate()->first();
-        if (!$order) return;
+        $paymentObject = $payments->buildPaymentObjectFromCheckoutSession($session);
+        if (!$paymentObject) return;
 
-        StripePayment::updateOrCreate(
-            ['order_id' => $order->id],
-            [
-                'payment_intent_id' => $pi['id'] ?? ('pi_missing_' . $order->id),
-                'status' => $pi['status'] ?? 'failed',
-                'amount' => (int) ($pi['amount'] ?? $order->total_amount),
-                'currency_iso' => strtoupper($pi['currency'] ?? $order->currency_iso),
-            ]
-        );
-
-        // Keep order editable or set back to requires_payment
-        if (!$order->paid_at) {
-            $order->update([
-                'status' => 'requires_payment',
-            ]);
+        if (($session['payment_status'] ?? null) === 'paid') {
+            $payments->handleSuccessfulPaymentObject($paymentObject);
         }
     }
 

@@ -167,6 +167,88 @@
                     <button id="submitBtn" type="submit">
                         Submit upgrade request
                     </button>
+
+                    <div
+                        class="field"
+                        style="
+                            margin-top: 10px;
+                            padding-top: 16px;
+                            border-top: 1px solid rgba(255, 255, 255, 0.12);
+                        "
+                    >
+                        <div
+                            style="
+                                display: grid;
+                                gap: 8px;
+                                padding: 14px;
+                                border: 1px solid rgba(255, 255, 255, 0.12);
+                                border-radius: 14px;
+                                background: rgba(255, 255, 255, 0.03);
+                            "
+                        >
+                            <div>
+                                <h2
+                                    id="connectSectionTitle"
+                                    style="margin: 0 0 6px; font-size: 18px"
+                                >
+                                    Stripe payout setup
+                                </h2>
+                                <p
+                                    id="connectSectionSubtitle"
+                                    style="
+                                        margin: 0;
+                                        font-size: 14px;
+                                        color: rgba(255, 255, 255, 0.72);
+                                    "
+                                >
+                                    Complete Stripe's hosted onboarding so the
+                                    platform can later send funds to your Stripe
+                                    account after approval.
+                                </p>
+                            </div>
+
+                            <div
+                                id="connectEligibilityBox"
+                                style="
+                                    font-size: 13px;
+                                    color: rgba(255, 255, 255, 0.78);
+                                "
+                            >
+                                Submit your upgrade request first to unlock
+                                Stripe onboarding.
+                            </div>
+
+                            <div
+                                id="connectStatusBox"
+                                style="
+                                    font-size: 13px;
+                                    color: rgba(255, 255, 255, 0.78);
+                                "
+                            >
+                                Connect status: not connected
+                            </div>
+
+                            <div
+                                style="display: flex; gap: 10px; flex-wrap: wrap"
+                            >
+                                <button
+                                    id="connectRefreshBtn"
+                                    type="button"
+                                    class="ghostBtn"
+                                    style="width: auto; margin-top: 0"
+                                >
+                                    Refresh Stripe status
+                                </button>
+                                <button
+                                    id="connectStartBtn"
+                                    type="button"
+                                    style="width: auto; margin-top: 0"
+                                >
+                                    Open Stripe onboarding
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </section>
 

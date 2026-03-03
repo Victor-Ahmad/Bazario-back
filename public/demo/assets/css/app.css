@@ -521,6 +521,32 @@ textarea.isValid {
     background: rgba(0, 0, 0, 0.28);
 }
 
+.stripeStatusBtn {
+    width: auto;
+    margin-top: 0;
+    white-space: nowrap;
+}
+
+.stripeStatusBtnPending {
+    background: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.55);
+    color: #111827;
+}
+
+.stripeStatusBtnPending:hover {
+    background: #d97706;
+}
+
+.stripeStatusBtnReady {
+    background: #16a34a;
+    border-color: rgba(22, 163, 74, 0.55);
+    color: #ffffff;
+}
+
+.stripeStatusBtnReady:hover {
+    background: #15803d;
+}
+
 .topbarMsg {
     max-width: 1100px;
     margin: 10px auto 0;

@@ -1,5 +1,12 @@
 import { apiRequest } from "./api.js";
-import { getAuthSession, clearAuthSession, getToken } from "./auth.js";
+import {
+    getAuthSession,
+    clearAuthSession,
+    getToken,
+    getCachedConnectStatus,
+    setCachedConnectStatus,
+    clearCachedConnectStatus,
+} from "./auth.js";
 import { getLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
 import { config } from "./config.js";
@@ -12,6 +19,7 @@ let unreadPusher = null;
 let unreadChannel = null;
 let unreadUserId = null;
 let pusherLoadPromise = null;
+let connectStatusPromise = null;
 
 function el(tag, attrs = {}, children = []) {
     const node = document.createElement(tag);
@@ -56,6 +64,143 @@ function hasRole(roles, name) {
     return normalizeRoles(roles).includes(name);
 }
 
+function stripeAccountTypeForRoles(roles) {
+    if (hasRole(roles, "service_provider")) return "service_provider";
+    if (hasRole(roles, "seller")) return "seller";
+    return null;
+}
+
+function stripeStatusLabel(lang, data) {
+    if (!data?.connected) return t(lang, "nav_stripe_setup");
+    if (data?.account?.details_submitted || data?.account?.payouts_enabled) {
+        return t(lang, "nav_stripe_connected");
+    }
+    return t(lang, "nav_stripe_pending");
+}
+
+function stripeAccountDisplay(data) {
+    const id = data?.account?.stripe_account_id;
+    return id || "—";
+}
+
+async function loadConnectStatus(session, roles) {
+    const token = getToken();
+    const accountType = stripeAccountTypeForRoles(roles);
+    const userId = session?.user?.id;
+
+    if (!token || !accountType || !userId) return null;
+
+    const refreshFromStripeReturn = new URLSearchParams(window.location.search).get(
+        "stripe_connect_return",
+    ) === "1";
+    const cacheKey = `${userId}:${accountType}`;
+    const cached = getCachedConnectStatus();
+
+    if (!refreshFromStripeReturn && cached?.key === cacheKey && cached?.data) {
+        return cached.data;
+    }
+
+    if (connectStatusPromise) {
+        return connectStatusPromise;
+    }
+
+    connectStatusPromise = apiRequest(
+        `/connect/status?account_type=${encodeURIComponent(accountType)}`,
+        { method: "GET" },
+    )
+        .then((data) => {
+            setCachedConnectStatus({
+                key: cacheKey,
+                data,
+                cached_at: new Date().toISOString(),
+            });
+            if (refreshFromStripeReturn) {
+                const url = new URL(window.location.href);
+                url.searchParams.delete("stripe_connect_return");
+                window.history.replaceState({}, "", url.toString());
+            }
+            return data;
+        })
+        .catch(() => {
+            clearCachedConnectStatus();
+            return null;
+        })
+        .finally(() => {
+            connectStatusPromise = null;
+        });
+
+    return connectStatusPromise;
+}
+
+async function startStripeOnboarding(session, roles, setMsg, triggerButton) {
+    const accountType = stripeAccountTypeForRoles(roles);
+    if (!accountType) return;
+
+    try {
+        if (triggerButton) triggerButton.disabled = true;
+        setMsg(t(getLanguage(), "nav_stripe_loading"));
+
+        const res = await apiRequest("/connect/onboard", {
+            method: "POST",
+            body: JSON.stringify({ account_type: accountType }),
+        });
+
+        clearCachedConnectStatus();
+
+        if (res?.onboarding_url) {
+            window.location.href = res.onboarding_url;
+            return;
+        }
+
+        setMsg(t(getLanguage(), "nav_stripe_failed"));
+    } catch (err) {
+        setMsg(err?.message || t(getLanguage(), "nav_stripe_failed"));
+    } finally {
+        if (triggerButton) triggerButton.disabled = false;
+    }
+}
+
+function renderStripeAction(right, session, roles, setMsg) {
+    const lang = getLanguage();
+    const accountType = stripeAccountTypeForRoles(roles);
+    if (!session?.user || !accountType) return;
+
+        const button = el(
+            "button",
+            {
+                class: "topbarBtn stripeStatusBtn stripeStatusBtnPending",
+                type: "button",
+        },
+        [t(lang, "nav_stripe_loading")],
+    );
+
+    button.addEventListener("click", async () => {
+        const status = await loadConnectStatus(session, roles);
+        if (status?.account?.details_submitted || status?.account?.payouts_enabled) {
+            window.location.href = "/demo/stripe-account.html";
+            return;
+        }
+
+        await startStripeOnboarding(session, roles, setMsg, button);
+    });
+
+    right.appendChild(button);
+
+    loadConnectStatus(session, roles).then((status) => {
+        const nextLang = getLanguage();
+        if (status?.account?.details_submitted || status?.account?.payouts_enabled) {
+            button.className = "topbarBtn stripeStatusBtn stripeStatusBtnReady";
+            button.textContent = t(nextLang, "nav_stripe_connected");
+            button.title = t(nextLang, "nav_stripe_account_page");
+            return;
+        }
+
+        button.className = "topbarBtn stripeStatusBtn stripeStatusBtnPending";
+        button.textContent = stripeStatusLabel(nextLang, status);
+        button.title = t(nextLang, "nav_stripe_setup_hint");
+    });
+}
+
 async function doLogout(all = false, setMsg, setBusy) {
     try {
         setBusy(true);
@@ -78,14 +223,15 @@ function renderHeader(container) {
     const session = getAuthSession();
     const userName = session?.user?.name || "";
     const roles = session?.roles;
-    const canUpgrade =
-        session?.user &&
-        !hasRole(roles, "seller") &&
-        !hasRole(roles, "service_provider");
     const isAdmin = hasRole(roles, "admin");
     const isSeller = hasRole(roles, "seller");
     const isServiceProvider = hasRole(roles, "service_provider");
     const isCustomer = hasRole(roles, "customer");
+    const canUpgrade =
+        session?.user &&
+        !isAdmin &&
+        !isSeller &&
+        !isServiceProvider;
     const isCustomerOnly =
         isCustomer && !isAdmin && !isSeller && !isServiceProvider;
 
@@ -238,7 +384,7 @@ function renderHeader(container) {
         );
     }
 
-    if (isSeller || isServiceProvider || isAdmin) {
+    if (isSeller || isServiceProvider) {
         navItems.push(
             el(
                 "a",
@@ -292,7 +438,7 @@ function renderHeader(container) {
         );
     }
 
-    if (session?.user) {
+    if (session?.user && !isAdmin) {
         navItems.push(
             el(
                 "a",
@@ -385,6 +531,10 @@ function renderHeader(container) {
                 `${t(lang, "nav_hi")}, ${userName}`,
             ]),
         );
+
+        if (isSeller || isServiceProvider) {
+            renderStripeAction(right, session, roles, setMsg);
+        }
 
         const btnLogout = el("button", { class: "topbarBtn", type: "button" }, [
             t(lang, "nav_logout"),

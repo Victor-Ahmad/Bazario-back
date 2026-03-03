@@ -1,6 +1,7 @@
 import { apiRequest } from "./api.js";
 import { getLanguage, setLanguage } from "./lang.js";
 import { t } from "./i18n/index.js";
+import { getTimezones } from "./timezones.js";
 import { createStatusUI } from "./ui.js";
 
 const statusUI = createStatusUI({
@@ -16,6 +17,11 @@ const pageTitle = document.getElementById("pageTitle");
 const pageSubtitle = document.getElementById("pageSubtitle");
 const statusTitle = document.getElementById("statusTitle");
 const bookingsList = document.getElementById("bookingsList");
+
+function getLocale() {
+    const lang = getLanguage();
+    return lang === "ar" ? "ar-EG" : lang === "de" ? "de-DE" : "en-US";
+}
 
 function applyTranslations(lang) {
     badgeText.textContent = t(lang, "badge");
@@ -52,10 +58,7 @@ function setEmpty() {
 function formatDateTime(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value || "—";
-    const lang = getLanguage();
-    const locale =
-        lang === "ar" ? "ar-EG" : lang === "de" ? "de-DE" : "en-US";
-    return date.toLocaleString(locale, {
+    return date.toLocaleString(getLocale(), {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -64,19 +67,192 @@ function formatDateTime(value) {
     });
 }
 
-function toIso(value) {
+function formatTimeInTimezone(value, timeZone) {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toISOString();
+    if (Number.isNaN(date.getTime())) return value || "—";
+    return new Intl.DateTimeFormat(getLocale(), {
+        timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(date);
 }
 
-function toInputValue(value) {
-    const date = new Date(value);
+function formatDateForTimezone(dateLike, timeZone) {
+    const date = new Date(dateLike);
     if (Number.isNaN(date.getTime())) return "";
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-        date.getDate(),
-    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(date);
+}
+
+function createField(labelText, control) {
+    const field = document.createElement("div");
+    field.className = "field";
+    field.style.margin = "0";
+
+    const label = document.createElement("label");
+    label.textContent = labelText;
+
+    field.appendChild(label);
+    field.appendChild(control);
+    return field;
+}
+
+function buildTimezoneSelect(selectedTimezone) {
+    const select = document.createElement("select");
+    const allTz = getTimezones();
+
+    allTz.forEach((tz) => {
+        const option = document.createElement("option");
+        option.value = tz;
+        option.textContent = tz;
+        select.appendChild(option);
+    });
+
+    select.value = allTz.includes(selectedTimezone)
+        ? selectedTimezone
+        : allTz[0] || "UTC";
+
+    return select;
+}
+
+function setSelectedSlotSummary(element, slot, timezone) {
+    element.textContent = slot
+        ? `${t(getLanguage(), "booking_selected")}: ${formatTimeInTimezone(
+              slot.starts_at,
+              timezone,
+          )} - ${formatTimeInTimezone(slot.ends_at, timezone)}`
+        : t(getLanguage(), "booking_select_slot");
+}
+
+function setEmptySlots(container) {
+    container.innerHTML = "";
+    const msg = document.createElement("div");
+    msg.style.color = "rgba(255,255,255,0.7)";
+    msg.style.fontSize = "13px";
+    msg.textContent = t(getLanguage(), "booking_no_slots");
+    container.appendChild(msg);
+}
+
+function renderSlotGrid(container, booking, state, timezone, onPick) {
+    container.innerHTML = "";
+    if (!state.currentSlots.length) {
+        setEmptySlots(container);
+        return;
+    }
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(160px, 1fr))";
+    grid.style.gap = "8px";
+
+    state.currentSlots.forEach((slot) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.style.width = "100%";
+        btn.style.marginTop = "0";
+        btn.className =
+            state.selectedSlot?.starts_at === slot.starts_at ? "topbarBtn ok" : "";
+
+        const durationLabel = booking.service?.duration_minutes
+            ? ` (${booking.service.duration_minutes} min)`
+            : "";
+        btn.textContent = `${formatTimeInTimezone(
+            slot.starts_at,
+            timezone,
+        )} - ${formatTimeInTimezone(slot.ends_at, timezone)}${durationLabel}`;
+
+        btn.addEventListener("click", () => onPick(slot));
+        grid.appendChild(btn);
+    });
+
+    container.appendChild(grid);
+}
+
+function createStatusBadge(status) {
+    const badge = document.createElement("span");
+    const normalized = String(status || "").toLowerCase();
+
+    badge.textContent = status;
+    badge.style.display = "inline-flex";
+    badge.style.alignItems = "center";
+    badge.style.width = "fit-content";
+    badge.style.padding = "4px 8px";
+    badge.style.borderRadius = "999px";
+    badge.style.fontSize = "12px";
+    badge.style.fontWeight = "700";
+    badge.style.border = "1px solid rgba(255,255,255,0.18)";
+
+    if (normalized.includes("cancelled")) {
+        badge.style.color = "#fecaca";
+        badge.style.background = "rgba(185, 28, 28, 0.35)";
+    } else if (normalized === "completed") {
+        badge.style.color = "#bbf7d0";
+        badge.style.background = "rgba(21, 128, 61, 0.3)";
+    } else {
+        badge.style.color = "#bfdbfe";
+        badge.style.background = "rgba(30, 64, 175, 0.28)";
+    }
+
+    return badge;
+}
+
+async function loadAvailabilityForBooking(booking, state, elements) {
+    if (!elements.dateInput.value) {
+        statusUI.setStatus(t(getLanguage(), "booking_pick_date"), "bad", 0);
+        return;
+    }
+
+    try {
+        const qs = new URLSearchParams({
+            date: elements.dateInput.value,
+            timezone: elements.timezoneInput.value || "",
+            ignore_booking_id: String(booking.id),
+        });
+
+        statusUI.setRequestMeta(
+            "GET",
+            `/api/services/${booking.service_id}/availability?${qs.toString()}`,
+        );
+        statusUI.setStatus(t(getLanguage(), "availability_loading"), "neutral", null);
+
+        const res = await apiRequest(`/services/${booking.service_id}/availability?${qs}`, {
+            method: "GET",
+        });
+        statusUI.setDebug(res);
+
+        state.currentSlots = res?.slots || [];
+        state.selectedSlot = null;
+        if (!state.currentSlots.length) {
+            setEmptySlots(elements.slotsGrid);
+        }
+        setSelectedSlotSummary(
+            elements.selectedSlotBox,
+            state.selectedSlot,
+            elements.timezoneInput.value || "UTC",
+        );
+        elements.rescheduleBtn.disabled = true;
+        statusUI.setStatus(t(getLanguage(), "availability_loaded"), "ok", 200);
+    } catch (err) {
+        statusUI.setDebug(err.data || { error: err.message });
+        statusUI.setStatus(
+            err.message || t(getLanguage(), "availability_failed"),
+            "bad",
+            err.status || 0,
+        );
+        state.currentSlots = [];
+        state.selectedSlot = null;
+        setEmptySlots(elements.slotsGrid);
+        setSelectedSlotSummary(
+            elements.selectedSlotBox,
+            null,
+            elements.timezoneInput.value || "UTC",
+        );
+        elements.rescheduleBtn.disabled = true;
+    }
 }
 
 function bookingCard(booking) {
@@ -98,9 +274,7 @@ function bookingCard(booking) {
 
     const title = document.createElement("div");
     title.style.fontWeight = "700";
-    title.textContent = `${booking.service?.title || "Service"} (#${
-        booking.id
-    })`;
+    title.textContent = `${booking.service?.title || "Service"} (#${booking.id})`;
 
     const meta = document.createElement("div");
     meta.style.fontSize = "13px";
@@ -109,27 +283,6 @@ function bookingCard(booking) {
         booking.ends_at,
     )}`;
 
-    const statusBadge = document.createElement("span");
-    statusBadge.textContent = booking.status;
-    statusBadge.style.display = "inline-flex";
-    statusBadge.style.alignItems = "center";
-    statusBadge.style.width = "fit-content";
-    statusBadge.style.padding = "4px 8px";
-    statusBadge.style.borderRadius = "999px";
-    statusBadge.style.fontSize = "12px";
-    statusBadge.style.fontWeight = "700";
-    statusBadge.style.border = "1px solid rgba(255,255,255,0.18)";
-    if (status.includes("cancelled")) {
-        statusBadge.style.color = "#fecaca";
-        statusBadge.style.background = "rgba(185, 28, 28, 0.35)";
-    } else if (status === "completed") {
-        statusBadge.style.color = "#bbf7d0";
-        statusBadge.style.background = "rgba(21, 128, 61, 0.3)";
-    } else {
-        statusBadge.style.color = "#bfdbfe";
-        statusBadge.style.background = "rgba(30, 64, 175, 0.28)";
-    }
-
     const provider = document.createElement("div");
     provider.style.fontSize = "12px";
     provider.style.color = "rgba(255,255,255,0.6)";
@@ -137,69 +290,154 @@ function bookingCard(booking) {
         booking.provider_user?.name || "—"
     }`;
 
-    const actions = document.createElement("div");
-    actions.style.display = "grid";
-    actions.style.gap = "8px";
+    card.appendChild(title);
+    card.appendChild(meta);
+    card.appendChild(createStatusBadge(booking.status));
+    card.appendChild(provider);
 
-    const rescheduleRow = document.createElement("div");
-    rescheduleRow.style.display = "flex";
-    rescheduleRow.style.gap = "8px";
-    rescheduleRow.style.flexWrap = "wrap";
+    if (isFinal) {
+        return card;
+    }
 
+    const state = {
+        currentSlots: [],
+        selectedSlot: null,
+    };
+
+    const panel = document.createElement("div");
+    panel.style.display = "grid";
+    panel.style.gap = "10px";
+    panel.style.marginTop = "4px";
+    panel.style.paddingTop = "10px";
+    panel.style.borderTop = "1px solid rgba(255,255,255,0.08)";
+
+    const controls = document.createElement("div");
+    controls.style.display = "grid";
+    controls.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
+    controls.style.gap = "10px";
+
+    const timezoneInput = buildTimezoneSelect(booking.timezone || "UTC");
     const dateInput = document.createElement("input");
-    dateInput.type = "datetime-local";
-    dateInput.style.minWidth = "220px";
-    dateInput.value = toInputValue(booking.starts_at);
+    dateInput.type = "date";
+    dateInput.value = formatDateForTimezone(
+        booking.starts_at,
+        timezoneInput.value || "UTC",
+    );
 
-    const rescheduleHint = document.createElement("div");
-    rescheduleHint.style.fontSize = "12px";
-    rescheduleHint.style.color = "rgba(255,255,255,0.6)";
-    rescheduleHint.textContent = t(getLanguage(), "my_bookings_reschedule_hint");
+    controls.appendChild(createField(t(getLanguage(), "booking_date"), dateInput));
+    controls.appendChild(
+        createField(t(getLanguage(), "booking_timezone"), timezoneInput),
+    );
 
-    const btnReschedule = document.createElement("button");
-    btnReschedule.type = "button";
-    btnReschedule.textContent = t(getLanguage(), "my_bookings_reschedule");
-    btnReschedule.style.width = "auto";
-    btnReschedule.style.marginTop = "0";
+    const hint = document.createElement("div");
+    hint.style.fontSize = "12px";
+    hint.style.color = "rgba(255,255,255,0.6)";
+    hint.textContent = t(getLanguage(), "my_bookings_reschedule_hint");
 
-    const btnCancel = document.createElement("button");
-    btnCancel.type = "button";
-    btnCancel.className = "topbarBtn secondary";
-    btnCancel.textContent = t(getLanguage(), "my_bookings_cancel");
-    btnCancel.style.width = "auto";
-    btnCancel.style.marginTop = "0";
+    const actionRow = document.createElement("div");
+    actionRow.style.display = "flex";
+    actionRow.style.gap = "8px";
+    actionRow.style.flexWrap = "wrap";
 
-    btnReschedule.addEventListener("click", async () => {
-        const iso = toIso(dateInput.value);
-        if (!iso) return;
+    const checkBtn = document.createElement("button");
+    checkBtn.type = "button";
+    checkBtn.textContent = t(getLanguage(), "booking_check");
+    checkBtn.style.width = "auto";
+    checkBtn.style.marginTop = "0";
+
+    const rescheduleBtn = document.createElement("button");
+    rescheduleBtn.type = "button";
+    rescheduleBtn.textContent = t(getLanguage(), "my_bookings_reschedule");
+    rescheduleBtn.style.width = "auto";
+    rescheduleBtn.style.marginTop = "0";
+    rescheduleBtn.disabled = true;
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "topbarBtn secondary";
+    cancelBtn.textContent = t(getLanguage(), "my_bookings_cancel");
+    cancelBtn.style.width = "auto";
+    cancelBtn.style.marginTop = "0";
+
+    actionRow.appendChild(checkBtn);
+    actionRow.appendChild(rescheduleBtn);
+    actionRow.appendChild(cancelBtn);
+
+    const selectedSlotBox = document.createElement("div");
+    selectedSlotBox.className = "statusBox";
+    setSelectedSlotSummary(selectedSlotBox, null, timezoneInput.value || "UTC");
+
+    const slotsGrid = document.createElement("div");
+    slotsGrid.style.display = "grid";
+    slotsGrid.style.gap = "8px";
+    setEmptySlots(slotsGrid);
+
+    const renderSlots = () =>
+        renderSlotGrid(
+            slotsGrid,
+            booking,
+            state,
+            timezoneInput.value || "UTC",
+            (slot) => {
+                state.selectedSlot = slot;
+                renderSlots();
+                setSelectedSlotSummary(
+                    selectedSlotBox,
+                    state.selectedSlot,
+                    timezoneInput.value || "UTC",
+                );
+                rescheduleBtn.disabled = false;
+            },
+        );
+
+    const clearRescheduleSelection = () => {
+        state.currentSlots = [];
+        state.selectedSlot = null;
+        setEmptySlots(slotsGrid);
+        setSelectedSlotSummary(selectedSlotBox, null, timezoneInput.value || "UTC");
+        rescheduleBtn.disabled = true;
+    };
+
+    dateInput.addEventListener("change", clearRescheduleSelection);
+    timezoneInput.addEventListener("change", clearRescheduleSelection);
+
+    checkBtn.addEventListener("click", async () => {
+        await loadAvailabilityForBooking(booking, state, {
+            dateInput,
+            timezoneInput,
+            slotsGrid,
+            selectedSlotBox,
+            rescheduleBtn,
+        });
+        if (state.currentSlots.length) renderSlots();
+    });
+
+    rescheduleBtn.addEventListener("click", async () => {
+        if (!state.selectedSlot) {
+            statusUI.setStatus(t(getLanguage(), "booking_select_slot"), "bad", 0);
+            return;
+        }
+
         await updateBooking(booking.id, "reschedule", {
-            starts_at: iso,
-            timezone: booking.timezone || "UTC",
+            starts_at: state.selectedSlot.starts_at,
+            ends_at: state.selectedSlot.ends_at,
+            timezone: timezoneInput.value || "UTC",
         });
         await loadBookings();
     });
 
-    btnCancel.addEventListener("click", async () => {
+    cancelBtn.addEventListener("click", async () => {
         await updateBooking(booking.id, "cancel", {});
         await loadBookings();
     });
 
-    rescheduleRow.appendChild(dateInput);
-    rescheduleRow.appendChild(btnReschedule);
-    rescheduleRow.appendChild(btnCancel);
+    panel.appendChild(controls);
+    panel.appendChild(hint);
+    panel.appendChild(actionRow);
+    panel.appendChild(selectedSlotBox);
+    panel.appendChild(slotsGrid);
+    card.appendChild(panel);
 
-    if (!isFinal) {
-        actions.appendChild(rescheduleRow);
-        actions.appendChild(rescheduleHint);
-    }
-
-    card.appendChild(title);
-    card.appendChild(meta);
-    card.appendChild(statusBadge);
-    card.appendChild(provider);
-    if (!isFinal) {
-        card.appendChild(actions);
-    }
     return card;
 }
 
@@ -216,7 +454,11 @@ async function updateBooking(id, action, payload) {
         statusUI.setStatus(t(getLanguage(), "my_bookings_updated"), "ok", 200);
     } catch (err) {
         statusUI.setDebug(err.data || { error: err.message });
-        statusUI.setStatus(err.message || t(getLanguage(), "error"), "bad", err.status || 0);
+        statusUI.setStatus(
+            err.message || t(getLanguage(), "error"),
+            "bad",
+            err.status || 0,
+        );
     }
 }
 
@@ -240,7 +482,11 @@ async function loadBookings() {
         statusUI.setStatus(t(getLanguage(), "ready"), "neutral", null);
     } catch (err) {
         statusUI.setDebug(err.data || { error: err.message });
-        statusUI.setStatus(err.message || t(getLanguage(), "error"), "bad", err.status || 0);
+        statusUI.setStatus(
+            err.message || t(getLanguage(), "error"),
+            "bad",
+            err.status || 0,
+        );
         setEmpty();
     }
 }

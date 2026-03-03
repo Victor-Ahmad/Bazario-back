@@ -128,6 +128,7 @@ function handleOrderStatus(order) {
 async function loadOrder() {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("order_id");
+    const sessionId = params.get("session_id");
     if (!orderId) {
         statusUI.setStatus(t(getLanguage(), "order_success_missing"), "bad", 400);
         summaryBox.textContent = t(getLanguage(), "order_success_missing");
@@ -136,6 +137,26 @@ async function loadOrder() {
     }
 
     try {
+        if (sessionId) {
+            statusUI.setRequestMeta("POST", `/api/orders/${orderId}/checkout-session/reconcile`);
+
+            try {
+                const reconciled = await apiRequest(`/orders/${orderId}/checkout-session/reconcile`, {
+                    method: "POST",
+                    body: JSON.stringify({ session_id: sessionId }),
+                });
+                statusUI.setDebug(reconciled);
+                renderSummary(reconciled);
+                renderItems(reconciled?.items || []);
+
+                if (handleOrderStatus(reconciled)) {
+                    return;
+                }
+            } catch (reconcileErr) {
+                statusUI.setDebug(reconcileErr.data || { error: reconcileErr.message });
+            }
+        }
+
         statusUI.setRequestMeta("GET", `/api/orders/${orderId}`);
         statusUI.setStatus(t(getLanguage(), "loading"), "neutral", null);
 

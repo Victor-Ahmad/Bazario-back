@@ -32,6 +32,15 @@ export default {
     nav_cart: "Cart",
     nav_chats: "Chats",
     nav_my_ads: "My Ads",
+    nav_stripe_setup: "Complete Stripe Setup",
+    nav_stripe_pending: "Stripe Setup Needed",
+    nav_stripe_connected: "Stripe Connected",
+    nav_stripe_loading: "Checking Stripe...",
+    nav_stripe_failed: "Unable to open Stripe onboarding.",
+    nav_stripe_account: "Stripe account",
+    nav_stripe_setup_hint:
+        "Finish Stripe onboarding so admin can send funds to your Stripe account.",
+    nav_stripe_account_page: "Open Stripe account",
 
     // Register
     title: "Customer Registration",
@@ -103,6 +112,23 @@ export default {
     upgrade_submitting: "Submitting upgrade request...",
     upgrade_success: "Request submitted ✅ Awaiting admin approval.",
     upgrade_login_required: "Please log in to submit an upgrade request.",
+    upgrade_connect_title: "Stripe payout setup",
+    upgrade_connect_subtitle:
+        "Complete Stripe's hosted onboarding so the platform can later send funds to your Stripe account after approval.",
+    upgrade_connect_refresh: "Refresh Stripe status",
+    upgrade_connect_start: "Open Stripe onboarding",
+    upgrade_connect_locked:
+        "Submit your upgrade request first to unlock Stripe onboarding.",
+    upgrade_connect_checking: "Checking Stripe eligibility...",
+    upgrade_connect_eligible:
+        "Stripe onboarding is available for your :type request.",
+    upgrade_connect_status_label: "Connect status",
+    upgrade_connect_not_connected: "Not connected yet",
+    upgrade_connect_incomplete: "Onboarding incomplete",
+    upgrade_connect_connected: "Stripe connected",
+    upgrade_connect_submitted: "Details submitted, waiting for Stripe activation",
+    upgrade_connect_ready: "Ready to receive transfers",
+    upgrade_connect_not_available: "Not available",
 
     // Admin upgrade requests
     admin_upgrade_title: "Account Upgrade Requests",
@@ -293,7 +319,7 @@ export default {
     my_bookings_loading: "Updating booking...",
     my_bookings_updated: "Booking updated.",
     my_bookings_reschedule_hint:
-        "Pick a new date and time then click Reschedule.",
+        "Choose a date, check availability, then select a slot to reschedule.",
     provider_bookings_title: "Service Bookings",
     provider_bookings_subtitle: "Track and manage bookings for your services.",
     provider_bookings_empty: "No bookings yet.",
@@ -317,4 +343,24 @@ export default {
     chat_contact_seller: "Contact seller",
     chat_contact_provider: "Contact provider",
     chat_contact_ad_owner: "Contact ad owner",
+    stripe_account_title: "Stripe Account",
+    stripe_account_subtitle:
+        "Check your Stripe connection, Stripe balances, pending platform funds, and transfers sent by admin.",
+    stripe_account_balances: "Stripe Balances",
+    stripe_account_pending: "Awaiting Admin Release",
+    stripe_account_transfers: "Transfers Sent By Admin",
+    stripe_account_connect_status: "Connect status",
+    stripe_account_id_label: "Stripe account ID",
+    stripe_account_available: "Available in Stripe",
+    stripe_account_pending_stripe: "Pending in Stripe",
+    stripe_account_pending_platform: "Still on platform (not sent by admin yet)",
+    stripe_account_transfer_amount: "Transfer amount",
+    stripe_account_transfer_id: "Transfer ID",
+    stripe_account_transfer_order: "Order",
+    stripe_account_transfer_status: "Transfer status",
+    stripe_account_transfer_date: "Sent at",
+    stripe_account_empty_balances: "No Stripe balance data available yet.",
+    stripe_account_empty_pending:
+        "No platform funds are waiting for admin release.",
+    stripe_account_empty_transfers: "No admin transfers have been sent yet.",
 };

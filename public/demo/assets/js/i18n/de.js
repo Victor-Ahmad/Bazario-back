@@ -32,6 +32,15 @@ export default {
     nav_cart: "Warenkorb",
     nav_chats: "Chats",
     nav_my_ads: "Meine Anzeigen",
+    nav_stripe_setup: "Stripe einrichten",
+    nav_stripe_pending: "Stripe-Einrichtung noetig",
+    nav_stripe_connected: "Stripe verbunden",
+    nav_stripe_loading: "Stripe wird geprueft...",
+    nav_stripe_failed: "Stripe-Onboarding konnte nicht geoeffnet werden.",
+    nav_stripe_account: "Stripe-Konto",
+    nav_stripe_setup_hint:
+        "Stripe-Onboarding abschliessen, damit Admin Geld an dein Stripe-Konto senden kann.",
+    nav_stripe_account_page: "Stripe-Konto oeffnen",
 
     // Register
     title: "Kundenregistrierung",
@@ -110,6 +119,24 @@ export default {
     upgrade_success: "Anfrage gesendet ✅ Warten auf Admin-Freigabe.",
     upgrade_login_required:
         "Bitte anmelden, um eine Upgrade-Anfrage zu senden.",
+    upgrade_connect_title: "Stripe-Auszahlungssetup",
+    upgrade_connect_subtitle:
+        "Vervollstaendige das gehostete Stripe-Onboarding, damit die Plattform dir nach der Freigabe Geld auf dein Stripe-Konto senden kann.",
+    upgrade_connect_refresh: "Stripe-Status aktualisieren",
+    upgrade_connect_start: "Stripe-Onboarding oeffnen",
+    upgrade_connect_locked:
+        "Sende zuerst deine Upgrade-Anfrage, um Stripe freizuschalten.",
+    upgrade_connect_checking: "Stripe-Berechtigung wird geprueft...",
+    upgrade_connect_eligible:
+        "Stripe-Onboarding ist fuer deine :type-Anfrage verfuegbar.",
+    upgrade_connect_status_label: "Connect-Status",
+    upgrade_connect_not_connected: "Noch nicht verbunden",
+    upgrade_connect_incomplete: "Onboarding unvollstaendig",
+    upgrade_connect_connected: "Stripe verbunden",
+    upgrade_connect_submitted:
+        "Daten eingereicht, Aktivierung durch Stripe ausstehend",
+    upgrade_connect_ready: "Bereit, Transfers zu empfangen",
+    upgrade_connect_not_available: "Nicht verfuegbar",
 
     // Admin upgrade requests
     admin_upgrade_title: "Konto-Upgrade-Anfragen",
@@ -301,7 +328,7 @@ export default {
     my_bookings_loading: "Buchung wird aktualisiert...",
     my_bookings_updated: "Buchung aktualisiert.",
     my_bookings_reschedule_hint:
-        "Neues Datum und Uhrzeit waehlen, dann auf Verschieben klicken.",
+        "Datum waehlen, Verfuegbarkeit pruefen und dann einen Slot zum Verschieben auswaehlen.",
     provider_bookings_title: "Servicebuchungen",
     provider_bookings_subtitle: "Buchungen fuer deine Services verwalten.",
     provider_bookings_empty: "Noch keine Buchungen.",
@@ -325,4 +352,26 @@ export default {
     chat_contact_seller: "Verkaeufer kontaktieren",
     chat_contact_provider: "Dienstleister kontaktieren",
     chat_contact_ad_owner: "Anbieter kontaktieren",
+    stripe_account_title: "Stripe-Konto",
+    stripe_account_subtitle:
+        "Pruefe deine Stripe-Verbindung, Stripe-Guthaben, noch nicht freigegebene Plattformbetraege und von Admin gesendete Transfers.",
+    stripe_account_balances: "Stripe-Guthaben",
+    stripe_account_pending: "Wartet auf Admin-Freigabe",
+    stripe_account_transfers: "Von Admin gesendete Transfers",
+    stripe_account_connect_status: "Connect-Status",
+    stripe_account_id_label: "Stripe-Konto-ID",
+    stripe_account_available: "In Stripe verfuegbar",
+    stripe_account_pending_stripe: "In Stripe ausstehend",
+    stripe_account_pending_platform:
+        "Noch auf der Plattform (noch nicht vom Admin gesendet)",
+    stripe_account_transfer_amount: "Transferbetrag",
+    stripe_account_transfer_id: "Transfer-ID",
+    stripe_account_transfer_order: "Bestellung",
+    stripe_account_transfer_status: "Transferstatus",
+    stripe_account_transfer_date: "Gesendet am",
+    stripe_account_empty_balances: "Noch keine Stripe-Guthabendaten verfuegbar.",
+    stripe_account_empty_pending:
+        "Zurzeit warten keine Plattformbetraege auf Admin-Freigabe.",
+    stripe_account_empty_transfers:
+        "Es wurden noch keine Admin-Transfers gesendet.",
 };

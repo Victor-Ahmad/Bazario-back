@@ -32,6 +32,15 @@ export default {
     nav_cart: "السلة",
     nav_chats: "المحادثات",
     nav_my_ads: "إعلاناتي",
+    nav_stripe_setup: "أكمل إعداد Stripe",
+    nav_stripe_pending: "Stripe يحتاج إلى إعداد",
+    nav_stripe_connected: "Stripe متصل",
+    nav_stripe_loading: "جار التحقق من Stripe...",
+    nav_stripe_failed: "تعذر فتح إعداد Stripe.",
+    nav_stripe_account: "حساب Stripe",
+    nav_stripe_setup_hint:
+        "أكمل إعداد Stripe حتى تتمكن الإدارة من إرسال الأموال إلى حسابك.",
+    nav_stripe_account_page: "فتح حساب Stripe",
 
     // Register
     title: "تسجيل عميل جديد",
@@ -104,6 +113,23 @@ export default {
     upgrade_submitting: "جاري إرسال طلب الترقية...",
     upgrade_success: "تم إرسال الطلب ✅ بانتظار موافقة الإدارة.",
     upgrade_login_required: "يرجى تسجيل الدخول لإرسال طلب الترقية.",
+    upgrade_connect_title: "إعداد Stripe لاستلام الأموال",
+    upgrade_connect_subtitle:
+        "أكمل نموذج Stripe المستضاف حتى تتمكن المنصة لاحقاً من إرسال الأموال إلى حساب Stripe الخاص بك بعد الموافقة.",
+    upgrade_connect_refresh: "تحديث حالة Stripe",
+    upgrade_connect_start: "فتح إعداد Stripe",
+    upgrade_connect_locked:
+        "أرسل طلب الترقية أولاً لتفعيل إعداد Stripe.",
+    upgrade_connect_checking: "جار التحقق من أهلية Stripe...",
+    upgrade_connect_eligible:
+        "إعداد Stripe متاح لطلب :type الخاص بك.",
+    upgrade_connect_status_label: "حالة Connect",
+    upgrade_connect_not_connected: "غير متصل بعد",
+    upgrade_connect_incomplete: "التهيئة غير مكتملة",
+    upgrade_connect_connected: "Stripe متصل",
+    upgrade_connect_submitted: "تم إرسال البيانات وبانتظار تفعيل Stripe",
+    upgrade_connect_ready: "جاهز لاستقبال التحويلات",
+    upgrade_connect_not_available: "غير متاح",
 
     // Admin upgrade requests
     admin_upgrade_title: "طلبات ترقية الحساب",
@@ -294,7 +320,7 @@ export default {
     my_bookings_loading: "جار تحديث الحجز...",
     my_bookings_updated: "تم تحديث الحجز.",
     my_bookings_reschedule_hint:
-        "اختر تاريخًا ووقتًا جديدين ثم اضغط إعادة جدولة.",
+        "اختر تاريخًا، ثم تحقق من التوافر، وبعدها اختر وقتًا لإعادة الجدولة.",
     provider_bookings_title: "حجوزات الخدمات",
     provider_bookings_subtitle: "تتبّع حجوزات خدماتك وإدارتها.",
     provider_bookings_empty: "لا توجد حجوزات بعد.",
@@ -318,4 +344,26 @@ export default {
     chat_contact_seller: "تواصل مع البائع",
     chat_contact_provider: "تواصل مع مقدم الخدمة",
     chat_contact_ad_owner: "تواصل مع صاحب الإعلان",
+    stripe_account_title: "حساب Stripe",
+    stripe_account_subtitle:
+        "تحقق من اتصال Stripe والأرصدة داخل Stripe والأموال التي ما زالت بانتظار إرسال الإدارة وسجل التحويلات.",
+    stripe_account_balances: "أرصدة Stripe",
+    stripe_account_pending: "بانتظار إرسال الإدارة",
+    stripe_account_transfers: "التحويلات المرسلة من الإدارة",
+    stripe_account_connect_status: "حالة الربط",
+    stripe_account_id_label: "معرف حساب Stripe",
+    stripe_account_available: "المتاح في Stripe",
+    stripe_account_pending_stripe: "قيد الانتظار في Stripe",
+    stripe_account_pending_platform:
+        "ما زال داخل المنصة ولم ترسله الإدارة بعد",
+    stripe_account_transfer_amount: "قيمة التحويل",
+    stripe_account_transfer_id: "معرف التحويل",
+    stripe_account_transfer_order: "الطلب",
+    stripe_account_transfer_status: "حالة التحويل",
+    stripe_account_transfer_date: "تاريخ الإرسال",
+    stripe_account_empty_balances: "لا توجد بيانات رصيد داخل Stripe بعد.",
+    stripe_account_empty_pending:
+        "لا توجد أموال بانتظار إرسالها من الإدارة حالياً.",
+    stripe_account_empty_transfers:
+        "لم يتم إرسال أي تحويلات من الإدارة بعد.",
 };

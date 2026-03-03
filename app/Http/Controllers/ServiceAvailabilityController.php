@@ -14,10 +14,28 @@ class ServiceAvailabilityController extends Controller
         $data = $request->validate([
             'date' => ['required', 'date_format:Y-m-d'],
             'timezone' => ['nullable', 'string', 'max:64'],
+            'ignore_booking_id' => ['nullable', 'integer', 'exists:service_bookings,id'],
         ]);
 
         $provider = $service->serviceProvider()->with(['workingHours', 'timeOffs'])->firstOrFail();
         $tz = $data['timezone'] ?? $provider->timezone ?? 'UTC';
+        $ignoreBookingId = null;
+
+        if (!empty($data['ignore_booking_id'])) {
+            $booking = ServiceBooking::query()
+                ->whereKey($data['ignore_booking_id'])
+                ->where('service_id', $service->id)
+                ->firstOrFail();
+
+            $user = $request->user();
+            abort_unless(
+                $user
+                    && in_array($user->id, [$booking->customer_user_id, $booking->provider_user_id], true),
+                403
+            );
+
+            $ignoreBookingId = $booking->id;
+        }
 
         $dateLocal = Carbon::createFromFormat('Y-m-d', $data['date'], $tz)->startOfDay();
         $nowLocal = Carbon::now($tz);
@@ -54,8 +72,13 @@ class ServiceAvailabilityController extends Controller
             ->where('service_id', $service->id)
             ->whereIn('status', ['requested', 'confirmed', 'in_progress'])
             ->where('starts_at', '<', $dayEndUtc)
-            ->where('ends_at', '>', $dayStartUtc)
-            ->get(['starts_at', 'ends_at']);
+            ->where('ends_at', '>', $dayStartUtc);
+
+        if ($ignoreBookingId) {
+            $activeBookings->where('id', '!=', $ignoreBookingId);
+        }
+
+        $activeBookings = $activeBookings->get(['starts_at', 'ends_at']);
 
         // Time offs that overlap this day
         $timeOffs = $provider->timeOffs

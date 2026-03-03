@@ -37,8 +37,11 @@ class StripeWebhookController extends Controller
             return response('OK', 200);
         }
 
-        // Queue processing (recommended)
-        ProcessStripeEventJob::dispatch($event->toArray());
+        if (app()->environment('local') || config('queue.default') === 'sync') {
+            ProcessStripeEventJob::dispatchSync($event->toArray());
+        } else {
+            ProcessStripeEventJob::dispatch($event->toArray());
+        }
 
         return response('OK', 200);
     }

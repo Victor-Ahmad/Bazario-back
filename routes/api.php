@@ -76,6 +76,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
         Route::prefix('connect')->group(function () {
             Route::post('/onboard', [ConnectAccountController::class, 'start']);
             Route::get('/status', [ConnectAccountController::class, 'status']);
+            Route::get('/summary', [ConnectAccountController::class, 'summary']);
         });
 
         Route::get('/conversations/unread-count', [ConversationController::class, 'unreadCount']);
@@ -142,6 +143,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
             Route::post('/{order}/items', [OrderController::class, 'addItem']);
             Route::post('/{order}/checkout', [OrderCheckoutController::class, 'createPaymentIntent']);
             Route::post('/{order}/checkout-session', [OrderCheckoutController::class, 'createCheckoutSession']);
+            Route::post('/{order}/checkout-session/reconcile', [OrderCheckoutController::class, 'reconcileCheckoutSession']);
         });
 
         // customer creates booking for a service (order flow only)

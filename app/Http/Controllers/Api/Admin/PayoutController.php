@@ -7,12 +7,15 @@ use App\Models\Order;
 use App\Models\StripeTransfer;
 use App\Models\User;
 use App\Models\WalletLedgerEntry;
+use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Stripe\StripeClient;
 
 class PayoutController extends Controller
 {
+    private const PAYABLE_LEDGER_TYPES = ['sale_pending', 'transfer_pending'];
+
     public function index()
     {
         $users = User::query()
@@ -24,7 +27,7 @@ class PayoutController extends Controller
 
         $balances = WalletLedgerEntry::query()
             ->select('user_id', 'currency_iso', DB::raw('SUM(amount) as amount'))
-            ->where('type', 'sale_pending')
+            ->whereIn('type', self::PAYABLE_LEDGER_TYPES)
             ->where(function ($q) {
                 $q->whereNull('available_on')->orWhere('available_on', '<=', now());
             })
@@ -57,88 +60,10 @@ class PayoutController extends Controller
 
     public function payUser(Request $request, User $user, StripeClient $stripe)
     {
-        $user->load('connectAccount');
-        $account = $user->connectAccount;
-        if (!$account) {
-            abort(422, 'User does not have a connected account.');
-        }
-
-        if (!$account->payouts_enabled) {
-            abort(422, 'Connected account is not payout-enabled.');
-        }
-
-        $entries = WalletLedgerEntry::query()
-            ->where('user_id', $user->id)
-            ->where('type', 'sale_pending')
-            ->where(function ($q) {
-                $q->whereNull('available_on')->orWhere('available_on', '<=', now());
-            })
-            ->get();
-
-        if ($entries->isEmpty()) {
-            abort(422, 'No available balance to payout.');
-        }
-
-        $groups = $entries->groupBy(function ($entry) {
-            return $entry->order_id . '|' . $entry->currency_iso;
-        });
-
-        $results = [];
-
-        DB::transaction(function () use ($groups, $stripe, $account, $user, &$results) {
-            foreach ($groups as $groupKey => $groupEntries) {
-                $sample = $groupEntries->first();
-                if (!$sample?->order_id) {
-                    continue;
-                }
-
-                $amount = (int) $groupEntries->sum('amount');
-                if ($amount <= 0) {
-                    continue;
-                }
-
-                $order = Order::query()->find($sample->order_id);
-                $transferGroup = $order?->transfer_group ?: ('order_' . $sample->order_id);
-
-                $transfer = $stripe->transfers->create([
-                    'amount' => $amount,
-                    'currency' => strtolower($sample->currency_iso),
-                    'destination' => $account->stripe_account_id,
-                    'transfer_group' => $transferGroup,
-                ]);
-
-                StripeTransfer::create([
-                    'order_id' => $sample->order_id,
-                    'payee_user_id' => $user->id,
-                    'transfer_id' => $transfer->id,
-                    'amount' => $amount,
-                    'currency_iso' => strtoupper($sample->currency_iso),
-                    'status' => $transfer->status ?? 'created',
-                    'metadata' => [
-                        'transfer_group' => $transferGroup,
-                    ],
-                ]);
-
-                foreach ($groupEntries as $entry) {
-                    $meta = $entry->metadata ?? [];
-                    $meta['transfer_id'] = $transfer->id;
-                    $entry->update([
-                        'type' => 'transfer_out',
-                        'metadata' => $meta,
-                    ]);
-                }
-
-                $results[] = [
-                    'order_id' => $sample->order_id,
-                    'transfer_id' => $transfer->id,
-                    'amount' => $amount,
-                    'currency_iso' => strtoupper($sample->currency_iso),
-                ];
-            }
-        });
+        $results = $this->releaseFundsToStripeAccount($user, $stripe);
 
         return response()->json([
-            'message' => 'Payout initiated.',
+            'message' => 'Transfer initiated.',
             'transfers' => $results,
         ]);
     }
@@ -154,11 +79,11 @@ class PayoutController extends Controller
         $processed = [];
         foreach ($users as $user) {
             try {
-                $result = $this->payUser($request, $user, $stripe)->getData(true);
+                $result = $this->releaseFundsToStripeAccount($user, $stripe);
                 $processed[] = [
                     'user_id' => $user->id,
                     'status' => 'ok',
-                    'transfers' => $result['transfers'] ?? [],
+                    'transfers' => $result,
                 ];
             } catch (\Throwable $e) {
                 $processed[] = [
@@ -173,5 +98,196 @@ class PayoutController extends Controller
             'message' => 'Payout batch completed.',
             'results' => $processed,
         ]);
+    }
+
+    private function releaseFundsToStripeAccount(User $user, StripeClient $stripe): array
+    {
+        $user->load(['connectAccount', 'roles']);
+
+        if (!$user->hasAnyRole(['seller', 'service_provider'])) {
+            abort(422, 'User is not eligible to receive transfers.');
+        }
+
+        $account = $user->connectAccount;
+        if (!$account) {
+            abort(422, 'User does not have a connected account.');
+        }
+
+        if (!$account->payouts_enabled) {
+            abort(422, 'Connected account is not payout-enabled.');
+        }
+
+        $batches = $this->reserveTransferBatches($user);
+        $results = [];
+
+        foreach ($batches as $batch) {
+            $order = Order::query()->find($batch['order_id']);
+            $transferGroup = $order?->transfer_group ?: ('order_' . $batch['order_id']);
+
+            try {
+                $transfer = $stripe->transfers->create([
+                    'amount' => $batch['amount'],
+                    'currency' => strtolower($batch['currency_iso']),
+                    'destination' => $account->stripe_account_id,
+                    'transfer_group' => $transferGroup,
+                    'metadata' => [
+                        'order_id' => (string) $batch['order_id'],
+                        'payee_user_id' => (string) $user->id,
+                        'transfer_batch_key' => $batch['batch_key'],
+                    ],
+                ], [
+                    'idempotency_key' => $batch['batch_key'],
+                ]);
+            } catch (\Throwable $e) {
+                $this->releaseReservedBatch($batch['entry_ids']);
+                throw $e;
+            }
+
+            $results[] = $this->finalizeTransferBatch(
+                user: $user,
+                batch: $batch,
+                transfer: $transfer,
+                transferGroup: $transferGroup,
+            );
+        }
+
+        if ($results === []) {
+            abort(422, 'No available balance to payout.');
+        }
+
+        return $results;
+    }
+
+    private function reserveTransferBatches(User $user): array
+    {
+        return DB::transaction(function () use ($user) {
+            $entries = WalletLedgerEntry::query()
+                ->where('user_id', $user->id)
+                ->whereIn('type', self::PAYABLE_LEDGER_TYPES)
+                ->where(function ($q) {
+                    $q->whereNull('available_on')->orWhere('available_on', '<=', now());
+                })
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            if ($entries->isEmpty()) {
+                abort(422, 'No available balance to payout.');
+            }
+
+            $groups = $entries->groupBy(function ($entry) {
+                return $entry->order_id . '|' . strtoupper($entry->currency_iso);
+            });
+
+            $batches = [];
+
+            foreach ($groups as $groupEntries) {
+                $sample = $groupEntries->first();
+                if (!$sample?->order_id) {
+                    continue;
+                }
+
+                $amount = (int) $groupEntries->sum('amount');
+                if ($amount <= 0) {
+                    continue;
+                }
+
+                $batchKey = $this->makeBatchKey($user->id, $sample->order_id, strtoupper($sample->currency_iso), $groupEntries);
+
+                foreach ($groupEntries as $entry) {
+                    $metadata = $entry->metadata ?? [];
+                    $currentBatchKey = $metadata['transfer_batch_key'] ?? null;
+                    $metadata['transfer_batch_key'] = $batchKey;
+
+                    if ($entry->type !== 'transfer_pending' || $currentBatchKey !== $batchKey) {
+                        $entry->update([
+                            'type' => 'transfer_pending',
+                            'metadata' => $metadata,
+                        ]);
+                    }
+                }
+
+                $batches[] = [
+                    'batch_key' => $batchKey,
+                    'entry_ids' => $groupEntries->pluck('id')->values()->all(),
+                    'order_id' => $sample->order_id,
+                    'amount' => $amount,
+                    'currency_iso' => strtoupper($sample->currency_iso),
+                ];
+            }
+
+            if ($batches === []) {
+                abort(422, 'No available balance to payout.');
+            }
+
+            return $batches;
+        });
+    }
+
+    private function finalizeTransferBatch(User $user, array $batch, object $transfer, string $transferGroup): array
+    {
+        return DB::transaction(function () use ($user, $batch, $transfer, $transferGroup) {
+            StripeTransfer::updateOrCreate(
+                ['transfer_id' => $transfer->id],
+                [
+                    'order_id' => $batch['order_id'],
+                    'payee_user_id' => $user->id,
+                    'amount' => $batch['amount'],
+                    'currency_iso' => $batch['currency_iso'],
+                    'status' => $transfer->status ?? 'created',
+                    'metadata' => [
+                        'transfer_group' => $transferGroup,
+                        'transfer_batch_key' => $batch['batch_key'],
+                    ],
+                ],
+            );
+
+            $entries = WalletLedgerEntry::query()
+                ->whereIn('id', $batch['entry_ids'])
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($entries as $entry) {
+                $metadata = $entry->metadata ?? [];
+                $metadata['transfer_id'] = $transfer->id;
+                $metadata['transfer_batch_key'] = $batch['batch_key'];
+
+                $entry->update([
+                    'type' => 'transfer_out',
+                    'metadata' => $metadata,
+                ]);
+            }
+
+            return [
+                'order_id' => $batch['order_id'],
+                'transfer_id' => $transfer->id,
+                'amount' => $batch['amount'],
+                'currency_iso' => $batch['currency_iso'],
+            ];
+        });
+    }
+
+    private function releaseReservedBatch(array $entryIds): void
+    {
+        DB::transaction(function () use ($entryIds) {
+            $entries = WalletLedgerEntry::query()
+                ->whereIn('id', $entryIds)
+                ->where('type', 'transfer_pending')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($entries as $entry) {
+                $entry->update([
+                    'type' => 'sale_pending',
+                ]);
+            }
+        });
+    }
+
+    private function makeBatchKey(int $userId, int $orderId, string $currencyIso, Collection $groupEntries): string
+    {
+        $entryIds = $groupEntries->pluck('id')->sort()->implode('-');
+
+        return 'transfer_' . sha1($userId . '|' . $orderId . '|' . $currencyIso . '|' . $entryIds);
     }
 }

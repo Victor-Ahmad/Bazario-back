@@ -122,7 +122,8 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'purchasable_type' => Product::class,
                     'purchasable_id' => $product->id,
-                    'title_snapshot' => is_string($product->name) ? $product->name : null,
+                    'title_snapshot' => $this->snapshotText($product->name),
+                    'description_snapshot' => $this->snapshotText($product->description),
                     'quantity' => $qty,
                     'unit_amount' => $unit,
                     'gross_amount' => $gross,
@@ -216,8 +217,8 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'purchasable_type' => Service::class,
                     'purchasable_id' => $service->id,
-                    'title_snapshot' => is_string($service->title) ? $service->title : null,
-                    'description_snapshot' => is_string($service->description) ? $service->description : null,
+                    'title_snapshot' => $this->snapshotText($service->title),
+                    'description_snapshot' => $this->snapshotText($service->description),
                     'quantity' => 1,
                     'unit_amount' => $unit,
                     'gross_amount' => $gross,
@@ -249,6 +250,37 @@ class OrderController extends Controller
 
             return response()->json($order->load(['items', 'items.serviceBooking']));
         });
+    }
+
+    protected function snapshotText(mixed $value): ?string
+    {
+        if (is_string($value)) {
+            $trimmed = trim($value);
+
+            return $trimmed !== '' ? $trimmed : null;
+        }
+
+        if (!is_array($value)) {
+            return null;
+        }
+
+        $locale = app()->getLocale();
+        $fallbacks = array_unique([$locale, config('app.fallback_locale'), 'en', 'de', 'ar']);
+
+        foreach ($fallbacks as $key) {
+            $candidate = $value[$key] ?? null;
+            if (is_string($candidate) && trim($candidate) !== '') {
+                return trim($candidate);
+            }
+        }
+
+        foreach ($value as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                return trim($candidate);
+            }
+        }
+
+        return null;
     }
 
     protected function assertSlotAvailable(
