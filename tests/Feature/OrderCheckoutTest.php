@@ -8,6 +8,8 @@ use App\Models\Service;
 use App\Models\ServiceBooking;
 use App\Models\ServiceProvider;
 use App\Models\StripePayment;
+use App\Models\Product;
+use App\Models\Seller;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -140,6 +142,125 @@ class OrderCheckoutTest extends TestCase
         $this->assertNotEmpty($response->json('client_secret'));
         $this->assertNotEmpty($response->json('payment_intent_id'));
     }
+
+    public function test_start_checkout_creates_order_and_checkout_session_from_cart_payload(): void
+    {
+        $buyer = User::factory()->create();
+        $sellerUser = User::factory()->create();
+        $seller = Seller::factory()->create(['user_id' => $sellerUser->id]);
+        $category = Category::factory()->create(['type' => 'product']);
+        $product = Product::factory()->create([
+            'seller_id' => $seller->id,
+            'category_id' => $category->id,
+            'price' => 25,
+        ]);
+
+        $capture = [];
+        $this->app->instance(\Stripe\StripeClient::class, $this->fakeStripeCheckoutClient($capture));
+
+        Sanctum::actingAs($buyer);
+
+        $response = $this->postJson('/api/checkout/session', [
+            'items' => [
+                [
+                    'type' => 'product',
+                    'id' => $product->id,
+                    'quantity' => 2,
+                ],
+            ],
+        ], [
+            'Accept-Language' => 'en',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['checkout_url', 'checkout_session_id', 'order_id', 'status'])
+            ->assertJsonPath('status', 'requires_payment');
+
+        $orderId = $response->json('order_id');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $orderId,
+            'buyer_id' => $buyer->id,
+            'status' => 'requires_payment',
+            'total_amount' => 5000,
+        ]);
+
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $orderId,
+            'purchasable_type' => Product::class,
+            'purchasable_id' => $product->id,
+            'quantity' => 2,
+            'unit_amount' => 2500,
+            'gross_amount' => 5000,
+        ]);
+
+        $this->assertSame('2', (string) ($capture['params']['line_items'][0]['quantity'] ?? ''));
+    }
+
+    public function test_start_checkout_reuses_matching_unpaid_order(): void
+    {
+        $buyer = User::factory()->create();
+        $sellerUser = User::factory()->create();
+        $seller = Seller::factory()->create(['user_id' => $sellerUser->id]);
+        $category = Category::factory()->create(['type' => 'product']);
+        $product = Product::factory()->create([
+            'seller_id' => $seller->id,
+            'category_id' => $category->id,
+            'price' => 30,
+        ]);
+
+        $existingOrder = Order::create([
+            'buyer_id' => $buyer->id,
+            'status' => 'requires_payment',
+            'currency_iso' => 'EUR',
+            'subtotal_amount' => 3000,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'total_amount' => 3000,
+            'metadata' => [
+                'cart_fingerprint' => sha1(json_encode([[ 'type' => 'product', 'id' => $product->id, 'quantity' => 1 ]])),
+            ],
+        ]);
+
+        OrderItem::create([
+            'order_id' => $existingOrder->id,
+            'purchasable_type' => Product::class,
+            'purchasable_id' => $product->id,
+            'title_snapshot' => 'Existing Product',
+            'description_snapshot' => 'Existing description',
+            'quantity' => 1,
+            'unit_amount' => 3000,
+            'gross_amount' => 3000,
+            'platform_fee_amount' => 300,
+            'net_amount' => 2700,
+            'payee_user_id' => $sellerUser->id,
+            'status' => 'pending',
+        ]);
+
+        $capture = [];
+        $this->app->instance(\Stripe\StripeClient::class, $this->fakeStripeCheckoutClient($capture));
+
+        Sanctum::actingAs($buyer);
+
+        $response = $this->postJson('/api/checkout/session', [
+            'items' => [
+                [
+                    'type' => 'product',
+                    'id' => $product->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ], [
+            'Accept-Language' => 'en',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('order_id', $existingOrder->id);
+
+        $this->assertSame(1, Order::where('buyer_id', $buyer->id)->count());
+        $this->assertStringStartsWith('cs_' . $existingOrder->id . '_', $capture['opts']['idempotency_key'] ?? '');
+    }
+
 
     public function test_checkout_session_returns_redirect_url(): void
     {

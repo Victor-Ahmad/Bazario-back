@@ -144,6 +144,8 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
 
 
+        Route::post('/checkout/session', [OrderCheckoutController::class, 'startCheckout']);
+
         Route::prefix('orders')->group(function () {
             Route::post('/', [OrderController::class, 'store']);
             Route::get('/current', [OrderController::class, 'current']);

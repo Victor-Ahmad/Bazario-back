@@ -6,15 +6,43 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\StripePayment;
+use App\Services\OrderCartService;
 use App\Services\StripeOrderPaymentService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Stripe\StripeClient;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Stripe\StripeClient;
 
 class OrderCheckoutController extends Controller
 {
+    public function startCheckout(Request $request, StripeClient $stripe, OrderCartService $orderCartService)
+    {
+        $data = $request->validate([
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.type' => ['required', 'in:product,service'],
+            'items.*.id' => ['required', 'integer'],
+            'items.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'items.*.starts_at' => ['nullable', 'date'],
+            'items.*.ends_at' => ['nullable', 'date'],
+            'items.*.timezone' => ['nullable', 'string', 'max:64'],
+            'items.*.location_type' => ['nullable', 'string', 'max:32'],
+            'items.*.location_payload' => ['nullable', 'array'],
+        ]);
+
+        $user = $request->user();
+        $items = $data['items'];
+
+        $order = $orderCartService->findMatchingCurrentUnpaidOrder($user, $items);
+
+        if (!$order) {
+            $order = $orderCartService->createDraftOrder($user);
+            $order = $orderCartService->syncOrderFromCart($order, $items);
+        }
+
+        return $this->createCheckoutSessionResponse($order, $stripe);
+    }
+
     public function createPaymentIntent(Request $request, Order $order, StripeClient $stripe)
     {
         abort_unless($order->buyer_id === $request->user()->id, 403);
@@ -65,61 +93,8 @@ class OrderCheckoutController extends Controller
     public function createCheckoutSession(Request $request, Order $order, StripeClient $stripe)
     {
         abort_unless($order->buyer_id === $request->user()->id, 403);
-        abort_if(in_array($order->status, ['paid', 'refunded', 'partially_refunded'], true), 422, __('orders.not_payable'));
-        abort_unless(in_array($order->status, ['draft', 'requires_payment'], true), 422, __('orders.not_payable'));
-        abort_if($order->total_amount <= 0, 422, __('orders.total_invalid'));
 
-        $order->load(['items.serviceBooking', 'buyer']);
-        abort_if($order->items->isEmpty(), 422, __('orders.total_invalid'));
-
-        return DB::transaction(function () use ($order, $stripe) {
-            $order->update([
-                'status' => 'requires_payment',
-                'placed_at' => $order->placed_at ?: now(),
-                'transfer_group' => $order->transfer_group ?: ('order_' . $order->id),
-            ]);
-
-            $lineItems = $order->items
-                ->map(fn ($item) => $this->buildStripeLineItem($item, $order->currency_iso))
-                ->values()
-                ->all();
-
-            $successBaseUrl = config('stripe.checkout_success_url') ?: (config('app.url') . '/checkout/success');
-            $cancelBaseUrl = config('stripe.checkout_cancel_url') ?: (config('app.url') . '/checkout/cancel');
-
-            $successUrl = $successBaseUrl
-                . (str_contains($successBaseUrl, '?') ? '&' : '?')
-                . 'order_id=' . $order->id . '&session_id={CHECKOUT_SESSION_ID}';
-            $cancelUrl = $cancelBaseUrl
-                . (str_contains($cancelBaseUrl, '?') ? '&' : '?')
-                . 'order_id=' . $order->id;
-
-            $session = $stripe->checkout->sessions->create([
-                'mode' => 'payment',
-                'line_items' => $lineItems,
-                'customer_email' => $order->buyer?->email,
-                'success_url' => $successUrl,
-                'cancel_url' => $cancelUrl,
-                'payment_intent_data' => [
-                    'transfer_group' => $order->transfer_group,
-                    'metadata' => [
-                        'order_id' => (string) $order->id,
-                    ],
-                ],
-                'metadata' => [
-                    'order_id' => (string) $order->id,
-                ],
-            ], [
-                'idempotency_key' => 'cs_' . $order->id . '_' . Str::uuid()->toString(),
-            ]);
-
-            return response()->json([
-                'checkout_url' => $session->url,
-                'checkout_session_id' => $session->id,
-                'order_id' => $order->id,
-                'status' => $order->status,
-            ]);
-        });
+        return $this->createCheckoutSessionResponse($order, $stripe);
     }
 
     public function reconcileCheckoutSession(
@@ -155,6 +130,73 @@ class OrderCheckoutController extends Controller
             'payment' => $freshOrder?->stripePayment,
             'is_paid' => $freshOrder?->status === 'paid',
         ]);
+    }
+
+    private function createCheckoutSessionResponse(Order $order, StripeClient $stripe)
+    {
+        abort_if(in_array($order->status, ['paid', 'refunded', 'partially_refunded'], true), 422, __('orders.not_payable'));
+        abort_unless(in_array($order->status, ['draft', 'requires_payment'], true), 422, __('orders.not_payable'));
+        abort_if($order->total_amount <= 0, 422, __('orders.total_invalid'));
+
+        $order->load(['items.serviceBooking', 'buyer']);
+        abort_if($order->items->isEmpty(), 422, __('orders.total_invalid'));
+
+        return DB::transaction(function () use ($order, $stripe) {
+            $metadata = array_merge($order->metadata ?? [], []);
+
+            $order->update([
+                'status' => 'requires_payment',
+                'placed_at' => $order->placed_at ?: now(),
+                'transfer_group' => $order->transfer_group ?: ('order_' . $order->id),
+            ]);
+
+            $lineItems = $order->items
+                ->map(fn($item) => $this->buildStripeLineItem($item, $order->currency_iso))
+                ->values()
+                ->all();
+
+            $successBaseUrl = config('stripe.checkout_success_url') ?: (config('app.url') . '/checkout/success');
+            $cancelBaseUrl = config('stripe.checkout_cancel_url') ?: (config('app.url') . '/checkout/cancel');
+
+            $successUrl = $successBaseUrl
+                . (str_contains($successBaseUrl, '?') ? '&' : '?')
+                . 'order_id=' . $order->id . '&session_id={CHECKOUT_SESSION_ID}';
+            $cancelUrl = $cancelBaseUrl
+                . (str_contains($cancelBaseUrl, '?') ? '&' : '?')
+                . 'order_id=' . $order->id;
+
+            $session = $stripe->checkout->sessions->create([
+                'mode' => 'payment',
+                'line_items' => $lineItems,
+                'customer_email' => $order->buyer?->email,
+                'success_url' => $successUrl,
+                'cancel_url' => $cancelUrl,
+                'payment_intent_data' => [
+                    'transfer_group' => $order->transfer_group,
+                    'metadata' => [
+                        'order_id' => (string) $order->id,
+                    ],
+                ],
+                'metadata' => [
+                    'order_id' => (string) $order->id,
+                ],
+            ], [
+                'idempotency_key' => 'cs_' . $order->id . '_' . Str::uuid()->toString(),
+            ]);
+
+            $metadata['last_checkout_session_id'] = $session->id;
+            $metadata['last_checkout_session_created_at'] = now()->toISOString();
+            $order->update([
+                'metadata' => $metadata,
+            ]);
+
+            return response()->json([
+                'checkout_url' => $session->url,
+                'checkout_session_id' => $session->id,
+                'order_id' => $order->id,
+                'status' => $order->status,
+            ]);
+        });
     }
 
     private function buildStripeLineItem(OrderItem $item, string $currencyIso): array
