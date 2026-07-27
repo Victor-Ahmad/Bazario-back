@@ -2,7 +2,7 @@
 
 return [
     'paths'             => ['api/*', 'sanctum/csrf-cookie', '*'],
-    'allowed_methods'   => ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'],
+    'allowed_methods'   => ['POST', 'GET', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'],
     'allowed_origins'   => [
         'https://papayawhip-starling-859279.hostingersite.com',
         'https://plum-badger-438049.hostingersite.com',
