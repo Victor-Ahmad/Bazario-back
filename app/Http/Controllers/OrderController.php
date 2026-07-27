@@ -43,6 +43,21 @@ class OrderController extends Controller
         return response()->json($this->loadOrderRelations($order));
     }
 
+    public function current(Request $request)
+    {
+        $order = Order::query()
+            ->where('buyer_id', $request->user()->id)
+            ->whereIn('status', ['draft', 'requires_payment'])
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$order) {
+            return response()->json(null);
+        }
+
+        return response()->json($this->loadOrderRelations($order));
+    }
+
     public function myOrders(Request $request)
     {
         $user = $request->user();

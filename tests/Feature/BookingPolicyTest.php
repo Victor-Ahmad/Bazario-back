@@ -56,6 +56,57 @@ class BookingPolicyTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_customer_booking_payload_includes_actions_cutoffs_and_refund_summary(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-03-03 08:00:00', 'UTC'));
+
+        $customer = User::factory()->create();
+        $providerUser = User::factory()->create();
+        $provider = ServiceProvider::factory()->create([
+            'user_id' => $providerUser->id,
+            'timezone' => 'UTC',
+        ]);
+
+        $start = Carbon::now('UTC')->addDays(2)->setTime(10, 0);
+        $service = Service::factory()->create([
+            'provider_id' => $provider->id,
+            'is_active' => true,
+            'cancel_cutoff_hours' => 24,
+            'edit_cutoff_hours' => 12,
+        ]);
+
+        $booking = ServiceBooking::create([
+            'service_id' => $service->id,
+            'provider_user_id' => $providerUser->id,
+            'customer_user_id' => $customer->id,
+            'status' => 'confirmed',
+            'starts_at' => $start,
+            'ends_at' => (clone $start)->addHour(),
+            'timezone' => 'UTC',
+        ]);
+
+        Sanctum::actingAs($customer);
+
+        $this->getJson('/api/me/bookings', [
+            'Accept-Language' => 'en',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.0.actions.can_cancel', true)
+            ->assertJsonPath('data.0.actions.can_reschedule', true)
+            ->assertJsonPath('data.0.cutoffs.cancel_deadline', $start->copy()->subHours(24)->toISOString())
+            ->assertJsonPath('data.0.cutoffs.reschedule_deadline', $start->copy()->subHours(12)->toISOString())
+            ->assertJsonPath('data.0.refund_summary.applied', false);
+
+        $this->getJson("/api/bookings/{$booking->id}", [
+            'Accept-Language' => 'en',
+        ])->assertStatus(200)
+            ->assertJsonPath('actions.can_cancel', true)
+            ->assertJsonPath('actions.can_reschedule', true)
+            ->assertJsonPath('refund_summary.applied', false);
+
+        Carbon::setTestNow();
+    }
+
+
     public function test_customer_can_cancel_after_cutoff_when_service_policy_allows_it(): void
     {
         $customer = User::factory()->create();

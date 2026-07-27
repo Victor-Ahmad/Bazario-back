@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Stripe\StripeClient;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OrderCheckoutController extends Controller
 {
@@ -23,7 +24,7 @@ class OrderCheckoutController extends Controller
         return DB::transaction(function () use ($order, $stripe) {
             $order->update([
                 'status' => 'requires_payment',
-                'placed_at' => now(),
+                'placed_at' => $order->placed_at ?: now(),
                 'transfer_group' => $order->transfer_group ?: ('order_' . $order->id),
             ]);
 
@@ -65,7 +66,7 @@ class OrderCheckoutController extends Controller
     {
         abort_unless($order->buyer_id === $request->user()->id, 403);
         abort_if(in_array($order->status, ['paid', 'refunded', 'partially_refunded'], true), 422, __('orders.not_payable'));
-        abort_if($order->status !== 'draft', 422, __('orders.not_payable'));
+        abort_unless(in_array($order->status, ['draft', 'requires_payment'], true), 422, __('orders.not_payable'));
         abort_if($order->total_amount <= 0, 422, __('orders.total_invalid'));
 
         $order->load(['items.serviceBooking', 'buyer']);
@@ -74,7 +75,7 @@ class OrderCheckoutController extends Controller
         return DB::transaction(function () use ($order, $stripe) {
             $order->update([
                 'status' => 'requires_payment',
-                'placed_at' => now(),
+                'placed_at' => $order->placed_at ?: now(),
                 'transfer_group' => $order->transfer_group ?: ('order_' . $order->id),
             ]);
 
@@ -109,7 +110,7 @@ class OrderCheckoutController extends Controller
                     'order_id' => (string) $order->id,
                 ],
             ], [
-                'idempotency_key' => 'cs_' . $order->id,
+                'idempotency_key' => 'cs_' . $order->id . '_' . Str::uuid()->toString(),
             ]);
 
             return response()->json([

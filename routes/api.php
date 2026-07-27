@@ -146,6 +146,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
         Route::prefix('orders')->group(function () {
             Route::post('/', [OrderController::class, 'store']);
+            Route::get('/current', [OrderController::class, 'current']);
             Route::get('/my-sales', [OrderController::class, 'mySales']);
             Route::get('/my-orders', [OrderController::class, 'myOrders']);
             Route::get('/{order}', [OrderController::class, 'show']);
@@ -160,6 +161,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
         // customer views their bookings
         Route::get('/me/bookings', [ServiceBookingController::class, 'myBookings']);
+        Route::get('/bookings/{booking}', [ServiceBookingController::class, 'show']);
 
         // provider views bookings assigned to them
         Route::get('/provider/bookings', [ServiceBookingController::class, 'providerBookings']);

@@ -9,6 +9,7 @@ use App\Models\WalletLedgerEntry;
 use App\Services\StripeRefundService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class ServiceBookingController extends Controller
@@ -91,7 +92,15 @@ class ServiceBookingController extends Controller
             ]);
         });
 
-        return response()->json($booking->load('service'));
+        return response()->json($this->transformBookingForResponse($this->loadBookingRelations($booking), $user));
+    }
+
+    public function show(Request $request, ServiceBooking $booking)
+    {
+        $user = $request->user();
+        $this->authorizeBookingAccess($booking, $user->id);
+
+        return response()->json($this->transformBookingForResponse($this->loadBookingRelations($booking), $user));
     }
 
     public function myBookings(Request $request)
@@ -104,7 +113,7 @@ class ServiceBookingController extends Controller
             ->orderBy('starts_at')
             ->paginate(20);
 
-        return response()->json($bookings);
+        return response()->json($this->transformBookingPaginator($bookings, $user));
     }
 
     public function providerBookings(Request $request)
@@ -117,7 +126,7 @@ class ServiceBookingController extends Controller
             ->orderBy('starts_at')
             ->paginate(20);
 
-        return response()->json($bookings);
+        return response()->json($this->transformBookingPaginator($bookings, $user));
     }
 
     public function confirm(Request $request, ServiceBooking $booking)
@@ -158,15 +167,11 @@ class ServiceBookingController extends Controller
         $service = $booking->service()->first();
 
         if ($isCustomer) {
-            $cutoff = (int) ($service?->cancel_cutoff_hours ?? 0);
-            $latePolicy = (string) ($service?->cancel_late_policy ?? 'deny');
-            if (
-                $cutoff > 0
-                && $latePolicy === 'deny'
-                && $this->isAfterCutoff($booking->starts_at, $cutoff)
-            ) {
+            [$canCancel, $blockReason] = $this->resolveCancelActionState($booking, $service, $user->id);
+
+            if (!$canCancel) {
                 return response()->json([
-                    'message' => __('bookings.cancel_not_allowed_time'),
+                    'message' => $blockReason ?? __('bookings.cancel_not_allowed_time'),
                 ], 422);
             }
         }
@@ -190,18 +195,18 @@ class ServiceBookingController extends Controller
             return null;
         });
 
-        $freshBooking = $booking->fresh(['service', 'orderItem.order', 'orderItem.stripeRefunds']);
-        $freshOrder = $freshBooking?->orderItem?->order?->fresh(['stripePayment', 'stripeRefunds']);
+        $freshBooking = $this->loadBookingRelations($booking->fresh());
+        $transformedBooking = $this->transformBookingForResponse($freshBooking, $user);
 
         return response()->json([
-            'booking' => $freshBooking,
+            'booking' => $transformedBooking,
             'refund' => [
                 'applied' => (bool) $refund,
                 'amount' => $refund?->amount,
                 'status' => $refund?->status,
                 'stripe_refund_id' => $refund?->stripe_refund_id,
             ],
-            'order_status' => $freshOrder?->status,
+            'order_status' => $freshBooking->orderItem?->order?->status,
         ]);
     }
 
@@ -293,15 +298,11 @@ class ServiceBookingController extends Controller
         }
 
         if ($isCustomer) {
-            $cutoff = (int) ($service->edit_cutoff_hours ?? 0);
-            $latePolicy = (string) ($service->edit_late_policy ?? 'deny');
-            if (
-                $cutoff > 0
-                && $latePolicy === 'deny'
-                && $this->isAfterCutoff($booking->starts_at, $cutoff)
-            ) {
+            [$canReschedule, $blockReason] = $this->resolveRescheduleActionState($booking, $service, $user->id);
+
+            if (!$canReschedule) {
                 return response()->json([
-                    'message' => __('bookings.edit_not_allowed_time'),
+                    'message' => $blockReason ?? __('bookings.edit_not_allowed_time'),
                 ], 422);
             }
         }
@@ -327,14 +328,18 @@ class ServiceBookingController extends Controller
             return $booking;
         });
 
-        return response()->json($updated->load('service'));
+        return response()->json($this->transformBookingForResponse($this->loadBookingRelations($updated), $user));
     }
 
     protected function isAfterCutoff($startsAt, int $cutoffHours): bool
     {
-        if (!$startsAt || $cutoffHours <= 0) return false;
+        if (!$startsAt || $cutoffHours <= 0) {
+            return false;
+        }
+
         $now = Carbon::now('UTC');
         $startUtc = $startsAt instanceof Carbon ? $startsAt : Carbon::parse($startsAt, 'UTC');
+
         return $now->copy()->addHours($cutoffHours)->gt($startUtc);
     }
 
@@ -396,5 +401,141 @@ class ServiceBookingController extends Controller
         if ($overlappingCount >= $capacity) {
             abort(422, __('bookings.slot_unavailable'));
         }
+    }
+
+    private function authorizeBookingAccess(ServiceBooking $booking, int $userId): void
+    {
+        abort_unless(in_array($userId, [$booking->customer_user_id, $booking->provider_user_id], true), 403);
+    }
+
+    private function loadBookingRelations(?ServiceBooking $booking): ?ServiceBooking
+    {
+        if (!$booking) {
+            return null;
+        }
+
+        return $booking->load([
+            'service',
+            'providerUser',
+            'customerUser',
+            'orderItem.order.stripePayment',
+            'orderItem.stripeRefunds',
+        ]);
+    }
+
+    private function transformBookingPaginator(LengthAwarePaginator $paginator, $user): LengthAwarePaginator
+    {
+        $paginator->setCollection(
+            $paginator->getCollection()->map(fn(ServiceBooking $booking) => $this->transformBookingForResponse($booking, $user))
+        );
+
+        return $paginator;
+    }
+
+    private function transformBookingForResponse(?ServiceBooking $booking, $user): ?array
+    {
+        if (!$booking) {
+            return null;
+        }
+
+        $service = $booking->service;
+        [$canCancel, $cancelBlockReason] = $this->resolveCancelActionState($booking, $service, $user->id);
+        [$canReschedule, $rescheduleBlockReason] = $this->resolveRescheduleActionState($booking, $service, $user->id);
+
+        $latestRefund = $booking->orderItem?->stripeRefunds
+            ? $booking->orderItem->stripeRefunds->sortByDesc('created_at')->first()
+            : null;
+
+        return [
+            'id' => $booking->id,
+            'order_item_id' => $booking->order_item_id,
+            'service_id' => $booking->service_id,
+            'provider_user_id' => $booking->provider_user_id,
+            'customer_user_id' => $booking->customer_user_id,
+            'status' => $booking->status,
+            'starts_at' => optional($booking->starts_at)->toISOString(),
+            'ends_at' => optional($booking->ends_at)->toISOString(),
+            'timezone' => $booking->timezone,
+            'location_type' => $booking->location_type,
+            'location_payload' => $booking->location_payload,
+            'cancelled_at' => optional($booking->cancelled_at)->toISOString(),
+            'cancellation_reason' => $booking->cancellation_reason,
+            'service' => $booking->service,
+            'provider_user' => $booking->providerUser,
+            'customer_user' => $booking->customerUser,
+            'order_item' => $booking->orderItem,
+            'actions' => [
+                'can_cancel' => $canCancel,
+                'can_reschedule' => $canReschedule,
+                'cancel_block_reason' => $cancelBlockReason,
+                'reschedule_block_reason' => $rescheduleBlockReason,
+            ],
+            'cutoffs' => [
+                'cancel_deadline' => $this->getCutoffDeadline($booking->starts_at, (int) ($service?->cancel_cutoff_hours ?? 0)),
+                'reschedule_deadline' => $this->getCutoffDeadline($booking->starts_at, (int) ($service?->edit_cutoff_hours ?? 0)),
+            ],
+            'refund_summary' => [
+                'applied' => (bool) $latestRefund,
+                'status' => $latestRefund?->status,
+                'amount' => $latestRefund?->amount,
+                'currency_iso' => $latestRefund?->currency_iso,
+                'stripe_refund_id' => $latestRefund?->stripe_refund_id,
+            ],
+        ];
+    }
+
+    private function resolveCancelActionState(ServiceBooking $booking, ?Service $service, int $userId): array
+    {
+        if ($booking->customer_user_id !== $userId) {
+            return [false, null];
+        }
+
+        if (in_array($booking->status, ['completed', 'cancelled_by_customer', 'cancelled_by_provider'], true)) {
+            return [false, __('bookings.already_finalized')];
+        }
+
+        $cutoff = (int) ($service?->cancel_cutoff_hours ?? 0);
+        $latePolicy = (string) ($service?->cancel_late_policy ?? 'deny');
+
+        if ($cutoff > 0 && $latePolicy === 'deny' && $this->isAfterCutoff($booking->starts_at, $cutoff)) {
+            return [false, __('bookings.cancel_not_allowed_time')];
+        }
+
+        return [true, null];
+    }
+
+    private function resolveRescheduleActionState(ServiceBooking $booking, ?Service $service, int $userId): array
+    {
+        if ($booking->customer_user_id !== $userId) {
+            return [false, null];
+        }
+
+        if (in_array($booking->status, ['completed', 'cancelled_by_customer', 'cancelled_by_provider'], true)) {
+            return [false, __('bookings.already_finalized')];
+        }
+
+        if (!$service || !$service->is_active) {
+            return [false, __('bookings.service_not_active')];
+        }
+
+        $cutoff = (int) ($service->edit_cutoff_hours ?? 0);
+        $latePolicy = (string) ($service->edit_late_policy ?? 'deny');
+
+        if ($cutoff > 0 && $latePolicy === 'deny' && $this->isAfterCutoff($booking->starts_at, $cutoff)) {
+            return [false, __('bookings.edit_not_allowed_time')];
+        }
+
+        return [true, null];
+    }
+
+    private function getCutoffDeadline($startsAt, int $cutoffHours): ?string
+    {
+        if (!$startsAt || $cutoffHours <= 0) {
+            return null;
+        }
+
+        $startUtc = $startsAt instanceof Carbon ? $startsAt->copy() : Carbon::parse($startsAt, 'UTC');
+
+        return $startUtc->subHours($cutoffHours)->toISOString();
     }
 }

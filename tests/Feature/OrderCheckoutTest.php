@@ -286,6 +286,101 @@ class OrderCheckoutTest extends TestCase
         );
     }
 
+    public function test_current_order_returns_latest_unpaid_order(): void
+    {
+        $buyer = User::factory()->create();
+
+        Order::create([
+            'buyer_id' => $buyer->id,
+            'status' => 'paid',
+            'currency_iso' => 'EUR',
+            'subtotal_amount' => 1000,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'total_amount' => 1000,
+        ]);
+
+        Order::create([
+            'buyer_id' => $buyer->id,
+            'status' => 'draft',
+            'currency_iso' => 'EUR',
+            'subtotal_amount' => 1200,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'total_amount' => 1200,
+        ]);
+
+        $latestOrder = Order::create([
+            'buyer_id' => $buyer->id,
+            'status' => 'requires_payment',
+            'currency_iso' => 'EUR',
+            'subtotal_amount' => 2400,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'total_amount' => 2400,
+        ]);
+
+        Sanctum::actingAs($buyer);
+
+        $this->getJson('/api/orders/current', [
+            'Accept-Language' => 'en',
+        ])->assertStatus(200)
+            ->assertJson([
+                'id' => $latestOrder->id,
+                'status' => 'requires_payment',
+            ]);
+    }
+
+    public function test_checkout_session_can_resume_requires_payment_order_with_fresh_session(): void
+    {
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'buyer_id' => $buyer->id,
+            'status' => 'requires_payment',
+            'currency_iso' => 'EUR',
+            'subtotal_amount' => 1000,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'total_amount' => 1000,
+            'placed_at' => now()->subMinute(),
+            'transfer_group' => 'order_123',
+        ]);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'purchasable_type' => \App\Models\Product::class,
+            'purchasable_id' => 1,
+            'title_snapshot' => 'Demo Headphones',
+            'description_snapshot' => 'Wireless headphones with noise cancelling.',
+            'quantity' => 1,
+            'unit_amount' => 1000,
+            'gross_amount' => 1000,
+            'platform_fee_amount' => 100,
+            'net_amount' => 900,
+            'payee_user_id' => $buyer->id,
+            'status' => 'pending',
+        ]);
+
+        Sanctum::actingAs($buyer);
+
+        $firstCapture = [];
+        $this->app->instance(\Stripe\StripeClient::class, $this->fakeStripeCheckoutClient($firstCapture));
+        $this->postJson("/api/orders/{$order->id}/checkout-session", [], [
+            'Accept-Language' => 'en',
+        ])->assertStatus(200);
+
+        $secondCapture = [];
+        $this->app->instance(\Stripe\StripeClient::class, $this->fakeStripeCheckoutClient($secondCapture));
+        $this->postJson("/api/orders/{$order->id}/checkout-session", [], [
+            'Accept-Language' => 'en',
+        ])->assertStatus(200);
+
+        $this->assertStringStartsWith('cs_' . $order->id . '_', $firstCapture['opts']['idempotency_key'] ?? '');
+        $this->assertStringStartsWith('cs_' . $order->id . '_', $secondCapture['opts']['idempotency_key'] ?? '');
+        $this->assertNotSame($firstCapture['opts']['idempotency_key'] ?? null, $secondCapture['opts']['idempotency_key'] ?? null);
+    }
+
+
     public function test_checkout_session_reconcile_marks_order_paid(): void
     {
         $buyer = User::factory()->create();
@@ -327,8 +422,11 @@ class OrderCheckoutTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'id' => $order->id,
-                'status' => 'paid',
+                'order' => [
+                    'id' => $order->id,
+                    'status' => 'paid',
+                ],
+                'is_paid' => true,
             ]);
 
         $this->assertDatabaseHas('stripe_payments', [
