@@ -27,7 +27,7 @@ class ServiceAvailabilityController extends Controller
                 ->where('service_id', $service->id)
                 ->firstOrFail();
 
-            $user = $request->user();
+            $user = auth('sanctum')->user() ?? $request->user();
             abort_unless(
                 $user
                     && in_array($user->id, [$booking->customer_user_id, $booking->provider_user_id], true),
@@ -40,7 +40,7 @@ class ServiceAvailabilityController extends Controller
         $dateLocal = Carbon::createFromFormat('Y-m-d', $data['date'], $tz)->startOfDay();
         $nowLocal = Carbon::now($tz);
 
-        $dow = (int) $dateLocal->dayOfWeek; // 0=Sun..6=Sat
+        $dow = (int) $dateLocal->dayOfWeek;
 
         $intervals = $provider->workingHours->where('day_of_week', $dow)->values();
         if ($intervals->isEmpty()) {
@@ -63,7 +63,6 @@ class ServiceAvailabilityController extends Controller
         $step = (int) ($service->slot_interval_minutes ?? 15);
         $capacity = (int) ($service->max_concurrent_bookings ?? 1);
 
-        // Fetch active bookings for this provider+service for that day (UTC range)
         $dayStartUtc = $dateLocal->copy()->utc();
         $dayEndUtc = $dateLocal->copy()->addDay()->utc();
 
@@ -80,7 +79,6 @@ class ServiceAvailabilityController extends Controller
 
         $activeBookings = $activeBookings->get(['starts_at', 'ends_at']);
 
-        // Time offs that overlap this day
         $timeOffs = $provider->timeOffs
             ->filter(fn($t) => $t->starts_at < $dayEndUtc && $t->ends_at > $dayStartUtc)
             ->values();
@@ -102,13 +100,11 @@ class ServiceAvailabilityController extends Controller
                 $slotStartUtc = $slotStartLocal->copy()->utc();
                 $slotEndUtc = $slotEndLocal->copy()->utc();
 
-                // Exclude time off
                 $blocked = $timeOffs->contains(fn($t) => $t->starts_at < $slotEndUtc && $t->ends_at > $slotStartUtc);
                 if ($blocked) {
                     continue;
                 }
 
-                // Capacity check: how many bookings overlap this slot?
                 $used = $activeBookings->filter(fn($b) => $b->starts_at < $slotEndUtc && $b->ends_at > $slotStartUtc)->count();
                 $remaining = $capacity - $used;
 
