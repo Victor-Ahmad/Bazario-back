@@ -64,11 +64,34 @@ class OrderController extends Controller
 
         $orders = Order::query()
             ->where('buyer_id', $user->id)
+            ->where('status', '!=', 'draft')
             ->with(['items.serviceBooking', 'items.stripeRefunds', 'stripePayment', 'stripeRefunds'])
             ->orderByDesc('id')
             ->paginate(20);
 
         return response()->json($orders);
+    }
+
+    public function destroy(Request $request, Order $order)
+    {
+        abort_unless($order->buyer_id === $request->user()->id, 403);
+        abort_unless(in_array($order->status, ['draft', 'requires_payment'], true), 422, __('orders.not_editable'));
+
+        DB::transaction(function () use ($order) {
+            $order->loadMissing('items.serviceBooking');
+
+            foreach ($order->items as $item) {
+                if ($item->serviceBooking) {
+                    $item->serviceBooking->delete();
+                }
+            }
+
+            $order->delete();
+        });
+
+        return response()->json([
+            'message' => 'Order deleted successfully.',
+        ]);
     }
 
     public function mySales(Request $request)

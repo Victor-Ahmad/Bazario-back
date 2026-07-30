@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\PasswordUpdateController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\Auth\UpgradeAccountController;
+use App\Http\Controllers\Api\Auth\AccountDeletionController;
 use App\Http\Controllers\Api\Admin\UpgradeRequestController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderCheckoutController;
@@ -76,6 +77,8 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
         Route::post('update-password', [PasswordUpdateController::class, 'update']);
         Route::get('me', [ProfileController::class, 'show']);
+        Route::put('me', [ProfileController::class, 'update']);
+        Route::delete('me', [AccountDeletionController::class, 'destroy']);
         Route::get('me/orders', [OrderController::class, 'myOrders']);
         Route::get('me/sales', [OrderController::class, 'mySales']);
         Route::get('me/provider-bookings', [ServiceBookingController::class, 'providerBookings']);
@@ -152,6 +155,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
             Route::get('/my-sales', [OrderController::class, 'mySales']);
             Route::get('/my-orders', [OrderController::class, 'myOrders']);
             Route::get('/{order}', [OrderController::class, 'show']);
+            Route::delete('/{order}', [OrderController::class, 'destroy']);
             Route::post('/{order}/items', [OrderController::class, 'addItem']);
             Route::post('/{order}/checkout', [OrderCheckoutController::class, 'createPaymentIntent']);
             Route::post('/{order}/checkout-session', [OrderCheckoutController::class, 'createCheckoutSession']);

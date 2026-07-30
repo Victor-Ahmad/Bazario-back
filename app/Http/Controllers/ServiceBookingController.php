@@ -109,6 +109,12 @@ class ServiceBookingController extends Controller
 
         $bookings = ServiceBooking::query()
             ->where('customer_user_id', $user->id)
+            ->where(function ($query) {
+                $query->whereNull('order_item_id')
+                    ->orWhereHas('orderItem.order', function ($orderQuery) {
+                        $orderQuery->whereIn('status', ['paid', 'partially_refunded', 'refunded']);
+                    });
+            })
             ->with(['service', 'providerUser', 'orderItem.order.stripePayment', 'orderItem.stripeRefunds'])
             ->orderBy('starts_at')
             ->paginate(20);
@@ -122,6 +128,12 @@ class ServiceBookingController extends Controller
 
         $bookings = ServiceBooking::query()
             ->where('provider_user_id', $user->id)
+            ->where(function ($query) {
+                $query->whereNull('order_item_id')
+                    ->orWhereHas('orderItem.order', function ($orderQuery) {
+                        $orderQuery->whereIn('status', ['paid', 'partially_refunded', 'refunded']);
+                    });
+            })
             ->with(['service', 'customerUser', 'orderItem.order.stripePayment', 'orderItem.stripeRefunds'])
             ->orderBy('starts_at')
             ->paginate(20);

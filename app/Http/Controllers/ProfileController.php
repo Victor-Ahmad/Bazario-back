@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\ServiceBooking;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -30,12 +31,45 @@ class ProfileController extends Controller
         return $this->successResponse($result, 'auth', 'fetched_successfully');
     }
 
+    public function update(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required', 'email', Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'phone' => [
+                'nullable', 'string', 'max:255', Rule::unique('users', 'phone')->ignore($user->id),
+            ],
+            'age' => ['nullable', 'integer', 'min:12', 'max:100'],
+        ]);
+
+        $user->update([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'] ?: null,
+            'age' => $data['age'] ?? null,
+        ]);
+
+        $user->load([
+            'seller.attachments',
+            'serviceProvider.attachments',
+        ]);
+
+        return $this->successResponse([
+            'user' => $this->serializeUser($user),
+        ], 'auth', 'updated_successfully');
+    }
+
     private function buildSummary(int $userId, Request $request): array
     {
         $limit = max(1, min((int) $request->integer('limit', 5), 10));
 
         $recentOrders = Order::query()
             ->where('buyer_id', $userId)
+            ->where('status', '!=', 'draft')
             ->with(['items', 'items.serviceBooking'])
             ->orderByDesc('id')
             ->limit($limit)
@@ -43,6 +77,12 @@ class ProfileController extends Controller
 
         $recentBookings = ServiceBooking::query()
             ->where('customer_user_id', $userId)
+            ->where(function ($query) {
+                $query->whereNull('order_item_id')
+                    ->orWhereHas('orderItem.order', function ($orderQuery) {
+                        $orderQuery->whereIn('status', ['paid', 'partially_refunded', 'refunded']);
+                    });
+            })
             ->with(['service', 'providerUser:id,name,email,phone'])
             ->orderByDesc('starts_at')
             ->limit($limit)
@@ -60,6 +100,12 @@ class ProfileController extends Controller
 
         $recentProviderBookings = ServiceBooking::query()
             ->where('provider_user_id', $userId)
+            ->where(function ($query) {
+                $query->whereNull('order_item_id')
+                    ->orWhereHas('orderItem.order', function ($orderQuery) {
+                        $orderQuery->whereIn('status', ['paid', 'partially_refunded', 'refunded']);
+                    });
+            })
             ->with(['service', 'customerUser:id,name,email,phone'])
             ->orderByDesc('starts_at')
             ->limit($limit)
@@ -67,8 +113,19 @@ class ProfileController extends Controller
 
         return [
             'counts' => [
-                'orders' => Order::query()->where('buyer_id', $userId)->count(),
-                'bookings' => ServiceBooking::query()->where('customer_user_id', $userId)->count(),
+                'orders' => Order::query()
+                    ->where('buyer_id', $userId)
+                    ->where('status', '!=', 'draft')
+                    ->count(),
+                'bookings' => ServiceBooking::query()
+                    ->where('customer_user_id', $userId)
+                    ->where(function ($query) {
+                        $query->whereNull('order_item_id')
+                            ->orWhereHas('orderItem.order', function ($orderQuery) {
+                                $orderQuery->whereIn('status', ['paid', 'partially_refunded', 'refunded']);
+                            });
+                    })
+                    ->count(),
                 'sales' => OrderItem::query()
                     ->where('payee_user_id', $userId)
                     ->whereHas('order', function ($query) {
@@ -77,6 +134,12 @@ class ProfileController extends Controller
                     ->count(),
                 'provider_bookings' => ServiceBooking::query()
                     ->where('provider_user_id', $userId)
+                    ->where(function ($query) {
+                        $query->whereNull('order_item_id')
+                            ->orWhereHas('orderItem.order', function ($orderQuery) {
+                                $orderQuery->whereIn('status', ['paid', 'partially_refunded', 'refunded']);
+                            });
+                    })
                     ->count(),
             ],
             'recent_orders' => $recentOrders,
