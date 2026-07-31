@@ -33,20 +33,24 @@ class OrderController extends Controller
             'total_amount' => 0,
         ]);
 
-        return response()->json($this->loadOrderRelations($order));
+        return response()->json($this->loadOrderRelations($order, $user));
     }
 
     public function show(Request $request, Order $order)
     {
-        abort_unless($order->buyer_id === $request->user()->id, 403);
+        $user = $request->user();
 
-        return response()->json($this->loadOrderRelations($order));
+        abort_unless($order->buyer_id === $user->id, 403);
+
+        return response()->json($this->loadOrderRelations($order, $user));
     }
 
     public function current(Request $request)
     {
+        $user = $request->user();
+
         $order = Order::query()
-            ->where('buyer_id', $request->user()->id)
+            ->where('buyer_id', $user->id)
             ->whereIn('status', ['draft', 'requires_payment'])
             ->orderByDesc('id')
             ->first();
@@ -55,7 +59,7 @@ class OrderController extends Controller
             return response()->json(null);
         }
 
-        return response()->json($this->loadOrderRelations($order));
+        return response()->json($this->loadOrderRelations($order, $user));
     }
 
     public function myOrders(Request $request)
@@ -269,7 +273,7 @@ class OrderController extends Controller
                 'total_amount' => $subtotal,
             ]);
 
-            return response()->json($this->loadOrderRelations($order->fresh()));
+            return response()->json($this->loadOrderRelations($order->fresh(), $order->buyer));
         });
     }
 
@@ -358,8 +362,106 @@ class OrderController extends Controller
         }
     }
 
-    private function loadOrderRelations(Order $order): Order
+    private function loadOrderRelations(Order $order, ?User $user = null): Order
     {
-        return $order->load(['items.serviceBooking', 'items.stripeRefunds', 'stripePayment', 'stripeRefunds']);
+        $order->load([
+            'items.serviceBooking.service',
+            'items.serviceBooking.providerUser',
+            'items.serviceBooking.customerUser',
+            'items.serviceBooking.orderItem.stripeRefunds',
+            'items.stripeRefunds',
+            'stripePayment',
+            'stripeRefunds',
+        ]);
+
+        if ($user) {
+            foreach ($order->items as $item) {
+                $booking = $item->serviceBooking;
+
+                if (!$booking) {
+                    continue;
+                }
+
+                $service = $booking->service;
+                [$canCancel, $cancelBlockReason] = $this->resolveCancelActionState($booking, $service, $user->id);
+                [$canReschedule, $rescheduleBlockReason] = $this->resolveRescheduleActionState($booking, $service, $user->id);
+
+                $booking->setAttribute('actions', [
+                    'can_cancel' => $canCancel,
+                    'can_reschedule' => $canReschedule,
+                    'cancel_block_reason' => $cancelBlockReason,
+                    'reschedule_block_reason' => $rescheduleBlockReason,
+                ]);
+
+                $booking->setAttribute('cutoffs', [
+                    'cancel_deadline' => $this->getCutoffDeadline($booking->starts_at, (int) ($service?->cancel_cutoff_hours ?? 0)),
+                    'reschedule_deadline' => $this->getCutoffDeadline($booking->starts_at, (int) ($service?->edit_cutoff_hours ?? 0)),
+                ]);
+            }
+        }
+
+        return $order;
+    }
+
+    private function resolveCancelActionState(ServiceBooking $booking, ?Service $service, int $userId): array
+    {
+        if ($booking->customer_user_id !== $userId) {
+            return [false, null];
+        }
+
+        if (in_array($booking->status, ['completed', 'cancelled_by_customer', 'cancelled_by_provider'], true)) {
+            return [false, __('bookings.already_finalized')];
+        }
+
+        $cutoff = (int) ($service?->cancel_cutoff_hours ?? 0);
+        $latePolicy = (string) ($service?->cancel_late_policy ?? 'deny');
+
+        if ($cutoff > 0 && $latePolicy === 'deny' && $this->isAfterCutoff($booking->starts_at, $cutoff)) {
+            return [false, __('bookings.cancel_not_allowed_time')];
+        }
+
+        return [true, null];
+    }
+
+    private function resolveRescheduleActionState(ServiceBooking $booking, ?Service $service, int $userId): array
+    {
+        if ($booking->customer_user_id !== $userId) {
+            return [false, null];
+        }
+
+        if (in_array($booking->status, ['completed', 'cancelled_by_customer', 'cancelled_by_provider'], true)) {
+            return [false, __('bookings.already_finalized')];
+        }
+
+        if ($service && $service->is_active === false) {
+            return [false, __('bookings.service_not_active')];
+        }
+
+        $cutoff = (int) ($service?->edit_cutoff_hours ?? 0);
+        $latePolicy = (string) ($service?->edit_late_policy ?? 'deny');
+
+        if ($cutoff > 0 && $latePolicy === 'deny' && $this->isAfterCutoff($booking->starts_at, $cutoff)) {
+            return [false, __('bookings.edit_not_allowed_time')];
+        }
+
+        return [true, null];
+    }
+
+    private function isAfterCutoff(?Carbon $startsAt, int $cutoffHours): bool
+    {
+        if (!$startsAt || $cutoffHours <= 0) {
+            return false;
+        }
+
+        return Carbon::now('UTC')->greaterThan($startsAt->copy()->subHours($cutoffHours));
+    }
+
+    private function getCutoffDeadline(?Carbon $startsAt, int $cutoffHours): ?string
+    {
+        if (!$startsAt || $cutoffHours <= 0) {
+            return null;
+        }
+
+        return $startsAt->copy()->subHours($cutoffHours)->toISOString();
     }
 }
