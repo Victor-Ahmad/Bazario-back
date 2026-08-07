@@ -68,6 +68,9 @@ class ProductController extends Controller
         $perPage = max(1, min((int) request('per_page', 20), 50));
 
         $query = Product::with($this->productRelations())
+            ->whereHas('seller', function ($query) {
+                $query->approved()->withActiveUser();
+            })
             ->select($this->baseProductSelect());
 
         if (request()->has('category_id')) {
@@ -82,6 +85,8 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load($this->productRelations());
+
+        abort_unless($product->seller && $product->seller->status === 'approved' && $product->seller->user, 404);
 
         return $this->successResponse($product, 'messages', 'products_retrieved_successfully');
     }
@@ -113,6 +118,8 @@ class ProductController extends Controller
         $perPage = max(1, min((int) request('per_page', 20), 50));
 
         $seller = Seller::query()
+            ->approved()
+            ->withActiveUser()
             ->with(['user:id,name,email,phone'])
             ->select('id', 'user_id', 'store_name', 'store_owner_name', 'logo', 'address', 'description')
             ->findOrFail($id);
@@ -206,6 +213,9 @@ class ProductController extends Controller
         $categoryIds[] = $categoryId;
 
         $products = Product::whereIn('category_id', $categoryIds)
+            ->whereHas('seller', function ($query) {
+                $query->approved()->withActiveUser();
+            })
             ->with($this->productRelations())
             ->select($this->baseProductSelect())
             ->orderBy('created_at', 'desc')

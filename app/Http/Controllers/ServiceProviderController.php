@@ -21,9 +21,11 @@ class ServiceProviderController extends Controller
         try {
             $perPage = max(1, min((int) request('per_page', 20), 50));
 
-            $service_providers = ServiceProvider::with('user:id,name,email,phone')
+            $service_providers = ServiceProvider::query()
+                ->approved()
+                ->withActiveUser()
+                ->with('user:id,name,email,phone')
                 ->select('id', 'user_id', 'name', 'address', 'logo', 'description', 'created_at')
-                ->where('status', 'approved')
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
             return $this->successResponse($service_providers, 'auth', 'fetched_successfully');
@@ -38,9 +40,11 @@ class ServiceProviderController extends Controller
     public function requests()
     {
         try {
-            $service_provider_requests = ServiceProvider::with('user:id,name,email,phone', 'attachments')
+            $service_provider_requests = ServiceProvider::query()
+                ->pending()
+                ->withActiveUser()
+                ->with('user:id,name,email,phone', 'attachments')
                 ->select('id', 'user_id', 'name', 'address', 'logo', 'description', 'created_at')
-                ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
             return $this->successResponse($service_provider_requests, 'auth', 'fetched_successfully');

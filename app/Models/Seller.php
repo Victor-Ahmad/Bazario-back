@@ -20,6 +20,21 @@ class Seller extends Model
 
     ];
 
+    public function scopeWithActiveUser($query)
+    {
+        return $query->whereHas('user');
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

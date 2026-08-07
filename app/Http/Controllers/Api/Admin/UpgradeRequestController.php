@@ -18,7 +18,10 @@ class UpgradeRequestController extends Controller
     public function index()
     {
         try {
-            $sellers = Seller::with('user:id,name,email,phone', 'attachments')
+            $sellers = Seller::query()
+                ->pending()
+                ->withActiveUser()
+                ->with('user:id,name,email,phone', 'attachments')
                 ->select(
                     'id',
                     'user_id',
@@ -30,11 +33,13 @@ class UpgradeRequestController extends Controller
                     'status',
                     'created_at'
                 )
-                ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            $serviceProviders = ServiceProvider::with('user:id,name,email,phone', 'attachments')
+            $serviceProviders = ServiceProvider::query()
+                ->pending()
+                ->withActiveUser()
+                ->with('user:id,name,email,phone', 'attachments')
                 ->select(
                     'id',
                     'user_id',
@@ -45,7 +50,6 @@ class UpgradeRequestController extends Controller
                     'status',
                     'created_at'
                 )
-                ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')
                 ->get();
 

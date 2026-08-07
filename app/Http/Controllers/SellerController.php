@@ -18,9 +18,11 @@ class SellerController extends Controller
     public function requests()
     {
         try {
-            $sellers = Seller::with('user:id,name,email,phone', 'attachments')
+            $sellers = Seller::query()
+                ->pending()
+                ->withActiveUser()
+                ->with('user:id,name,email,phone', 'attachments')
                 ->select('id', 'user_id', 'store_owner_name', 'store_name', 'address', 'logo', 'description', 'created_at')
-                ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
             return $this->successResponse($sellers, 'auth', 'fetched_successfully');
@@ -36,9 +38,11 @@ class SellerController extends Controller
         try {
             $perPage = max(1, min((int) request('per_page', 20), 50));
 
-            $sellers = Seller::with('user:id,name,email,phone')
+            $sellers = Seller::query()
+                ->approved()
+                ->withActiveUser()
+                ->with('user:id,name,email,phone')
                 ->select('id', 'user_id', 'store_owner_name', 'store_name', 'address', 'logo', 'description', 'created_at')
-                ->where('status', 'approved')
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 

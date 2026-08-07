@@ -50,6 +50,9 @@ class HomeController extends Controller
     private function productQuery(): Builder
     {
         return Product::query()
+            ->whereHas('seller', function ($query) {
+                $query->approved()->withActiveUser();
+            })
             ->with([
                 'images:id,product_id,image',
                 'category:id,name',
@@ -62,6 +65,9 @@ class HomeController extends Controller
     private function serviceQuery(): Builder
     {
         return Service::query()
+            ->whereHas('serviceProvider', function ($query) {
+                $query->approved()->withActiveUser();
+            })
             ->with([
                 'images:id,service_id,image',
                 'category:id,name',

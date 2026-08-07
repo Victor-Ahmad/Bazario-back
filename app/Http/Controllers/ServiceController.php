@@ -85,6 +85,9 @@ class ServiceController extends Controller
         $perPage = max(1, min((int) request('per_page', 20), 50));
 
         $query = Service::with($this->serviceRelations())
+            ->whereHas('serviceProvider', function ($query) {
+                $query->approved()->withActiveUser();
+            })
             ->select($this->baseServiceSelect());
 
         if (request()->has('category_id')) {
@@ -99,6 +102,8 @@ class ServiceController extends Controller
     public function show(Service $service)
     {
         $service->load($this->serviceRelations());
+
+        abort_unless($service->serviceProvider && $service->serviceProvider->status === 'approved' && $service->serviceProvider->user, 404);
 
         return $this->successResponse($service, 'messages', 'services_retrieved_successfully');
     }
@@ -130,6 +135,8 @@ class ServiceController extends Controller
         $perPage = max(1, min((int) request('per_page', 20), 50));
 
         $serviceProvider = ServiceProvider::query()
+            ->approved()
+            ->withActiveUser()
             ->with(['user:id,name,email,phone'])
             ->select('id', 'user_id', 'name', 'logo', 'address', 'description')
             ->findOrFail($id);
@@ -223,6 +230,9 @@ class ServiceController extends Controller
         $categoryIds[] = $categoryId;
 
         $services = Service::whereIn('category_id', $categoryIds)
+            ->whereHas('serviceProvider', function ($query) {
+                $query->approved()->withActiveUser();
+            })
             ->with($this->serviceRelations())
             ->select($this->baseServiceSelect())
             ->orderBy('created_at', 'desc')
