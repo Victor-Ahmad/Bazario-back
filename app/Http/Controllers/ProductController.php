@@ -19,7 +19,7 @@ class ProductController extends Controller
             'images:id,product_id,image',
             'category:id,name',
             'seller.user:id,name,email,phone',
-            'seller:id,user_id,store_name,store_owner_name,logo,address,description',
+            'seller:id,user_id,store_name,store_owner_name,logo,address,description,status',
         ];
     }
 

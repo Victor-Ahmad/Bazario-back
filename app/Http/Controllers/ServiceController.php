@@ -19,7 +19,7 @@ class ServiceController extends Controller
             'images:id,service_id,image',
             'category:id,name',
             'serviceProvider.user:id,name,email,phone',
-            'serviceProvider:id,user_id,name,logo,address,description',
+            'serviceProvider:id,user_id,name,logo,address,description,status',
         ];
     }
 
