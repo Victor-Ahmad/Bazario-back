@@ -13,10 +13,8 @@ class LoginController extends Controller
 {
     use ApiResponseTrait;
 
-    public function login(LoginRequest $request)
+    protected function attemptLogin(array $credentials, bool $allowAdmin = false)
     {
-        $credentials = $request->validated();
-
         $user = User::where('email', $credentials['email'])->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
@@ -27,7 +25,7 @@ class LoginController extends Controller
             );
         }
 
-        if ($user->hasRole('admin')) {
+        if ($user->hasRole('admin') && ! $allowAdmin) {
             return $this->errorResponse(
                 'admin_marketplace_forbidden',
                 'auth',
@@ -42,6 +40,25 @@ class LoginController extends Controller
             'user'  => $user,
             'roles' => $user->getRoleNames(),
         ], 'auth', 'login_success');
+    }
+
+    public function login(LoginRequest $request)
+    {
+        return $this->attemptLogin($request->validated(), false);
+    }
+
+    public function demoCsrf(Request $request)
+    {
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'csrf_token' => csrf_token(),
+        ]);
+    }
+
+    public function demoLogin(LoginRequest $request)
+    {
+        return $this->attemptLogin($request->validated(), true);
     }
 
     public function logout(Request $request)

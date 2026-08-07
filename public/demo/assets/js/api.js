@@ -4,6 +4,11 @@ import { getLanguage } from "./lang.js";
 
 function buildUrl(path) {
     const clean = path.startsWith("/") ? path : `/${path}`;
+
+    if (clean.startsWith('/demo/')) {
+        return clean;
+    }
+
     return `${config.apiBase}${clean}`;
 }
 
