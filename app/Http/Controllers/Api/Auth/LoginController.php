@@ -27,6 +27,13 @@ class LoginController extends Controller
             );
         }
 
+        if ($user->hasRole('admin')) {
+            return $this->errorResponse(
+                'admin_marketplace_forbidden',
+                'auth',
+                403
+            );
+        }
 
         $token = $user->createToken('AuthToken')->plainTextToken;
 

@@ -67,6 +67,7 @@ return [
     'fetch_failed' => 'Failed to fetch data.',
     'user_not_found' => 'User Not Found',
     'invalid_password' => 'Invalid Password',
+    'admin_marketplace_forbidden' => 'Admin accounts must sign in through the backend dashboard only.',
     'failed' => 'Invalid email or password.',
     'logout_success' => 'Logged out successfully.',
     'logout_all_success' => 'Logged out from all devices.',

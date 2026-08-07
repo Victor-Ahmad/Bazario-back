@@ -168,6 +168,12 @@ class ProfileController extends Controller
 
     private function serializeUser($user): array
     {
+        $sellerProfile = $user->seller;
+        $serviceProviderProfile = $user->serviceProvider;
+
+        $sellerStatus = $sellerProfile?->status;
+        $serviceProviderStatus = $serviceProviderProfile?->status;
+
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -177,11 +183,15 @@ class ProfileController extends Controller
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'roles' => $user->getRoleNames()->values(),
-            'seller_profile' => $user->seller,
-            'service_provider_profile' => $user->serviceProvider,
+            'seller_profile' => $sellerStatus === 'approved' ? $sellerProfile : null,
+            'service_provider_profile' => $serviceProviderStatus === 'approved' ? $serviceProviderProfile : null,
+            'upgrade_requests' => [
+                'seller' => $sellerStatus === 'pending' ? 'pending' : null,
+                'service_provider' => $serviceProviderStatus === 'pending' ? 'pending' : null,
+            ],
             'available_upgrades' => [
-                'seller' => $user->seller === null,
-                'service_provider' => $user->serviceProvider === null,
+                'seller' => $sellerProfile === null || $sellerStatus === 'rejected',
+                'service_provider' => $serviceProviderProfile === null || $serviceProviderStatus === 'rejected',
             ],
         ];
     }
