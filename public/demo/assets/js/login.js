@@ -72,14 +72,14 @@ function initLanguageSelector() {
 }
 
 initLanguageSelector();
-statusUI.setRequestMeta("POST", "/demo/login");
+statusUI.setRequestMeta("POST", "/demo/auth/login");
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearErrors(form);
 
     submitBtn.disabled = true;
-    statusUI.setRequestMeta("POST", "/demo/login");
+    statusUI.setRequestMeta("POST", "/demo/auth/login");
     statusUI.setStatus(t(currentLang(), "login_logging_in"), "neutral", null);
 
     const payload = formToObject(form);
@@ -87,7 +87,7 @@ form.addEventListener("submit", async (e) => {
     try {
         const csrf = await apiRequest("/demo/auth/csrf");
 
-        const res = await apiRequest("/demo/login", {
+        const res = await apiRequest("/demo/auth/login", {
             method: "POST",
             headers: {
                 "X-CSRF-TOKEN": csrf.csrf_token,
