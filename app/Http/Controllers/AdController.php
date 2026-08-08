@@ -11,6 +11,7 @@ use App\Models\Service;
 use App\Models\Seller;
 use App\Models\ServiceProvider;
 use App\Models\Listing;
+use App\Models\AdPosition;
 
 
 class AdController extends Controller
@@ -25,10 +26,10 @@ class AdController extends Controller
 
     public function index()
     {
-        $ads = Ad::with(['images', 'position', 'adable'])
-            ->where('status', 'approved')
-            ->orderBy('created_at', 'desc')
+        $ads = $this->publicAdsQuery()
             ->paginate(20);
+
+        $this->loadAdableRelations($ads->getCollection());
 
         return response()->json(['success' => 1, 'result' => $ads]);
     }
@@ -48,31 +49,35 @@ class AdController extends Controller
     }
     private function indexByPositionName(string $name)
     {
-        $ads = Ad::query()
-            ->where('status', 'approved')
+        $ads = $this->publicAdsQuery()
             ->whereHas('position', function ($q) use ($name) {
                 $q->whereRaw('LOWER(name) = ?', [mb_strtolower($name)]);
-                // whereRaw("LOWER(name) = '$value'")
             })
-            ->with(['images', 'position', 'adable'])
-            ->orderByDesc('created_at')
             ->paginate(20);
 
-        $ads->getCollection()->each(function ($ad) {
-            $adable = $ad->adable;
-            if (!$adable) return;
-
-            $class = get_class($adable);
-            if ($class == Product::class) {
-                $adable->loadMissing('seller.user');
-            } elseif ($class == Service::class) {
-                $adable->loadMissing('serviceProvider.user');
-            } elseif (in_array($class, [Seller::class, ServiceProvider::class])) {
-                $adable->loadMissing('user');
-            }
-        });
+        $this->loadAdableRelations($ads->getCollection());
 
         return response()->json(['success' => 1, 'result' => $ads]);
+    }
+
+    public function announcements()
+    {
+        $ads = $this->publicAdsQuery()
+            ->where('adable_type', Listing::class)
+            ->paginate(20);
+
+        $this->loadAdableRelations($ads->getCollection());
+
+        return response()->json(['success' => 1, 'result' => $ads]);
+    }
+
+    public function positions()
+    {
+        $positions = AdPosition::query()
+            ->orderBy('priority')
+            ->get(['id', 'name', 'label', 'priority']);
+
+        return response()->json(['success' => 1, 'result' => $positions]);
     }
     public function getGeneralAds()
     {
@@ -327,11 +332,12 @@ class AdController extends Controller
 
     public function timedAds(Request $request)
     {
-        $ads = Ad::with(['images', 'position', 'adable'])
+        $ads = $this->publicAdsQuery()
             ->whereNotNull('expires_at')
-            // ->where('status', 'approved')
             ->orderBy('expires_at', 'asc')
             ->paginate(20);
+
+        $this->loadAdableRelations($ads->getCollection());
 
         return response()->json(['success' => 1, 'result' => $ads]);
     }
@@ -372,5 +378,38 @@ class AdController extends Controller
             ->paginate(20);
 
         return response()->json(['success' => 1, 'result' => $ads]);
+    }
+
+    private function publicAdsQuery()
+    {
+        return Ad::query()
+            ->where('status', 'approved')
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->with(['images', 'position', 'adable'])
+            ->orderByDesc('created_at');
+    }
+
+    private function loadAdableRelations($ads): void
+    {
+        $ads->each(function ($ad) {
+            $adable = $ad->adable;
+            if (!$adable) {
+                return;
+            }
+
+            $class = get_class($adable);
+            if ($class === Product::class) {
+                $adable->loadMissing('seller.user');
+            } elseif ($class === Service::class) {
+                $adable->loadMissing('serviceProvider.user');
+            } elseif (in_array($class, [Seller::class, ServiceProvider::class], true)) {
+                $adable->loadMissing('user');
+            } elseif ($class === Listing::class) {
+                $adable->loadMissing(['user', 'images', 'coverImage']);
+            }
+        });
     }
 }

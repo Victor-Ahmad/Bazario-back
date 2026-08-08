@@ -2,116 +2,245 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Ad;
-use App\Models\Seller;
-use App\Models\ServiceProvider;
 use App\Models\AdPosition;
+use App\Models\Listing;
+use App\Models\Product;
+use App\Models\Seller;
+use App\Models\Service;
+use App\Models\ServiceProvider;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class AdsSeeder extends Seeder
 {
     public function run()
     {
-        // Positions keyed by name: ['golden_ad' => 1, 'silver_ad' => 2, 'normal_ad' => 3]
         $positions = AdPosition::pluck('id', 'name');
+        $seedBase = Carbon::create(2026, 8, 8, 12, 0, 0);
 
-        $sellers = Seller::all();
-        $service_providers = ServiceProvider::all();
+        $sellers = Seller::query()
+            ->with('user')
+            ->get()
+            ->keyBy(fn(Seller $seller) => $seller->user?->email);
 
-        $today = Carbon::create(2025, 7, 27);
+        $serviceProviders = ServiceProvider::query()
+            ->with('user')
+            ->get()
+            ->keyBy(fn(ServiceProvider $provider) => $provider->user?->email);
 
-        // Helpers
-        $randomExpiry = function (Carbon $base) {
-            // ~50% chance to be null
-            if (rand(0, 1)) {
-                return null;
+        $products = Product::query()
+            ->whereHas('seller.user')
+            ->with('seller.user')
+            ->get()
+            ->keyBy(fn(Product $product) => ($product->seller?->user?->email ?? 'unknown') . '|' . ($product->name['en'] ?? ''));
+
+        $services = Service::query()
+            ->whereHas('serviceProvider.user')
+            ->with('serviceProvider.user')
+            ->get()
+            ->keyBy(fn(Service $service) => ($service->serviceProvider?->user?->email ?? 'unknown') . '|' . ($service->title['en'] ?? ''));
+
+        $approvedAds = [
+            [
+                'title' => 'Ahmad Electronics summer offers',
+                'subtitle' => 'Phones, laptops, and home devices from our current catalog.',
+                'price' => 249.00,
+                'expires_at' => $seedBase->copy()->addDays(45),
+                'position' => 'golden_ad',
+                'status' => 'approved',
+                'adable_type' => Seller::class,
+                'adable_id' => $sellers['ahmad.seller@example.com']?->id,
+            ],
+            [
+                'title' => 'Wedding photography bookings open',
+                'subtitle' => 'Professional full-day coverage for weddings and special events.',
+                'price' => 349.00,
+                'expires_at' => $seedBase->copy()->addDays(60),
+                'position' => 'golden_ad',
+                'status' => 'approved',
+                'adable_type' => Service::class,
+                'adable_id' => $services['laila.service_provider@example.com|Wedding Photography']?->id,
+            ],
+            [
+                'title' => 'Smartphone X200 available now',
+                'subtitle' => 'A solid everyday phone with current marketplace stock.',
+                'price' => 159.00,
+                'expires_at' => $seedBase->copy()->addDays(21),
+                'position' => 'silver_ad',
+                'status' => 'approved',
+                'adable_type' => Product::class,
+                'adable_id' => $products['ahmad.seller@example.com|Smartphone X200']?->id,
+            ],
+            [
+                'title' => 'Portrait sessions this month',
+                'subtitle' => 'Studio and outdoor portrait bookings with flexible time slots.',
+                'price' => 129.00,
+                'expires_at' => $seedBase->copy()->addDays(30),
+                'position' => 'silver_ad',
+                'status' => 'approved',
+                'adable_type' => Service::class,
+                'adable_id' => $services['laila.service_provider@example.com|Portrait Sessions']?->id,
+            ],
+            [
+                'title' => 'Omar Fashion new arrivals',
+                'subtitle' => 'Seasonal clothing and accessories added to the store.',
+                'price' => 119.00,
+                'expires_at' => $seedBase->copy()->addDays(35),
+                'position' => 'silver_ad',
+                'status' => 'approved',
+                'adable_type' => Seller::class,
+                'adable_id' => $sellers['omar.seller@example.com']?->id,
+            ],
+            [
+                'title' => 'Laptop Pro 15" in stock',
+                'subtitle' => 'A work-ready laptop for study, office use, and everyday tasks.',
+                'price' => 79.00,
+                'expires_at' => $seedBase->copy()->addDays(18),
+                'position' => 'normal_ad',
+                'status' => 'approved',
+                'adable_type' => Product::class,
+                'adable_id' => $products['ahmad.seller@example.com|Laptop Pro 15"']?->id,
+            ],
+            [
+                'title' => 'Product photography service',
+                'subtitle' => 'Clean product shots for catalogs, menus, and online stores.',
+                'price' => 69.00,
+                'expires_at' => $seedBase->copy()->addDays(28),
+                'position' => 'normal_ad',
+                'status' => 'approved',
+                'adable_type' => Service::class,
+                'adable_id' => $services['laila.service_provider@example.com|Product Photography']?->id,
+            ],
+            [
+                'title' => 'Nour Home Appliances picks',
+                'subtitle' => 'Everyday home appliances and practical household items.',
+                'price' => 59.00,
+                'expires_at' => $seedBase->copy()->addDays(40),
+                'position' => 'normal_ad',
+                'status' => 'approved',
+                'adable_type' => Seller::class,
+                'adable_id' => $sellers['nour.seller@example.com']?->id,
+            ],
+            [
+                'title' => 'Online tutoring with Samir Fadel',
+                'subtitle' => 'Remote math and science sessions for school and university students.',
+                'price' => 64.00,
+                'expires_at' => $seedBase->copy()->addDays(32),
+                'position' => 'normal_ad',
+                'status' => 'approved',
+                'adable_type' => ServiceProvider::class,
+                'adable_id' => $serviceProviders['samir.service_provider@example.com']?->id,
+            ],
+            [
+                'title' => 'Corporate event planning',
+                'subtitle' => 'Planning and coordination support for company events and internal functions.',
+                'price' => 135.00,
+                'expires_at' => $seedBase->copy()->addDays(50),
+                'position' => 'silver_ad',
+                'status' => 'pending',
+                'adable_type' => Service::class,
+                'adable_id' => $services['rana.service_provider@example.com|Corporate Events']?->id,
+            ],
+        ];
+
+        foreach ($approvedAds as $attributes) {
+            if (!$attributes['adable_id']) {
+                continue;
             }
-            return $base->copy()->addDays(rand(5, 120))->format('Y-m-d H:i:s');
-        };
 
-        $randomPrice = function () {
-            // returns decimal like 9.99 .. 499.99
-            // 30% chance of NULL (no price)
-            if (rand(1, 10) <= 3) {
-                return null;
-            }
-            return round(mt_rand(999, 49999) / 100, 2);
-        };
-
-        // Sample ads for sellers
-        foreach ($sellers as $index => $seller) {
-            Ad::create([
-                'title'          => 'Big Sale on ' . $seller->store_name,
-                'subtitle'       => 'Up to ' . (20 + $index * 10) . '% off!',
-                'expires_at'     => $randomExpiry($today),
-                'adable_type'    => Seller::class,
-                'adable_id'      => $seller->id,
-                'ad_position_id' => $positions['golden_ad'] ?? null,
-                'status'         => 'approved',
-                'price'          => $randomPrice(),
-            ]);
-
-            Ad::create([
-                'title'          => $seller->store_name . ' New Arrivals',
-                'subtitle'       => 'Check our fresh collection.',
-                'expires_at'     => $randomExpiry($today),
-                'adable_type'    => Seller::class,
-                'adable_id'      => $seller->id,
-                'ad_position_id' => $positions['silver_ad'] ?? null,
-                'status'         => 'pending',
-                'price'          => $randomPrice(),
-            ]);
+            Ad::updateOrCreate(
+                ['title' => $attributes['title']],
+                [
+                    'subtitle' => $attributes['subtitle'],
+                    'price' => $attributes['price'],
+                    'expires_at' => $attributes['expires_at'],
+                    'status' => $attributes['status'],
+                    'adable_type' => $attributes['adable_type'],
+                    'adable_id' => $attributes['adable_id'],
+                    'ad_position_id' => $positions[$attributes['position']] ?? null,
+                ]
+            );
         }
 
-        // Sample ads for service_providers
-        foreach ($service_providers as $index => $service_provider) {
-            Ad::create([
-                'title'          => $service_provider->name . ' – Book Now!',
-                'subtitle'       => 'Special offer for this month.',
-                'expires_at'     => $randomExpiry($today),
-                'adable_type'    => ServiceProvider::class,
-                'adable_id'      => $service_provider->id,
-                'ad_position_id' => $positions['golden_ad'] ?? null,
-                'status'         => 'approved',
-                'price'          => $randomPrice(),
-            ]);
+        $announcementOwner = User::where('email', 'yara.customer@example.com')->first()
+            ?? User::where('email', 'ahmad.seller@example.com')->first();
 
-            Ad::create([
-                'title'          => $service_provider->name . "'s Exclusive Service",
-                'subtitle'       => null,
-                'expires_at'     => $randomExpiry($today),
-                'adable_type'    => ServiceProvider::class,
-                'adable_id'      => $service_provider->id,
-                'ad_position_id' => $positions['silver_ad'] ?? null,
-                'status'         => 'pending',
-                'price'          => $randomPrice(),
-            ]);
+        if (!$announcementOwner) {
+            return;
         }
 
-        // Extra mixed ads on "normal" position
-        $allAdables = $sellers->concat($service_providers);
-        if ($allAdables->isNotEmpty()) {
-            $extraTitles = [
-                'Limited Time Offer!',
-                'Seasonal Discount',
-                'Get Ready for Holidays',
-                'Exclusive Only Today',
-                'Special for Our Customers',
-            ];
-            foreach ($extraTitles as $i => $title) {
-                $adable = $allAdables->get($i % $allAdables->count());
-                Ad::create([
-                    'title'          => $title,
-                    'subtitle'       => 'Save big before ' . Carbon::create(2025, 12, 31)->format('M d'),
-                    'expires_at'     => $randomExpiry($today),
-                    'adable_type'    => get_class($adable),
-                    'adable_id'      => $adable->id,
-                    'ad_position_id' => $positions['normal_ad'] ?? null,
-                    'status'         => 'approved',
-                    'price'          => $randomPrice(),
-                ]);
-            }
+        $announcementSeeds = [
+            [
+                'listing' => [
+                    'title' => 'Marketplace update: electronics and home devices',
+                    'description' => 'This week we are highlighting selected electronics and home appliance listings from approved marketplace sellers.',
+                    'price' => null,
+                    'attributes' => ['kind' => 'announcement', 'tier' => 'gold'],
+                ],
+                'ad' => [
+                    'title' => 'Marketplace update: electronics and home devices',
+                    'subtitle' => 'Current marketplace picks from electronics and home categories.',
+                    'position' => 'golden_ad',
+                    'expires_at' => $seedBase->copy()->addDays(25),
+                ],
+            ],
+            [
+                'listing' => [
+                    'title' => 'Marketplace update: service bookings this week',
+                    'description' => 'Approved providers have opened new availability for photography, tutoring, and event-related services.',
+                    'price' => null,
+                    'attributes' => ['kind' => 'announcement', 'tier' => 'silver'],
+                ],
+                'ad' => [
+                    'title' => 'Marketplace update: service bookings this week',
+                    'subtitle' => 'New service availability is now visible across the marketplace.',
+                    'position' => 'silver_ad',
+                    'expires_at' => $seedBase->copy()->addDays(20),
+                ],
+            ],
+            [
+                'listing' => [
+                    'title' => 'Marketplace update: home essentials and services',
+                    'description' => 'A quick marketplace note covering practical products and useful service offers from approved accounts.',
+                    'price' => null,
+                    'attributes' => ['kind' => 'announcement', 'tier' => 'normal'],
+                ],
+                'ad' => [
+                    'title' => 'Marketplace update: home essentials and services',
+                    'subtitle' => 'Useful offers and business updates from approved marketplace members.',
+                    'position' => 'normal_ad',
+                    'expires_at' => $seedBase->copy()->addDays(15),
+                ],
+            ],
+        ];
+
+        foreach ($announcementSeeds as $seed) {
+            $listing = Listing::updateOrCreate(
+                [
+                    'user_id' => $announcementOwner->id,
+                    'title' => $seed['listing']['title'],
+                ],
+                [
+                    'description' => $seed['listing']['description'],
+                    'price' => $seed['listing']['price'],
+                    'attributes' => $seed['listing']['attributes'],
+                ]
+            );
+
+            Ad::updateOrCreate(
+                ['title' => $seed['ad']['title']],
+                [
+                    'subtitle' => $seed['ad']['subtitle'],
+                    'price' => null,
+                    'expires_at' => $seed['ad']['expires_at'],
+                    'status' => 'approved',
+                    'adable_type' => Listing::class,
+                    'adable_id' => $listing->id,
+                    'ad_position_id' => $positions[$seed['ad']['position']] ?? null,
+                ]
+            );
         }
     }
 }

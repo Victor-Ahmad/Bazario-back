@@ -9,7 +9,6 @@ class AdPositionSeeder extends Seeder
 {
     public function run()
     {
-
         $positions = [
             [
                 'name' => 'golden_ad',
@@ -26,10 +25,13 @@ class AdPositionSeeder extends Seeder
                 'label' => 'Normal Featured Ad (Moderate Visibility)',
                 'priority' => 3,
             ],
-
-
+            [
+                'name' => 'banner',
+                'label' => 'Banner Placement',
+                'priority' => 4,
+            ],
         ];
 
-        DB::table('ad_positions')->insert($positions);
+        DB::table('ad_positions')->upsert($positions, ['name'], ['label', 'priority']);
     }
 }

@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Ad;
+use App\Models\Listing;
 use App\Models\Product;
+use App\Models\Seller;
 use App\Models\Service;
+use App\Models\ServiceProvider;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -13,6 +17,10 @@ class HomeController extends Controller
     use ApiResponseTrait;
 
     private const LATEST_LIMIT = 8;
+    private const GOLD_LIMIT = 1;
+    private const SILVER_LIMIT = 3;
+    private const NORMAL_LIMIT = 4;
+    private const ANNOUNCEMENT_LIMIT = 3;
 
     public function index(Request $request)
     {
@@ -26,7 +34,10 @@ class HomeController extends Controller
                 'latest' => $this->latestServices($latestLimit),
             ],
             'ads' => [
-                'latest' => [],
+                'gold' => $this->adsByPosition('golden_ad', self::GOLD_LIMIT),
+                'silver' => $this->adsByPosition('silver_ad', self::SILVER_LIMIT),
+                'normal' => $this->adsByPosition('normal_ad', self::NORMAL_LIMIT),
+                'announcements' => $this->announcementAds(self::ANNOUNCEMENT_LIMIT),
             ],
         ], 'messages', 'home_retrieved_successfully');
     }
@@ -75,5 +86,73 @@ class HomeController extends Controller
                 'serviceProvider:id,user_id,name,logo,address,description',
             ])
             ->select('id', 'title', 'description', 'price', 'category_id', 'provider_id', 'created_at');
+    }
+
+    private function publicAdsQuery(): Builder
+    {
+        return Ad::query()
+            ->where('status', 'approved')
+            ->where(function (Builder $query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->with(['images', 'position', 'adable'])
+            ->orderByDesc('created_at');
+    }
+
+    private function adsByPosition(string $positionName, int $limit)
+    {
+        $ads = $this->publicAdsQuery()
+            ->whereHas('position', function (Builder $query) use ($positionName) {
+                $query->whereRaw('LOWER(name) = ?', [mb_strtolower($positionName)]);
+            })
+            ->limit($limit)
+            ->get();
+
+        return $this->hydrateAdableRelations($ads);
+    }
+
+    private function announcementAds(int $limit)
+    {
+        $ads = $this->publicAdsQuery()
+            ->where('adable_type', Listing::class)
+            ->limit($limit)
+            ->get();
+
+        return $this->hydrateAdableRelations($ads);
+    }
+
+    private function hydrateAdableRelations($ads)
+    {
+        $ads->each(function (Ad $ad) {
+            $adable = $ad->adable;
+
+            if (!$adable) {
+                return;
+            }
+
+            $class = get_class($adable);
+
+            if ($class === Product::class) {
+                $adable->loadMissing('seller.user');
+                return;
+            }
+
+            if ($class === Service::class) {
+                $adable->loadMissing('serviceProvider.user');
+                return;
+            }
+
+            if (in_array($class, [Seller::class, ServiceProvider::class], true)) {
+                $adable->loadMissing('user');
+                return;
+            }
+
+            if ($class === Listing::class) {
+                $adable->loadMissing(['user', 'images', 'coverImage']);
+            }
+        });
+
+        return $ads;
     }
 }

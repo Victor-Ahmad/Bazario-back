@@ -65,9 +65,11 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
     Route::get('home', [HomeController::class, 'index']);
 
     Route::get('ads', [AdController::class, 'index']);
+    Route::get('ad-positions', [AdController::class, 'positions']);
     Route::get('ads/gold', [AdController::class, 'goldIndex']);
     Route::get('ads/silver', [AdController::class, 'silverIndex']);
     Route::get('ads/normal', [AdController::class, 'normalIndex']);
+    Route::get('ads/announcements', [AdController::class, 'announcements']);
 
     Route::middleware(['auth:sanctum'])->group(function () {
 
