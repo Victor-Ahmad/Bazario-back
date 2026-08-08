@@ -17,10 +17,14 @@ class HomeController extends Controller
     use ApiResponseTrait;
 
     private const LATEST_LIMIT = 8;
-    private const GOLD_LIMIT = 1;
-    private const SILVER_LIMIT = 3;
-    private const NORMAL_LIMIT = 4;
-    private const ANNOUNCEMENT_LIMIT = 3;
+    private const GOLD_LIMIT = 4;
+    private const SILVER_LIMIT = 6;
+    private const NORMAL_LIMIT = 8;
+    private const ANNOUNCEMENT_LIMIT = 4;
+    private const GOLD_POOL_LIMIT = 10;
+    private const SILVER_POOL_LIMIT = 12;
+    private const NORMAL_POOL_LIMIT = 16;
+    private const ANNOUNCEMENT_POOL_LIMIT = 8;
 
     public function index(Request $request)
     {
@@ -34,10 +38,10 @@ class HomeController extends Controller
                 'latest' => $this->latestServices($latestLimit),
             ],
             'ads' => [
-                'gold' => $this->adsByPosition('golden_ad', self::GOLD_LIMIT),
-                'silver' => $this->adsByPosition('silver_ad', self::SILVER_LIMIT),
-                'normal' => $this->adsByPosition('normal_ad', self::NORMAL_LIMIT),
-                'announcements' => $this->announcementAds(self::ANNOUNCEMENT_LIMIT),
+                'gold' => $this->adsByPosition('golden_ad', self::GOLD_LIMIT, self::GOLD_POOL_LIMIT),
+                'silver' => $this->adsByPosition('silver_ad', self::SILVER_LIMIT, self::SILVER_POOL_LIMIT),
+                'normal' => $this->adsByPosition('normal_ad', self::NORMAL_LIMIT, self::NORMAL_POOL_LIMIT),
+                'announcements' => $this->announcementAds(self::ANNOUNCEMENT_LIMIT, self::ANNOUNCEMENT_POOL_LIMIT),
             ],
         ], 'messages', 'home_retrieved_successfully');
     }
@@ -100,24 +104,30 @@ class HomeController extends Controller
             ->orderByDesc('created_at');
     }
 
-    private function adsByPosition(string $positionName, int $limit)
+    private function adsByPosition(string $positionName, int $limit, int $poolLimit)
     {
         $ads = $this->publicAdsQuery()
             ->whereHas('position', function (Builder $query) use ($positionName) {
                 $query->whereRaw('LOWER(name) = ?', [mb_strtolower($positionName)]);
             })
-            ->limit($limit)
-            ->get();
+            ->limit($poolLimit)
+            ->get()
+            ->shuffle()
+            ->take($limit)
+            ->values();
 
         return $this->hydrateAdableRelations($ads);
     }
 
-    private function announcementAds(int $limit)
+    private function announcementAds(int $limit, int $poolLimit)
     {
         $ads = $this->publicAdsQuery()
             ->where('adable_type', Listing::class)
-            ->limit($limit)
-            ->get();
+            ->limit($poolLimit)
+            ->get()
+            ->shuffle()
+            ->take($limit)
+            ->values();
 
         return $this->hydrateAdableRelations($ads);
     }
