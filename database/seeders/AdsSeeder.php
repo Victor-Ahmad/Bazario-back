@@ -34,13 +34,13 @@ class AdsSeeder extends Seeder
             ->whereHas('seller.user')
             ->with('seller.user')
             ->get()
-            ->keyBy(fn(Product $product) => ($product->seller?->user?->email ?? 'unknown') . '|' . ($product->name['en'] ?? ''));
+            ->keyBy(fn(Product $product) => ($product->seller?->user?->email ?? 'unknown') . '|' . $this->englishText($product->name_translations));
 
         $services = Service::query()
             ->whereHas('serviceProvider.user')
             ->with('serviceProvider.user')
             ->get()
-            ->keyBy(fn(Service $service) => ($service->serviceProvider?->user?->email ?? 'unknown') . '|' . ($service->title['en'] ?? ''));
+            ->keyBy(fn(Service $service) => ($service->serviceProvider?->user?->email ?? 'unknown') . '|' . $this->englishText($service->title_translations));
 
         $approvedAds = [
             [
@@ -61,7 +61,7 @@ class AdsSeeder extends Seeder
                 'position' => 'golden_ad',
                 'status' => 'approved',
                 'adable_type' => Service::class,
-                'adable_id' => $services['laila.service_provider@example.com|Wedding Photography']?->id,
+                'adable_id' => $services->get('laila.service_provider@example.com|Wedding Photography')?->id,
             ],
             [
                 'title' => 'Smartphone X200 available now',
@@ -71,7 +71,7 @@ class AdsSeeder extends Seeder
                 'position' => 'silver_ad',
                 'status' => 'approved',
                 'adable_type' => Product::class,
-                'adable_id' => $products['ahmad.seller@example.com|Smartphone X200']?->id,
+                'adable_id' => $products->get('ahmad.seller@example.com|Smartphone X200')?->id,
             ],
             [
                 'title' => 'Portrait sessions this month',
@@ -81,7 +81,7 @@ class AdsSeeder extends Seeder
                 'position' => 'silver_ad',
                 'status' => 'approved',
                 'adable_type' => Service::class,
-                'adable_id' => $services['laila.service_provider@example.com|Portrait Sessions']?->id,
+                'adable_id' => $services->get('laila.service_provider@example.com|Portrait Sessions')?->id,
             ],
             [
                 'title' => 'Omar Fashion new arrivals',
@@ -101,7 +101,7 @@ class AdsSeeder extends Seeder
                 'position' => 'normal_ad',
                 'status' => 'approved',
                 'adable_type' => Product::class,
-                'adable_id' => $products['ahmad.seller@example.com|Laptop Pro 15"']?->id,
+                'adable_id' => $products->get('ahmad.seller@example.com|Laptop Pro 15"')?->id,
             ],
             [
                 'title' => 'Product photography service',
@@ -111,7 +111,7 @@ class AdsSeeder extends Seeder
                 'position' => 'normal_ad',
                 'status' => 'approved',
                 'adable_type' => Service::class,
-                'adable_id' => $services['laila.service_provider@example.com|Product Photography']?->id,
+                'adable_id' => $services->get('laila.service_provider@example.com|Product Photography')?->id,
             ],
             [
                 'title' => 'Nour Home Appliances picks',
@@ -141,7 +141,7 @@ class AdsSeeder extends Seeder
                 'position' => 'silver_ad',
                 'status' => 'pending',
                 'adable_type' => Service::class,
-                'adable_id' => $services['rana.service_provider@example.com|Corporate Events']?->id,
+                'adable_id' => $services->get('rana.service_provider@example.com|Corporate Events')?->id,
             ],
         ];
 
@@ -242,5 +242,14 @@ class AdsSeeder extends Seeder
                 ]
             );
         }
+    }
+
+    private function englishText($translations): string
+    {
+        if (!is_array($translations)) {
+            return '';
+        }
+
+        return (string) ($translations['en'] ?? '');
     }
 }
