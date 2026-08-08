@@ -13,4 +13,5 @@ Route::prefix('demo/auth')->middleware(['throttle:auth'])->group(function () {
 });
 Route::middleware(['throttle:auth'])->group(function () {
     Route::get('auth/csrf', [LoginController::class, 'demoCsrf']);
+    Route::post('auth/admin/login', [LoginController::class, 'demoAdminLogin']);
 });
