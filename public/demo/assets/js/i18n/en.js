@@ -59,7 +59,7 @@ export default {
 
     // Login
     login_title: "Login",
-    login_subtitle: "Log in to get a Bearer token and access protected APIs.",
+    login_subtitle: "Sign in with an admin account to access the backend demo and protected APIs.",
     login_email: "Email",
     login_password: "Password",
     login_submit: "Login",

@@ -9,7 +9,7 @@ Route::get('/', function () {
 
 Route::prefix('demo/auth')->middleware(['throttle:auth'])->group(function () {
     Route::get('csrf', [LoginController::class, 'demoCsrf']);
-    Route::post('login', [LoginController::class, 'demoLogin']);
+    Route::post('admin/login', [LoginController::class, 'demoAdminLogin']);
 });
 Route::middleware(['throttle:auth'])->group(function () {
     Route::get('auth/csrf', [LoginController::class, 'demoCsrf']);

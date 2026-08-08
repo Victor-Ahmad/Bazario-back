@@ -52,7 +52,7 @@ function applyTranslations(lang) {
     lblLoginPassword.textContent = t(lang, "login_password");
     submitBtn.textContent = t(lang, "login_submit");
 
-    toRegisterLink.textContent = t(lang, "register_link");
+    toRegisterLink.closest(".formLink")?.remove();
 
     statusUI.setStatus(t(lang, "ready"), "neutral", null);
 }
@@ -72,14 +72,14 @@ function initLanguageSelector() {
 }
 
 initLanguageSelector();
-statusUI.setRequestMeta("POST", "/demo/auth/login");
+statusUI.setRequestMeta("POST", "/demo/auth/admin/login");
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearErrors(form);
 
     submitBtn.disabled = true;
-    statusUI.setRequestMeta("POST", "/demo/auth/login");
+    statusUI.setRequestMeta("POST", "/demo/auth/admin/login");
     statusUI.setStatus(t(currentLang(), "login_logging_in"), "neutral", null);
 
     const payload = formToObject(form);
@@ -87,7 +87,7 @@ form.addEventListener("submit", async (e) => {
     try {
         const csrf = await apiRequest("/demo/auth/csrf");
 
-        const res = await apiRequest("/demo/auth/login", {
+        const res = await apiRequest("/demo/auth/admin/login", {
             method: "POST",
             headers: {
                 "X-CSRF-TOKEN": csrf.csrf_token,

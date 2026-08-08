@@ -63,6 +63,8 @@ return [
     'fetch_failed' => 'Daten konnten nicht abgerufen werden.',
     'user_not_found' => 'Benutzer nicht gefunden',
     'invalid_password' => 'Ungültiges Passwort',
+    'admin_demo_only' => 'Nur Administratorkonten duerfen sich ueber die Backend-Demo anmelden.',
+    'admin_demo_only' => 'Nur Administratorkonten duerfen sich ueber die Backend-Demo anmelden.',
     'admin_marketplace_forbidden' => 'Administratorkonten dürfen sich nur über das Backend-Dashboard anmelden.',
     'failed' => 'Ungueltige E-Mail oder Passwort.',
     'logout_success' => 'Erfolgreich abgemeldet.',

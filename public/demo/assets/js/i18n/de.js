@@ -61,7 +61,7 @@ export default {
     // Login
     login_title: "Anmelden",
     login_subtitle:
-        "Anmelden, um ein Bearer-Token zu erhalten und geschützte APIs zu nutzen.",
+        "Mit einem Administratorkonto anmelden, um die Backend-Demo und geschuetzte APIs zu nutzen.",
     login_email: "E-Mail",
     login_password: "Passwort",
     login_submit: "Anmelden",

@@ -13,7 +13,7 @@ class LoginController extends Controller
 {
     use ApiResponseTrait;
 
-    protected function attemptLogin(array $credentials, bool $allowAdmin = false)
+    protected function attemptLogin(array $credentials, bool $forbidAdmin = false, ?string $requiredRole = null)
     {
         $user = User::where('email', $credentials['email'])->first();
 
@@ -25,9 +25,17 @@ class LoginController extends Controller
             );
         }
 
-        if ($user->hasRole('admin') && ! $allowAdmin) {
+        if ($forbidAdmin && $user->hasRole('admin')) {
             return $this->errorResponse(
                 'admin_marketplace_forbidden',
+                'auth',
+                403
+            );
+        }
+
+        if ($requiredRole && ! $user->hasRole($requiredRole)) {
+            return $this->errorResponse(
+                'admin_demo_only',
                 'auth',
                 403
             );
@@ -44,7 +52,7 @@ class LoginController extends Controller
 
     public function login(LoginRequest $request)
     {
-        return $this->attemptLogin($request->validated(), false);
+        return $this->attemptLogin($request->validated(), true);
     }
 
     public function demoCsrf(Request $request)
@@ -56,9 +64,9 @@ class LoginController extends Controller
         ]);
     }
 
-    public function demoLogin(LoginRequest $request)
+    public function demoAdminLogin(LoginRequest $request)
     {
-        return $this->attemptLogin($request->validated(), true);
+        return $this->attemptLogin($request->validated(), false, 'admin');
     }
 
     public function logout(Request $request)
