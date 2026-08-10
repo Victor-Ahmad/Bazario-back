@@ -33,8 +33,6 @@ class ListingImage extends Model
             return null;
         }
 
-        return str_starts_with($this->path, 'storage/')
-            ? $this->path
-            : 'storage/' . ltrim($this->path, '/');
+        return url('/media/' . ltrim($this->path, '/'));
     }
 }
