@@ -12,6 +12,7 @@ use App\Models\Seller;
 use App\Models\ServiceProvider;
 use App\Models\Listing;
 use App\Models\AdPosition;
+use App\Services\PromotionRefundService;
 use App\Support\MediaPath;
 use Illuminate\Support\Str;
 use Stripe\StripeClient;
@@ -108,7 +109,7 @@ class AdController extends Controller
     public function getPendingAds()
     {
         $ads = Ad::with(['images', 'position', 'adable'])
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'pending_review'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -119,7 +120,7 @@ class AdController extends Controller
     public function timedAdRequests()
     {
         $ads = Ad::with(['images', 'position', 'adable'])
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'pending_review'])
             ->whereNotNull('expires_at')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -131,7 +132,7 @@ class AdController extends Controller
     public function bannerdAdRequests()
     {
         $ads = Ad::with(['images', 'position', 'adable'])
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'pending_review'])
             ->whereHas('position', function ($q) {
                 $q->where('name', 'banner');
             })
@@ -318,7 +319,7 @@ class AdController extends Controller
             ]);
 
             $ad->update([
-                'status' => 'pending',
+                'status' => 'pending_review',
                 'paid_at' => now(),
                 'metadata' => $metadata,
             ]);
@@ -341,6 +342,11 @@ class AdController extends Controller
         if ($validated['status'] === 'approved' && $ad->paid_at === null) {
             abort(422, 'Sponsored ads must be paid before approval.');
         }
+
+        if ($validated['status'] === 'rejected' && $ad->paid_at !== null && $ad->refund_status !== 'refunded') {
+            app(PromotionRefundService::class)->refundAdRejection($ad);
+        }
+
         $ad->status = $validated['status'];
         $ad->save();
 

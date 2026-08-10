@@ -73,6 +73,7 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
     Route::get('ads/announcements', [AdController::class, 'announcements']);
     Route::get('listings', [ListingController::class, 'index']);
     Route::get('listings/{listing}', [ListingController::class, 'show']);
+    Route::get('listing-pricing', [ListingController::class, 'pricing']);
 
     Route::middleware(['auth:sanctum'])->group(function () {
 
@@ -133,6 +134,8 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
         Route::get('my-ads', [AdController::class, 'myAds']);
         Route::post('listings', [ListingController::class, 'store']);
         Route::get('my-listings', [ListingController::class, 'myListings']);
+        Route::post('listings/{listing}/checkout-session', [ListingController::class, 'createCheckoutSession']);
+        Route::post('listings/{listing}/checkout-session/reconcile', [ListingController::class, 'reconcileCheckoutSession']);
 
 
         Route::get('/customers', [CustomerController::class, 'index']);

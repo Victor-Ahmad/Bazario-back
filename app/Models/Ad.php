@@ -13,6 +13,7 @@ class Ad extends Model
         'expires_at',
         'status',
         'paid_at',
+        'refund_status',
         'metadata',
         'adable_type',
         'adable_id',
@@ -23,6 +24,11 @@ class Ad extends Model
         'expires_at' => 'datetime',
         'paid_at' => 'datetime',
         'metadata' => 'array',
+    ];
+
+    protected $appends = [
+        'currency_iso',
+        'refund',
     ];
 
     public function adable()
@@ -43,5 +49,22 @@ class Ad extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getCurrencyIsoAttribute(): string
+    {
+        return strtoupper((string) config('ads.currency', config('stripe.currency', 'eur')));
+    }
+
+    public function getRefundAttribute(): array
+    {
+        $refund = $this->metadata['refund'] ?? null;
+
+        return [
+            'applied' => $this->refund_status === 'refunded' || (bool) ($refund['applied'] ?? false),
+            'status' => $refund['status'] ?? $this->refund_status,
+            'amount' => $refund['amount'] ?? null,
+            'stripe_refund_id' => $refund['stripe_refund_id'] ?? null,
+        ];
     }
 }

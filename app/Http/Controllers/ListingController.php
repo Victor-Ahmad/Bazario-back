@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Listing;
+use App\Services\PromotionRefundService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Stripe\StripeClient;
 
 class ListingController extends Controller
 {
@@ -64,7 +67,6 @@ class ListingController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'price' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
             'attributes' => ['nullable', 'array'],
             'images' => ['required', 'array', 'max:12'],
             'images.*' => ['file', 'image', 'max:4096'],
@@ -78,9 +80,9 @@ class ListingController extends Controller
                 'user_id' => $request->user()->id,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
-                'price' => $data['price'] ?? null,
+                'price' => (float) config('listings.announcement.price', 19),
                 'attributes' => $data['attributes'] ?? null,
-                'status' => 'pending',
+                'status' => 'pending_payment',
             ]);
 
             $coverIndex = (int) ($data['cover_index'] ?? 0);
@@ -111,14 +113,14 @@ class ListingController extends Controller
         return response()->json([
             'success' => 1,
             'result' => $listing,
-            'message' => 'Listing submitted for review.',
+            'message' => 'Announcement created. Payment is required before review.',
         ], 201);
     }
 
     public function pending(Request $request)
     {
         $listings = Listing::query()
-            ->pending()
+            ->whereIn('status', ['pending', 'pending_review'])
             ->whereHas('user')
             ->with([
                 'user:id,name,email',
@@ -137,10 +139,124 @@ class ListingController extends Controller
             'status' => ['required', 'in:approved,rejected'],
         ]);
 
+        if ($data['status'] === 'approved' && $listing->paid_at === null) {
+            abort(422, 'Announcements must be paid before approval.');
+        }
+
+        if ($data['status'] === 'rejected' && $listing->paid_at !== null && $listing->refund_status !== 'refunded') {
+            app(PromotionRefundService::class)->refundListingRejection($listing);
+        }
+
         $listing->update([
             'status' => $data['status'],
         ]);
 
         return $this->successResponse($listing->fresh(), 'messages', 'updated_successfully');
+    }
+
+    public function pricing()
+    {
+        return response()->json([
+            'success' => 1,
+            'result' => [
+                'price' => (float) config('listings.announcement.price', 19),
+                'currency_iso' => strtoupper((string) config('listings.currency', config('stripe.currency', 'eur'))),
+            ],
+        ]);
+    }
+
+    public function createCheckoutSession(Request $request, Listing $listing, StripeClient $stripe)
+    {
+        $this->authorizeListingOwner($request->user(), $listing);
+
+        abort_if($listing->status !== 'pending_payment', 422, 'This announcement no longer requires payment.');
+        abort_if((float) $listing->price <= 0, 422, 'Invalid announcement price.');
+
+        $metadata = $listing->metadata ?? [];
+        $frontendUrl = rtrim((string) config('stripe.frontend_url'), '/');
+        $successBaseUrl = config('listings.checkout_success_url') ?: ($frontendUrl . '/account/announcements/checkout/success');
+        $cancelBaseUrl = config('listings.checkout_cancel_url') ?: ($frontendUrl . '/account/announcements/checkout/cancel');
+        $successUrl = $successBaseUrl . (str_contains($successBaseUrl, '?') ? '&' : '?') . 'listing_id=' . $listing->id . '&session_id={CHECKOUT_SESSION_ID}';
+        $cancelUrl = $cancelBaseUrl . (str_contains($cancelBaseUrl, '?') ? '&' : '?') . 'listing_id=' . $listing->id;
+
+        $session = $stripe->checkout->sessions->create([
+            'mode' => 'payment',
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => strtolower((string) config('listings.currency', config('stripe.currency', 'eur'))),
+                    'product_data' => [
+                        'name' => 'Announcement: ' . $listing->title,
+                        'description' => $listing->description ?: 'Marketplace announcement submission',
+                        'metadata' => [
+                            'listing_id' => (string) $listing->id,
+                        ],
+                    ],
+                    'unit_amount' => (int) round(((float) $listing->price) * 100),
+                ],
+                'quantity' => 1,
+            ]],
+            'metadata' => [
+                'listing_id' => (string) $listing->id,
+            ],
+            'success_url' => $successUrl,
+            'cancel_url' => $cancelUrl,
+        ], [
+            'idempotency_key' => 'listing_cs_' . $listing->id . '_' . Str::uuid()->toString(),
+        ]);
+
+        $metadata['last_checkout_session_id'] = $session->id;
+        $metadata['last_checkout_session_created_at'] = now()->toISOString();
+        $listing->update(['metadata' => $metadata]);
+
+        return response()->json([
+            'checkout_url' => $session->url,
+            'checkout_session_id' => $session->id,
+            'listing_id' => $listing->id,
+            'status' => $listing->status,
+        ]);
+    }
+
+    public function reconcileCheckoutSession(Request $request, Listing $listing, StripeClient $stripe)
+    {
+        $this->authorizeListingOwner($request->user(), $listing);
+
+        $data = $request->validate([
+            'session_id' => ['required', 'string'],
+        ]);
+
+        $session = $stripe->checkout->sessions->retrieve($data['session_id'], []);
+        $sessionArray = $session instanceof \Stripe\StripeObject ? $session->toArray() : (array) $session;
+        $sessionListingId = $sessionArray['metadata']['listing_id'] ?? null;
+
+        abort_if((string) $sessionListingId !== (string) $listing->id, 422, 'Checkout session does not belong to this announcement.');
+
+        if (($sessionArray['payment_status'] ?? null) === 'paid') {
+            $metadata = array_merge($listing->metadata ?? [], [
+                'checkout_session_id' => $sessionArray['id'] ?? null,
+                'payment_intent_id' => $sessionArray['payment_intent'] ?? null,
+                'last_paid_session' => $sessionArray,
+            ]);
+
+            $listing->update([
+                'status' => 'pending_review',
+                'paid_at' => now(),
+                'metadata' => $metadata,
+            ]);
+        }
+
+        return response()->json([
+            'listing' => $listing->fresh([
+                'user:id,name',
+                'images:id,listing_id,path,sort,is_cover',
+                'coverImage:id,listing_id,path,sort,is_cover',
+            ]),
+            'is_paid' => $listing->fresh()->paid_at !== null,
+        ]);
+    }
+
+    private function authorizeListingOwner($user, Listing $listing): void
+    {
+        abort_unless($user, 401);
+        abort_if((int) $listing->user_id !== (int) $user->id, 403);
     }
 }
