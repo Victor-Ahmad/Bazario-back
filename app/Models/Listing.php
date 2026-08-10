@@ -12,11 +12,22 @@ class Listing extends Model
         'description',
         'price',
         'attributes',
+        'status',
     ];
 
     protected $casts = [
         'attributes'   => 'array',
     ];
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
 
     public function user()
     {

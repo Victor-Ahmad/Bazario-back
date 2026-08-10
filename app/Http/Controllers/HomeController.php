@@ -107,6 +107,7 @@ class HomeController extends Controller
     private function adsByPosition(string $positionName, int $limit, int $poolLimit)
     {
         $ads = $this->publicAdsQuery()
+            ->where('adable_type', '!=', Listing::class)
             ->whereHas('position', function (Builder $query) use ($positionName) {
                 $query->whereRaw('LOWER(name) = ?', [mb_strtolower($positionName)]);
             })
@@ -121,15 +122,20 @@ class HomeController extends Controller
 
     private function announcementAds(int $limit, int $poolLimit)
     {
-        $ads = $this->publicAdsQuery()
-            ->where('adable_type', Listing::class)
+        return Listing::query()
+            ->approved()
+            ->whereHas('user')
+            ->with([
+                'user:id,name',
+                'images:id,listing_id,path,sort,is_cover',
+                'coverImage:id,listing_id,path,sort,is_cover',
+            ])
+            ->orderByDesc('created_at')
             ->limit($poolLimit)
             ->get()
             ->shuffle()
             ->take($limit)
             ->values();
-
-        return $this->hydrateAdableRelations($ads);
     }
 
     private function hydrateAdableRelations($ads)

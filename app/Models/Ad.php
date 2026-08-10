@@ -12,12 +12,18 @@ class Ad extends Model
         'price',
         'expires_at',
         'status',
+        'paid_at',
+        'metadata',
         'adable_type',
         'adable_id',
         'ad_position_id',
     ];
 
-    protected $dates = ['expires_at'];
+    protected $casts = [
+        'expires_at' => 'datetime',
+        'paid_at' => 'datetime',
+        'metadata' => 'array',
+    ];
 
     public function adable()
     {

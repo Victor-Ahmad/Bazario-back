@@ -5,6 +5,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ListingAdController;
+use App\Http\Controllers\ListingController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SellerController;
@@ -70,6 +71,8 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
     Route::get('ads/silver', [AdController::class, 'silverIndex']);
     Route::get('ads/normal', [AdController::class, 'normalIndex']);
     Route::get('ads/announcements', [AdController::class, 'announcements']);
+    Route::get('listings', [ListingController::class, 'index']);
+    Route::get('listings/{listing}', [ListingController::class, 'show']);
 
     Route::middleware(['auth:sanctum'])->group(function () {
 
@@ -124,8 +127,12 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
         Route::post('ads/{ad}/images', [AdController::class, 'addImages']);
         Route::post('ads', [AdController::class, 'store']);
+        Route::post('ads/{ad}/checkout-session', [AdController::class, 'createCheckoutSession']);
+        Route::post('ads/{ad}/checkout-session/reconcile', [AdController::class, 'reconcileCheckoutSession']);
         Route::post('/listing-ads', [ListingAdController::class, 'store']);
         Route::get('my-ads', [AdController::class, 'myAds']);
+        Route::post('listings', [ListingController::class, 'store']);
+        Route::get('my-listings', [ListingController::class, 'myListings']);
 
 
         Route::get('/customers', [CustomerController::class, 'index']);
@@ -193,6 +200,8 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
                 Route::post('seller/{seller}/status', [SellerController::class, 'updateSellerStatus']);
                 Route::post('service_provider/{service_provider}/status', [ServiceProviderController::class, 'updateServiceProviderStatus']);
                 Route::post('ad/{ad}/status', [AdController::class, 'updateStatus']);
+                Route::get('listings/pending', [ListingController::class, 'pending']);
+                Route::post('listings/{listing}/status', [ListingController::class, 'updateStatus']);
 
                 Route::prefix('upgrade-requests')->group(function () {
                     Route::get('/', [UpgradeRequestController::class, 'index']);

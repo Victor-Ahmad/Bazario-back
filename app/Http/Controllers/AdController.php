@@ -12,6 +12,8 @@ use App\Models\Seller;
 use App\Models\ServiceProvider;
 use App\Models\Listing;
 use App\Models\AdPosition;
+use Illuminate\Support\Str;
+use Stripe\StripeClient;
 
 
 class AdController extends Controller
@@ -21,7 +23,6 @@ class AdController extends Controller
         'service' => \App\Models\Service::class,
         'seller'  => \App\Models\Seller::class,
         'service_provider'  => \App\Models\ServiceProvider::class,
-        'listing'  => \App\Models\Listing::class,
     ];
 
     public function index()
@@ -62,11 +63,11 @@ class AdController extends Controller
 
     public function announcements()
     {
-        $ads = $this->publicAdsQuery()
-            ->where('adable_type', Listing::class)
+        $ads = Listing::approved()
+            ->whereHas('user')
+            ->with(['user:id,name', 'images', 'coverImage'])
+            ->orderByDesc('created_at')
             ->paginate(20);
-
-        $this->loadAdableRelations($ads->getCollection());
 
         return response()->json(['success' => 1, 'result' => $ads]);
     }
@@ -75,7 +76,21 @@ class AdController extends Controller
     {
         $positions = AdPosition::query()
             ->orderBy('priority')
-            ->get(['id', 'name', 'label', 'priority']);
+            ->get(['id', 'name', 'label', 'priority'])
+            ->map(function (AdPosition $position) {
+                $pricing = $this->getPricingForPosition($position->name);
+
+                return [
+                    'id' => $position->id,
+                    'name' => $position->name,
+                    'label' => $position->label,
+                    'priority' => $position->priority,
+                    'tier' => $pricing['tier'],
+                    'price' => $pricing['price'],
+                    'currency_iso' => strtoupper(config('ads.currency', config('stripe.currency', 'eur'))),
+                ];
+            })
+            ->values();
 
         return response()->json(['success' => 1, 'result' => $positions]);
     }
@@ -83,7 +98,7 @@ class AdController extends Controller
     {
         $ads = Ad::with(['images', 'position', 'adable'])
             ->where('status', 'approved')
-            ->where('adable_type', 'App\Models\Listing')
+            ->where('adable_type', '!=', Listing::class)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -133,9 +148,8 @@ class AdController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'subtitle' => 'nullable|string|max:255',
-            'price'      => 'nullable|numeric|min:0|max:999999999.99',
-            'expires_at' => 'nullable|date',
-            'ad_position_id' => 'nullable|exists:ad_positions,id',
+            'expires_at' => 'nullable|date|after:now',
+            'ad_position_id' => 'required|exists:ad_positions,id',
             'adable_type' => 'required|string',
             'adable_id' => 'nullable|integer',
             'images' => 'nullable|array|max:5',
@@ -149,9 +163,10 @@ class AdController extends Controller
                 'message' => __('ads.invalid_adable_type'),
             ], 422);
         }
-        $validated['adable_type'] = self::ALLOWED_ADABLES[$type];
-
         $user = $request->user();
+        abort_unless($this->isApprovedBusinessUser($user), 403, 'Only approved sellers and approved service providers can create sponsored ads.');
+
+        $validated['adable_type'] = self::ALLOWED_ADABLES[$type];
         $adableId = $validated['adable_id'] ?? null;
 
         if (empty($validated['adable_id'])) {
@@ -166,14 +181,14 @@ class AdController extends Controller
                 $adableId = $seller->id;
             }
             if ($validated['adable_type'] === \App\Models\ServiceProvider::class) {
-                $service_provider = $user->service_provider;
-                if (!$service_provider) {
+                $serviceProvider = $user->serviceProvider;
+                if (!$serviceProvider || $serviceProvider->status !== 'approved') {
                     return response()->json([
                         'success' => 0,
                         'message' => __('ads.service_provider_not_found'),
                     ], 422);
                 }
-                $adableId = $service_provider->id;
+                $adableId = $serviceProvider->id;
             }
         }
         $validated['adable_id'] = $adableId;
@@ -184,12 +199,19 @@ class AdController extends Controller
                 'message' => __('ads.not_authorized'),
             ], 403);
         }
+        $position = AdPosition::query()->findOrFail($validated['ad_position_id']);
+        $pricing = $this->getPricingForPosition($position->name);
+        abort_if($pricing['price'] === null, 422, 'Unsupported sponsored ad placement.');
+
         DB::beginTransaction();
         try {
             $ad = Ad::create([
                 ...$validated,
-                'status' => 'pending',
-                //  'ad_position_id' => $validated['ad_position_id'] ?? null,
+                'price' => $pricing['price'],
+                'status' => 'pending_payment',
+                'metadata' => [
+                    'tier' => $pricing['tier'],
+                ],
             ]);
 
             // Attach images
@@ -222,6 +244,90 @@ class AdController extends Controller
         return response()->json(['success' => 1, 'result' => $ad]);
     }
 
+    public function createCheckoutSession(Request $request, Ad $ad, StripeClient $stripe)
+    {
+        $this->authorizeAdOwner($request->user(), $ad);
+
+        abort_if($ad->status !== 'pending_payment', 422, 'This sponsored ad no longer requires payment.');
+        abort_if((float) $ad->price <= 0, 422, 'Invalid sponsored ad price.');
+
+        $metadata = $ad->metadata ?? [];
+        $frontendUrl = rtrim((string) config('stripe.frontend_url'), '/');
+        $successBaseUrl = config('ads.checkout_success_url') ?: ($frontendUrl . '/account/ads/checkout/success');
+        $cancelBaseUrl = config('ads.checkout_cancel_url') ?: ($frontendUrl . '/account/ads/checkout/cancel');
+        $successUrl = $successBaseUrl . (str_contains($successBaseUrl, '?') ? '&' : '?') . 'ad_id=' . $ad->id . '&session_id={CHECKOUT_SESSION_ID}';
+        $cancelUrl = $cancelBaseUrl . (str_contains($cancelBaseUrl, '?') ? '&' : '?') . 'ad_id=' . $ad->id;
+
+        $session = $stripe->checkout->sessions->create([
+            'mode' => 'payment',
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => strtolower(config('ads.currency', config('stripe.currency', 'eur'))),
+                    'product_data' => [
+                        'name' => 'Sponsored ad: ' . $ad->title,
+                        'description' => $this->buildCheckoutDescription($ad),
+                        'metadata' => [
+                            'ad_id' => (string) $ad->id,
+                        ],
+                    ],
+                    'unit_amount' => (int) round(((float) $ad->price) * 100),
+                ],
+                'quantity' => 1,
+            ]],
+            'metadata' => [
+                'ad_id' => (string) $ad->id,
+            ],
+            'success_url' => $successUrl,
+            'cancel_url' => $cancelUrl,
+        ], [
+            'idempotency_key' => 'ad_cs_' . $ad->id . '_' . Str::uuid()->toString(),
+        ]);
+
+        $metadata['last_checkout_session_id'] = $session->id;
+        $metadata['last_checkout_session_created_at'] = now()->toISOString();
+        $ad->update(['metadata' => $metadata]);
+
+        return response()->json([
+            'checkout_url' => $session->url,
+            'checkout_session_id' => $session->id,
+            'ad_id' => $ad->id,
+            'status' => $ad->status,
+        ]);
+    }
+
+    public function reconcileCheckoutSession(Request $request, Ad $ad, StripeClient $stripe)
+    {
+        $this->authorizeAdOwner($request->user(), $ad);
+
+        $data = $request->validate([
+            'session_id' => ['required', 'string'],
+        ]);
+
+        $session = $stripe->checkout->sessions->retrieve($data['session_id'], []);
+        $sessionArray = $session instanceof \Stripe\StripeObject ? $session->toArray() : (array) $session;
+        $sessionAdId = $sessionArray['metadata']['ad_id'] ?? null;
+
+        abort_if((string) $sessionAdId !== (string) $ad->id, 422, 'Checkout session does not belong to this sponsored ad.');
+
+        if (($sessionArray['payment_status'] ?? null) === 'paid') {
+            $metadata = array_merge($ad->metadata ?? [], [
+                'last_paid_session_id' => $sessionArray['id'] ?? null,
+                'last_paid_session' => $sessionArray,
+            ]);
+
+            $ad->update([
+                'status' => 'pending',
+                'paid_at' => now(),
+                'metadata' => $metadata,
+            ]);
+        }
+
+        return response()->json([
+            'ad' => $ad->fresh(['images', 'position', 'adable']),
+            'is_paid' => $ad->fresh()->paid_at !== null,
+        ]);
+    }
+
     // Update ad status (approve/reject) - admin only
     public function updateStatus(Request $request, $id)
     {
@@ -230,6 +336,9 @@ class AdController extends Controller
         ]);
 
         $ad = Ad::findOrFail($id);
+        if ($validated['status'] === 'approved' && $ad->paid_at === null) {
+            abort(422, 'Sponsored ads must be paid before approval.');
+        }
         $ad->status = $validated['status'];
         $ad->save();
 
@@ -306,24 +415,19 @@ class AdController extends Controller
     private function authorizeAdableOwner($user, string $adableType, int $adableId): bool
     {
         if ($adableType === \App\Models\Seller::class) {
-            return (int) ($user->seller?->id ?? 0) === $adableId;
+            return (int) ($user->seller?->id ?? 0) === $adableId && $user->seller?->status === 'approved';
         }
         if ($adableType === \App\Models\ServiceProvider::class) {
-            return (int) ($user->service_provider?->id ?? 0) === $adableId;
+            return (int) ($user->serviceProvider?->id ?? 0) === $adableId && $user->serviceProvider?->status === 'approved';
         }
         if ($adableType === \App\Models\Product::class) {
             return \App\Models\Product::whereKey($adableId)
-                ->whereHas('seller', fn($q) => $q->where('user_id', $user->id))
+                ->whereHas('seller', fn($q) => $q->approved()->where('user_id', $user->id))
                 ->exists();
         }
         if ($adableType === \App\Models\Service::class) {
             return \App\Models\Service::whereKey($adableId)
-                ->whereHas('serviceProvider', fn($q) => $q->where('user_id', $user->id))
-                ->exists();
-        }
-        if ($adableType === \App\Models\Listing::class) {
-            return \App\Models\Listing::whereKey($adableId)
-                ->where('user_id', $user->id)
+                ->whereHas('serviceProvider', fn($q) => $q->approved()->where('user_id', $user->id))
                 ->exists();
         }
 
@@ -367,11 +471,6 @@ class AdController extends Controller
                     'adable',
                     [ServiceProvider::class],
                     fn($m) => $m->where('user_id', $userId)
-                )
-                ->orWhereHasMorph(
-                    'adable',
-                    [Listing::class],
-                    fn($m) => $m->where('user_id', $userId)
                 );
             })
             ->orderByDesc('created_at')
@@ -384,9 +483,33 @@ class AdController extends Controller
     {
         return Ad::query()
             ->where('status', 'approved')
+            ->where('adable_type', '!=', Listing::class)
             ->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
+            })
+            ->where(function ($query) {
+                $query
+                    ->whereHasMorph(
+                        'adable',
+                        [Product::class],
+                        fn($m) => $m->whereHas('seller', fn($seller) => $seller->approved()->withActiveUser()),
+                    )
+                    ->orWhereHasMorph(
+                        'adable',
+                        [Service::class],
+                        fn($m) => $m->whereHas('serviceProvider', fn($provider) => $provider->approved()->withActiveUser()),
+                    )
+                    ->orWhereHasMorph(
+                        'adable',
+                        [Seller::class],
+                        fn($m) => $m->approved()->withActiveUser(),
+                    )
+                    ->orWhereHasMorph(
+                        'adable',
+                        [ServiceProvider::class],
+                        fn($m) => $m->approved()->withActiveUser(),
+                    );
             })
             ->with(['images', 'position', 'adable'])
             ->orderByDesc('created_at');
@@ -407,9 +530,31 @@ class AdController extends Controller
                 $adable->loadMissing('serviceProvider.user');
             } elseif (in_array($class, [Seller::class, ServiceProvider::class], true)) {
                 $adable->loadMissing('user');
-            } elseif ($class === Listing::class) {
-                $adable->loadMissing(['user', 'images', 'coverImage']);
             }
         });
+    }
+
+    private function isApprovedBusinessUser($user): bool
+    {
+        return $user->seller?->status === 'approved' || $user->serviceProvider?->status === 'approved';
+    }
+
+    private function getPricingForPosition(string $positionName): array
+    {
+        return config('ads.tiers.' . $positionName, [
+            'tier' => null,
+            'price' => null,
+        ]);
+    }
+
+    private function buildCheckoutDescription(Ad $ad): string
+    {
+        $tier = $ad->metadata['tier'] ?? null;
+        $parts = array_filter([
+            $tier ? 'Tier: ' . ucfirst((string) $tier) : null,
+            $ad->subtitle,
+        ]);
+
+        return implode(' | ', $parts);
     }
 }
