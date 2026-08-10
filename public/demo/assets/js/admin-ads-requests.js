@@ -41,7 +41,9 @@ function safeText(v, fallback = "—") {
 function fileUrl(path) {
     if (!path) return null;
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    return `/${path}`;
+    const normalized = path.startsWith("/") ? path.slice(1) : path;
+    const assetPath = normalized.startsWith("storage/") ? normalized : `storage/${normalized}`;
+    return `/${assetPath}`;
 }
 
 function buildStatusChip(text, tone = "neutral") {

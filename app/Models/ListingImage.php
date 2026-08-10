@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class ListingImage extends Model
 {
+    protected $appends = [
+        'image_url',
+    ];
+
     protected $fillable = [
         'listing_id',
         'path',
@@ -21,5 +25,16 @@ class ListingImage extends Model
     public function listing()
     {
         return $this->belongsTo(Listing::class);
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (!$this->path) {
+            return null;
+        }
+
+        return str_starts_with($this->path, 'storage/')
+            ? $this->path
+            : 'storage/' . ltrim($this->path, '/');
     }
 }
