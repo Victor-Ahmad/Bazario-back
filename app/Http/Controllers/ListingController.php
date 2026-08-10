@@ -71,7 +71,9 @@ class ListingController extends Controller
             'cover_index' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $listing = DB::transaction(function () use ($request, $data) {
+        $uploadsDisk = config('bazario.uploads_disk', 'public');
+
+        $listing = DB::transaction(function () use ($request, $data, $uploadsDisk) {
             $listing = Listing::create([
                 'user_id' => $request->user()->id,
                 'title' => $data['title'],
@@ -84,7 +86,7 @@ class ListingController extends Controller
             $coverIndex = (int) ($data['cover_index'] ?? 0);
 
             foreach ($request->file('images', []) as $index => $file) {
-                $relPath = $file->store("listings/{$listing->id}", 'public');
+                $relPath = $file->store("listings/{$listing->id}", $uploadsDisk);
 
                 $listing->images()->create([
                     'path' => $relPath,
