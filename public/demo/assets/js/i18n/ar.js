@@ -27,6 +27,8 @@ export default {
     nav_upgrade: "ترقية الحساب",
     nav_update_password: "تحديث كلمة المرور",
     nav_admin_upgrade_requests: "طلبات الترقية",
+    nav_admin_announcements_requests: "طلبات الإعلانات العامة",
+    nav_admin_ads_requests: "طلبات الإعلانات المدفوعة",
     nav_my_products: "منتجاتي",
     nav_my_services: "خدماتي",
     nav_service_availability: "أوقات التوفر",
@@ -154,6 +156,35 @@ export default {
     admin_upgrade_loading: "جاري تحميل طلبات الترقية...",
     admin_upgrade_updated: "تم تحديث الطلب.",
     admin_upgrade_admin_only: "الدخول مخصص للمسؤول فقط.",
+
+    // Admin announcements
+    admin_announcements_title: "طلبات الإعلانات العامة",
+    admin_announcements_subtitle:
+        "راجع الإعلانات العامة المعلقة قبل ظهورها على الواجهة العامة.",
+    admin_announcements_empty: "لا توجد إعلانات عامة معلقة.",
+    admin_announcements_loading: "جاري تحميل الإعلانات العامة المعلقة...",
+    admin_announcements_updated: "تم تحديث الإعلان العام.",
+    admin_announcements_owner: "المالك",
+    admin_announcements_price: "السعر",
+    admin_announcements_created: "تاريخ الإنشاء",
+
+    // Admin ads
+    admin_ads_title: "طلبات الإعلانات المدفوعة",
+    admin_ads_subtitle:
+        "راجع الإعلانات المدفوعة المعلقة ووافق فقط على الإعلانات المدفوعة.",
+    admin_ads_empty: "لا توجد إعلانات مدفوعة معلقة.",
+    admin_ads_loading: "جاري تحميل الإعلانات المدفوعة المعلقة...",
+    admin_ads_updated: "تم تحديث الإعلان المدفوع.",
+    admin_ads_payment_required: "يجب إتمام الدفع قبل الموافقة.",
+    admin_ads_position: "موضع الإعلان",
+    admin_ads_target_type: "نوع الهدف",
+    admin_ads_created: "تاريخ الإنشاء",
+    admin_ads_payment_state: "حالة الدفع",
+    admin_ads_paid: "مدفوع",
+    admin_ads_unpaid: "غير مدفوع",
+    admin_status_pending: "معلق",
+    admin_status_approved: "مقبول",
+    admin_status_rejected: "مرفوض",
 
     // My products/services
     my_products_title: "منتجاتي",

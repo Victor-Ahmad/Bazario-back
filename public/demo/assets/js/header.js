@@ -333,6 +333,34 @@ function renderHeader(container) {
                 "a",
                 {
                     class: `navLink ${
+                        isActive("/demo/admin-announcements-requests.html")
+                            ? "active"
+                            : ""
+                    }`,
+                    href: "/demo/admin-announcements-requests.html",
+                },
+                [t(lang, "nav_admin_announcements_requests")],
+            ),
+        );
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
+                        isActive("/demo/admin-ads-requests.html")
+                            ? "active"
+                            : ""
+                    }`,
+                    href: "/demo/admin-ads-requests.html",
+                },
+                [t(lang, "nav_admin_ads_requests")],
+            ),
+        );
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
                         isActive("/demo/admin-payouts.html") ? "active" : ""
                     }`,
                     href: "/demo/admin-payouts.html",

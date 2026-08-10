@@ -27,6 +27,8 @@ export default {
     nav_upgrade: "Upgrade Account",
     nav_update_password: "Update Password",
     nav_admin_upgrade_requests: "Upgrade Requests",
+    nav_admin_announcements_requests: "Announcement Requests",
+    nav_admin_ads_requests: "Ad Requests",
     nav_my_products: "My Products",
     nav_my_services: "My Services",
     nav_service_availability: "Availability",
@@ -153,6 +155,35 @@ export default {
     admin_upgrade_loading: "Loading upgrade requests...",
     admin_upgrade_updated: "Request updated.",
     admin_upgrade_admin_only: "Admin access required.",
+
+    // Admin announcements
+    admin_announcements_title: "Announcement Requests",
+    admin_announcements_subtitle:
+        "Review pending marketplace announcements before they appear publicly.",
+    admin_announcements_empty: "No pending announcements.",
+    admin_announcements_loading: "Loading pending announcements...",
+    admin_announcements_updated: "Announcement updated.",
+    admin_announcements_owner: "Owner",
+    admin_announcements_price: "Price",
+    admin_announcements_created: "Created",
+
+    // Admin ads
+    admin_ads_title: "Sponsored Ad Requests",
+    admin_ads_subtitle:
+        "Review pending sponsored ads and approve only paid placements.",
+    admin_ads_empty: "No pending sponsored ads.",
+    admin_ads_loading: "Loading pending sponsored ads...",
+    admin_ads_updated: "Sponsored ad updated.",
+    admin_ads_payment_required: "Payment required before approval.",
+    admin_ads_position: "Placement",
+    admin_ads_target_type: "Target type",
+    admin_ads_created: "Created",
+    admin_ads_payment_state: "Payment",
+    admin_ads_paid: "Paid",
+    admin_ads_unpaid: "Unpaid",
+    admin_status_pending: "Pending",
+    admin_status_approved: "Approved",
+    admin_status_rejected: "Rejected",
 
     // My products/services
     my_products_title: "My Products",

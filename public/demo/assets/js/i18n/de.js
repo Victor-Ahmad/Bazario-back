@@ -27,6 +27,8 @@ export default {
     nav_upgrade: "Konto upgraden",
     nav_update_password: "Passwort ändern",
     nav_admin_upgrade_requests: "Upgrade-Anfragen",
+    nav_admin_announcements_requests: "Ankündigungsanfragen",
+    nav_admin_ads_requests: "Anzeigenanfragen",
     nav_my_products: "Meine Produkte",
     nav_my_services: "Meine Services",
     nav_service_availability: "Verfuegbarkeit",
@@ -162,6 +164,35 @@ export default {
     admin_upgrade_updated: "Anfrage aktualisiert.",
     admin_upgrade_admin_only:
         "Admin-Zugriff erforderlich.",
+
+    // Admin announcements
+    admin_announcements_title: "Ankündigungsanfragen",
+    admin_announcements_subtitle:
+        "Prüfe ausstehende Marktplatz-Ankündigungen, bevor sie öffentlich sichtbar werden.",
+    admin_announcements_empty: "Keine ausstehenden Ankündigungen.",
+    admin_announcements_loading: "Ausstehende Ankündigungen werden geladen...",
+    admin_announcements_updated: "Ankündigung aktualisiert.",
+    admin_announcements_owner: "Inhaber",
+    admin_announcements_price: "Preis",
+    admin_announcements_created: "Erstellt",
+
+    // Admin ads
+    admin_ads_title: "Anfragen für gesponserte Anzeigen",
+    admin_ads_subtitle:
+        "Prüfe ausstehende gesponserte Anzeigen und genehmige nur bezahlte Platzierungen.",
+    admin_ads_empty: "Keine ausstehenden gesponserten Anzeigen.",
+    admin_ads_loading: "Ausstehende gesponserte Anzeigen werden geladen...",
+    admin_ads_updated: "Gesponserte Anzeige aktualisiert.",
+    admin_ads_payment_required: "Vor der Freigabe ist eine Zahlung erforderlich.",
+    admin_ads_position: "Platzierung",
+    admin_ads_target_type: "Zieltyp",
+    admin_ads_created: "Erstellt",
+    admin_ads_payment_state: "Zahlung",
+    admin_ads_paid: "Bezahlt",
+    admin_ads_unpaid: "Unbezahlt",
+    admin_status_pending: "Ausstehend",
+    admin_status_approved: "Genehmigt",
+    admin_status_rejected: "Abgelehnt",
 
     // My products/services
     my_products_title: "Meine Produkte",
