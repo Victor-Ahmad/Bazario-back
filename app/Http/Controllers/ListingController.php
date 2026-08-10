@@ -167,7 +167,8 @@ class ListingController extends Controller
 
     public function createCheckoutSession(Request $request, Listing $listing, StripeClient $stripe)
     {
-        $this->authorizeListingOwner($request->user(), $listing);
+        $user = $request->user();
+        $this->authorizeListingOwner($user, $listing);
 
         abort_if($listing->status !== 'pending_payment', 422, 'This announcement no longer requires payment.');
         abort_if((float) $listing->price <= 0, 422, 'Invalid announcement price.');
@@ -178,6 +179,7 @@ class ListingController extends Controller
         $cancelBaseUrl = config('listings.checkout_cancel_url') ?: ($frontendUrl . '/account/announcements/checkout/cancel');
         $successUrl = $successBaseUrl . (str_contains($successBaseUrl, '?') ? '&' : '?') . 'listing_id=' . $listing->id . '&session_id={CHECKOUT_SESSION_ID}';
         $cancelUrl = $cancelBaseUrl . (str_contains($cancelBaseUrl, '?') ? '&' : '?') . 'listing_id=' . $listing->id;
+        $checkoutCustomer = $this->resolveCheckoutCustomer($stripe, $user);
 
         $session = $stripe->checkout->sessions->create([
             'mode' => 'payment',
@@ -200,6 +202,7 @@ class ListingController extends Controller
             ],
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
+            ...$checkoutCustomer,
         ], [
             'idempotency_key' => 'listing_cs_' . $listing->id . '_' . Str::uuid()->toString(),
         ]);
@@ -258,5 +261,36 @@ class ListingController extends Controller
     {
         abort_unless($user, 401);
         abort_if((int) $listing->user_id !== (int) $user->id, 403);
+    }
+
+    private function resolveCheckoutCustomer(StripeClient $stripe, $user): array
+    {
+        $email = trim((string) ($user?->email ?? ''));
+
+        if ($email === '') {
+            return [];
+        }
+
+        $customer = $stripe->customers->all([
+            'email' => $email,
+            'limit' => 1,
+        ])->data[0] ?? null;
+
+        if (!$customer) {
+            $customer = $stripe->customers->create([
+                'email' => $email,
+                'name' => $user?->name ?: null,
+                'metadata' => [
+                    'user_id' => (string) ($user?->id ?? ''),
+                ],
+            ]);
+        }
+
+        return [
+            'customer' => $customer->id,
+            'payment_intent_data' => [
+                'receipt_email' => $email,
+            ],
+        ];
     }
 }

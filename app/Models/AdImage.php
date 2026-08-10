@@ -20,6 +20,6 @@ class AdImage extends Model
 
     public function getImageUrlAttribute(?string $value): ?string
     {
-        return MediaPath::publicUrl($value);
+        return MediaPath::publicAdUrl($value);
     }
 }

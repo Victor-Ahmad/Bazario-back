@@ -15,6 +15,10 @@ class PublicMediaController extends Controller
         $normalizedPath = MediaPath::normalizeStoredPath($path);
         abort_if(!$normalizedPath, 404);
 
+        if (str_starts_with($normalizedPath, 'promotions/')) {
+            $normalizedPath = 'ads/' . substr($normalizedPath, strlen('promotions/'));
+        }
+
         $disk = MediaPath::uploadsDisk();
         $storage = Storage::disk($disk);
 

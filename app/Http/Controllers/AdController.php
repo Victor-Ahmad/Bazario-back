@@ -249,7 +249,8 @@ class AdController extends Controller
 
     public function createCheckoutSession(Request $request, Ad $ad, StripeClient $stripe)
     {
-        $this->authorizeAdOwner($request->user(), $ad);
+        $user = $request->user();
+        $this->authorizeAdOwner($user, $ad);
 
         abort_if($ad->status !== 'pending_payment', 422, 'This sponsored ad no longer requires payment.');
         abort_if((float) $ad->price <= 0, 422, 'Invalid sponsored ad price.');
@@ -260,6 +261,7 @@ class AdController extends Controller
         $cancelBaseUrl = config('ads.checkout_cancel_url') ?: ($frontendUrl . '/account/ads/checkout/cancel');
         $successUrl = $successBaseUrl . (str_contains($successBaseUrl, '?') ? '&' : '?') . 'ad_id=' . $ad->id . '&session_id={CHECKOUT_SESSION_ID}';
         $cancelUrl = $cancelBaseUrl . (str_contains($cancelBaseUrl, '?') ? '&' : '?') . 'ad_id=' . $ad->id;
+        $checkoutCustomer = $this->resolveCheckoutCustomer($stripe, $user);
 
         $session = $stripe->checkout->sessions->create([
             'mode' => 'payment',
@@ -282,6 +284,7 @@ class AdController extends Controller
             ],
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
+            ...$checkoutCustomer,
         ], [
             'idempotency_key' => 'ad_cs_' . $ad->id . '_' . Str::uuid()->toString(),
         ]);
@@ -565,5 +568,36 @@ class AdController extends Controller
         ]);
 
         return implode(' | ', $parts);
+    }
+
+    private function resolveCheckoutCustomer(StripeClient $stripe, $user): array
+    {
+        $email = trim((string) ($user?->email ?? ''));
+
+        if ($email === '') {
+            return [];
+        }
+
+        $customer = $stripe->customers->all([
+            'email' => $email,
+            'limit' => 1,
+        ])->data[0] ?? null;
+
+        if (!$customer) {
+            $customer = $stripe->customers->create([
+                'email' => $email,
+                'name' => $user?->name ?: null,
+                'metadata' => [
+                    'user_id' => (string) ($user?->id ?? ''),
+                ],
+            ]);
+        }
+
+        return [
+            'customer' => $customer->id,
+            'payment_intent_data' => [
+                'receipt_email' => $email,
+            ],
+        ];
     }
 }

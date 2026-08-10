@@ -35,4 +35,27 @@ class MediaPath
 
         return $normalized ? url('/media/' . $normalized) : null;
     }
+
+    public static function publicAdUrl(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        $normalized = self::normalizeStoredPath($path);
+
+        if (!$normalized) {
+            return null;
+        }
+
+        if (str_starts_with($normalized, 'ads/')) {
+            $normalized = 'promotions/' . substr($normalized, 4);
+        }
+
+        return url('/media/' . $normalized);
+    }
 }
