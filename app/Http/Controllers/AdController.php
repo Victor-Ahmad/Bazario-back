@@ -12,6 +12,7 @@ use App\Models\Seller;
 use App\Models\ServiceProvider;
 use App\Models\Listing;
 use App\Models\AdPosition;
+use App\Support\MediaPath;
 use Illuminate\Support\Str;
 use Stripe\StripeClient;
 
@@ -216,10 +217,11 @@ class AdController extends Controller
 
             // Attach images
             if ($request->hasFile('images')) {
+                $disk = MediaPath::uploadsDisk();
                 foreach ($request->file('images') as $idx => $imgFile) {
-                    $path = $imgFile->store("ads/{$ad->id}", 'public');
+                    $path = $imgFile->store("ads/{$ad->id}", $disk);
                     $ad->images()->create([
-                        'image_url' => 'storage/' . $path,
+                        'image_url' => $path,
                         'sort_order' => $idx,
                     ]);
                 }
@@ -389,10 +391,11 @@ class AdController extends Controller
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
         ]);
         if ($request->hasFile('images')) {
+            $disk = MediaPath::uploadsDisk();
             foreach ($request->file('images') as $idx => $imgFile) {
-                $path = $imgFile->store("ads/{$ad->id}", 'public');
+                $path = $imgFile->store("ads/{$ad->id}", $disk);
                 $ad->images()->create([
-                    'image_url' => 'storage/' . $path,
+                    'image_url' => $path,
                     'sort_order' => $idx,
                 ]);
             }

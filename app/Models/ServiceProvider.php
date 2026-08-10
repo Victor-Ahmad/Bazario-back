@@ -2,12 +2,18 @@
 
 namespace App\Models;
 
+use App\Support\MediaPath;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ServiceProvider extends Model
 {
     use HasFactory;
+
+    protected $appends = [
+        'logo_url',
+    ];
+
     protected $table = 'service_providers';
     protected $fillable = [
         'user_id',
@@ -56,5 +62,10 @@ class ServiceProvider extends Model
     public function timeOffs()
     {
         return $this->hasMany(ServiceProviderTimeOff::class);
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return MediaPath::publicUrl($this->logo);
     }
 }

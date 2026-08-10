@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MediaPath;
 use Illuminate\Database\Eloquent\Model;
 
 class AdImage extends Model
@@ -15,5 +16,10 @@ class AdImage extends Model
     public function ad()
     {
         return $this->belongsTo(Ad::class);
+    }
+
+    public function getImageUrlAttribute(?string $value): ?string
+    {
+        return MediaPath::publicUrl($value);
     }
 }

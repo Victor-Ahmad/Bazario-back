@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MediaPath;
 use Illuminate\Database\Eloquent\Model;
 
 class ListingImage extends Model
@@ -33,6 +34,6 @@ class ListingImage extends Model
             return null;
         }
 
-        return url('/media/' . ltrim($this->path, '/'));
+        return MediaPath::publicUrl($this->path);
     }
 }

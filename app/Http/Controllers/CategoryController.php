@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Support\MediaPath;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -60,7 +61,7 @@ class CategoryController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = 'storage/' . $request->file('image')->store('categories', 'public');
+            $data['image'] = $request->file('image')->store('categories', MediaPath::uploadsDisk());
         }
 
         $category = Category::create($data);
@@ -100,9 +101,13 @@ class CategoryController extends Controller
 
         if ($request->hasFile('image')) {
             if ($category->image) {
-                Storage::disk('public')->delete($category->image);
+                $storedPath = MediaPath::normalizeStoredPath($category->image);
+
+                if ($storedPath) {
+                    Storage::disk(MediaPath::uploadsDisk())->delete($storedPath);
+                }
             }
-            $data['image'] = 'storage/' . $request->file('image')->store('categories', 'public');
+            $data['image'] = $request->file('image')->store('categories', MediaPath::uploadsDisk());
         }
 
         $category->update($data);

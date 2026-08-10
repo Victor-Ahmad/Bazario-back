@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use App\Support\MediaPath;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Seller extends Model
 {
     use HasFactory;
+
+    protected $appends = [
+        'logo_url',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -43,5 +48,10 @@ class Seller extends Model
     public function attachments()
     {
         return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return MediaPath::publicUrl($this->logo);
     }
 }

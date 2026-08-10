@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\MediaPath;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,8 +12,10 @@ class PublicMediaController extends Controller
     {
         abort_if($path === '', 404);
 
-        $normalizedPath = ltrim($path, '/');
-        $disk = config('bazario.uploads_disk', 'public');
+        $normalizedPath = MediaPath::normalizeStoredPath($path);
+        abort_if(!$normalizedPath, 404);
+
+        $disk = MediaPath::uploadsDisk();
         $storage = Storage::disk($disk);
 
         abort_unless($storage->exists($normalizedPath), 404);

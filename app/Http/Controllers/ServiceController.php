@@ -6,6 +6,7 @@ use App\Http\Requests\Ads\ServiceRequest;
 use App\Models\Category;
 use App\Models\Service;
 use App\Models\ServiceProvider;
+use App\Support\MediaPath;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Storage;
 
@@ -63,11 +64,13 @@ class ServiceController extends Controller
             return;
         }
 
+        $disk = MediaPath::uploadsDisk();
+
         foreach ($service->images as $image) {
-            $path = preg_replace('#^storage/#', '', $image->image ?? '');
+            $path = MediaPath::normalizeStoredPath($image->image);
 
             if (!empty($path)) {
-                Storage::disk('public')->delete($path);
+                Storage::disk($disk)->delete($path);
             }
 
             $image->delete();
@@ -75,7 +78,7 @@ class ServiceController extends Controller
 
         foreach ($request->file('images') as $image) {
             $service->images()->create([
-                'image' => 'storage/' . $image->store('services/' . $serviceProvider->id, 'public'),
+                'image' => $image->store('services/' . $serviceProvider->id, $disk),
             ]);
         }
     }
@@ -209,10 +212,10 @@ class ServiceController extends Controller
         $this->ensureServiceOwnership($service, $serviceProvider);
 
         foreach ($service->images as $image) {
-            $path = preg_replace('#^storage/#', '', $image->image ?? '');
+            $path = MediaPath::normalizeStoredPath($image->image);
 
             if (!empty($path)) {
-                Storage::disk('public')->delete($path);
+                Storage::disk(MediaPath::uploadsDisk())->delete($path);
             }
 
             $image->delete();

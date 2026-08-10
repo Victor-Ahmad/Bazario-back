@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\UpgradeToSellerRequest;
 use App\Http\Requests\Auth\UpgradeToServiceProviderRequest;
 use App\Models\Seller;
 use App\Models\ServiceProvider;
+use App\Support\MediaPath;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,16 +20,17 @@ class UpgradeAccountController extends Controller
     public function upgradeToSeller(UpgradeToSellerRequest $request)
     {
         $storedFiles = [];
+        $disk = MediaPath::uploadsDisk();
 
         try {
-            $result = DB::transaction(function () use ($request, &$storedFiles) {
+            $result = DB::transaction(function () use ($request, &$storedFiles, $disk) {
 
                 $user     = $request->user();
                 $logoPath = null;
 
 
                 if ($request->hasFile('logo')) {
-                    $logoPath = $request->file('logo')->store('sellers/logos', 'public');
+                    $logoPath = $request->file('logo')->store('sellers/logos', $disk);
                     $storedFiles[] = $logoPath;
                 }
 
@@ -48,7 +50,7 @@ class UpgradeAccountController extends Controller
                         'store_owner_name' => $request->store_owner_name,
                         'store_name'       => $request->store_name,
                         'address'          => $request->address,
-                        'logo'             => $logoPath ? 'storage/' . $logoPath : null,
+                        'logo'             => $logoPath,
                         'description'      => $request->description,
                         'status'           => 'pending',
                     ]
@@ -56,11 +58,11 @@ class UpgradeAccountController extends Controller
 
                 if ($request->hasFile('attachments')) {
                     foreach ($request->file('attachments') as $file) {
-                        $filePath = $file->store('attachments', 'public');
+                        $filePath = $file->store('attachments', $disk);
                         $storedFiles[] = $filePath;
 
                         $seller->attachments()->create([
-                            'file' => 'storage/' . $filePath,
+                            'file' => $filePath,
                             'name' => $file->getClientOriginalName(),
                         ]);
                     }
@@ -77,7 +79,7 @@ class UpgradeAccountController extends Controller
             return $this->successResponse($result, 'auth', 'upgraded_to_seller');
         } catch (Throwable $e) {
             foreach ($storedFiles as $path) {
-                Storage::disk('public')->delete($path);
+                Storage::disk($disk)->delete($path);
             }
 
             return $this->errorResponse('upgrade_failed', 'auth', 500, [
@@ -89,14 +91,15 @@ class UpgradeAccountController extends Controller
     public function upgradeToServiceProvider(UpgradeToServiceProviderRequest $request)
     {
         $storedFiles = [];
+        $disk = MediaPath::uploadsDisk();
         try {
-            $result = DB::transaction(function () use ($request, &$storedFiles) {
+            $result = DB::transaction(function () use ($request, &$storedFiles, $disk) {
 
                 $user     = $request->user();
                 $logoPath = null;
 
                 if ($request->hasFile('logo')) {
-                    $logoPath = $request->file('logo')->store('service_providers/logos', 'public');
+                    $logoPath = $request->file('logo')->store('service_providers/logos', $disk);
                     $storedFiles[] = $logoPath;
                 }
 
@@ -120,7 +123,7 @@ class UpgradeAccountController extends Controller
                     [
                         'name'        => $request->name,
                         'address'     => $request->address,
-                        'logo'        => $logoPath ? 'storage/' . $logoPath : null,
+                        'logo'        => $logoPath,
                         'description' => $request->description,
                         'status'      => 'pending',
                     ]
@@ -128,11 +131,11 @@ class UpgradeAccountController extends Controller
 
                 if ($request->hasFile('attachments')) {
                     foreach ($request->file('attachments') as $file) {
-                        $filePath = $file->store('attachments', 'public');
+                        $filePath = $file->store('attachments', $disk);
                         $storedFiles[] = $filePath;
 
                         $serviceProvider->attachments()->create([
-                            'file' => 'storage/' . $filePath,
+                            'file' => $filePath,
                             'name' => $file->getClientOriginalName(),
                         ]);
                     }
@@ -149,7 +152,7 @@ class UpgradeAccountController extends Controller
             return $this->successResponse($result, 'auth', 'upgraded_to_service_provider');
         } catch (Throwable $e) {
             foreach ($storedFiles as $path) {
-                Storage::disk('public')->delete($path);
+                Storage::disk($disk)->delete($path);
             }
 
             if ((int) $e->getCode() === 404) {

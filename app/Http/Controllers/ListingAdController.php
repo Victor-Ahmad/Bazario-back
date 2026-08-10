@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ListingWithAdRequest;
 use App\Models\Ad;
 use App\Models\Listing;
+use App\Support\MediaPath;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +15,7 @@ class ListingAdController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        $disk = 'public';
+        $disk = MediaPath::uploadsDisk();
 
         return DB::transaction(function () use ($user, $data, $request, $disk) {
             $listing = Listing::create([
@@ -63,14 +64,14 @@ class ListingAdController extends Controller
                 foreach ($adCreatives as $idx => $creative) {
                     $relPath = $creative->store("ads/{$ad->id}", $disk);
                     $ad->images()->create([
-                        'image_url'  => 'storage/' . $relPath,
+                        'image_url'  => $relPath,
                         'sort_order' => $idx,
                     ]);
                 }
             } else {
                 foreach ($storedRelPaths as $idx => $relPath) {
                     $ad->images()->create([
-                        'image_url'  => 'storage/' . $relPath,
+                        'image_url'  => $relPath,
                         'sort_order' => $idx,
                     ]);
                 }

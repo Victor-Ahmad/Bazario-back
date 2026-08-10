@@ -6,6 +6,7 @@ use App\Http\Requests\Ads\ProductRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Seller;
+use App\Support\MediaPath;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Storage;
 
@@ -46,11 +47,13 @@ class ProductController extends Controller
             return;
         }
 
+        $disk = MediaPath::uploadsDisk();
+
         foreach ($product->images as $image) {
-            $path = preg_replace('#^storage/#', '', $image->image ?? '');
+            $path = MediaPath::normalizeStoredPath($image->image);
 
             if (!empty($path)) {
-                Storage::disk('public')->delete($path);
+                Storage::disk($disk)->delete($path);
             }
 
             $image->delete();
@@ -58,7 +61,7 @@ class ProductController extends Controller
 
         foreach ($request->file('images') as $image) {
             $product->images()->create([
-                'image' => 'storage/' . $image->store('products/' . $seller->id, 'public'),
+                'image' => $image->store('products/' . $seller->id, $disk),
             ]);
         }
     }
@@ -192,10 +195,10 @@ class ProductController extends Controller
         $this->ensureProductOwnership($product, $seller);
 
         foreach ($product->images as $image) {
-            $path = preg_replace('#^storage/#', '', $image->image ?? '');
+            $path = MediaPath::normalizeStoredPath($image->image);
 
             if (!empty($path)) {
-                Storage::disk('public')->delete($path);
+                Storage::disk(MediaPath::uploadsDisk())->delete($path);
             }
 
             $image->delete();
