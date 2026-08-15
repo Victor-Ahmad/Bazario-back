@@ -21,8 +21,8 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             ServiceSeeder::class,
             AdPositionSeeder::class,
-            AdsSeeder::class,
-            
+            // AdsSeeder::class,
+
         ]);
     }
 }
