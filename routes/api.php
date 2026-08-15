@@ -128,12 +128,14 @@ Route::middleware(['set-language', 'throttle:api'])->group(function () {
 
         Route::post('ads/{ad}/images', [AdController::class, 'addImages']);
         Route::post('ads', [AdController::class, 'store']);
+        Route::delete('ads/{ad}', [AdController::class, 'destroy']);
         Route::post('ads/{ad}/checkout-session', [AdController::class, 'createCheckoutSession']);
         Route::post('ads/{ad}/checkout-session/reconcile', [AdController::class, 'reconcileCheckoutSession']);
         Route::post('/listing-ads', [ListingAdController::class, 'store']);
         Route::get('my-ads', [AdController::class, 'myAds']);
         Route::post('listings', [ListingController::class, 'store']);
         Route::get('my-listings', [ListingController::class, 'myListings']);
+        Route::delete('listings/{listing}', [ListingController::class, 'destroy']);
         Route::post('listings/{listing}/checkout-session', [ListingController::class, 'createCheckoutSession']);
         Route::post('listings/{listing}/checkout-session/reconcile', [ListingController::class, 'reconcileCheckoutSession']);
 

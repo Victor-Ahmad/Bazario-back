@@ -37,7 +37,7 @@ class ListingWithAdRequest extends FormRequest
 
             // Ad (placement)
             'ad.title'          => ['required', 'string', 'max:255'],
-            'ad.subtitle'       => ['nullable', 'string', 'max:255'],
+            'ad.subtitle'       => ['nullable', 'string'],
             'ad.ad_position_id' => ['nullable', 'exists:ad_positions,id'],
             // If you only support explicit expiry date (no days):
             'ad.expires_at'     => ['nullable', 'date', 'after:now'],

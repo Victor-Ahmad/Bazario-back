@@ -19,6 +19,7 @@ class AdsSeeder extends Seeder
     {
         $positions = AdPosition::pluck('id', 'name');
         $seedBase = Carbon::create(2026, 8, 8, 12, 0, 0);
+        $announcementPrice = (float) config('listings.announcement.price', 19);
 
         $sellers = Seller::query()
             ->with('user')
@@ -209,16 +210,20 @@ class AdsSeeder extends Seeder
                 'price' => 135.00,
                 'expires_at' => $seedBase->copy()->addDays(50),
                 'position' => 'silver_ad',
-                'status' => 'pending',
+                'status' => 'pending_review',
                 'adable_type' => Service::class,
                 'adable_id' => $services->get('rana.service_provider@example.com|Corporate Events')?->id,
             ],
         ];
 
-        foreach ($approvedAds as $attributes) {
+        foreach ($approvedAds as $index => $attributes) {
             if (!$attributes['adable_id']) {
                 continue;
             }
+
+            $paidAt = in_array($attributes['status'], ['approved', 'pending_review'], true)
+                ? $seedBase->copy()->addMinutes($index)
+                : null;
 
             Ad::updateOrCreate(
                 ['title' => $attributes['title']],
@@ -227,6 +232,8 @@ class AdsSeeder extends Seeder
                     'price' => $attributes['price'],
                     'expires_at' => $attributes['expires_at'],
                     'status' => $attributes['status'],
+                    'paid_at' => $paidAt,
+                    'refund_status' => null,
                     'adable_type' => $attributes['adable_type'],
                     'adable_id' => $attributes['adable_id'],
                     'ad_position_id' => $positions[$attributes['position']] ?? null,
@@ -286,7 +293,9 @@ class AdsSeeder extends Seeder
             ],
         ];
 
-        foreach ($announcementSeeds as $seed) {
+        foreach ($announcementSeeds as $index => $seed) {
+            $paidAt = $seedBase->copy()->addHours(2)->addMinutes($index);
+
             $listing = Listing::updateOrCreate(
                 [
                     'user_id' => $announcementOwner->id,
@@ -294,8 +303,11 @@ class AdsSeeder extends Seeder
                 ],
                 [
                     'description' => $seed['listing']['description'],
-                    'price' => $seed['listing']['price'],
+                    'price' => $announcementPrice,
                     'attributes' => $seed['listing']['attributes'],
+                    'status' => 'approved',
+                    'paid_at' => $paidAt,
+                    'refund_status' => null,
                 ]
             );
 
@@ -303,9 +315,11 @@ class AdsSeeder extends Seeder
                 ['title' => $seed['ad']['title']],
                 [
                     'subtitle' => $seed['ad']['subtitle'],
-                    'price' => null,
+                    'price' => $announcementPrice,
                     'expires_at' => $seed['ad']['expires_at'],
                     'status' => 'approved',
+                    'paid_at' => $paidAt,
+                    'refund_status' => null,
                     'adable_type' => Listing::class,
                     'adable_id' => $listing->id,
                     'ad_position_id' => $positions[$seed['ad']['position']] ?? null,

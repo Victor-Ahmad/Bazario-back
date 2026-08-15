@@ -15,6 +15,7 @@ use App\Models\AdPosition;
 use App\Services\PromotionRefundService;
 use App\Support\MediaPath;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Stripe\StripeClient;
 
 
@@ -109,7 +110,7 @@ class AdController extends Controller
     public function getPendingAds()
     {
         $ads = Ad::with(['images', 'position', 'adable'])
-            ->whereIn('status', ['pending', 'pending_review'])
+            ->where('status', 'pending_review')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -120,7 +121,7 @@ class AdController extends Controller
     public function timedAdRequests()
     {
         $ads = Ad::with(['images', 'position', 'adable'])
-            ->whereIn('status', ['pending', 'pending_review'])
+            ->where('status', 'pending_review')
             ->whereNotNull('expires_at')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -132,7 +133,7 @@ class AdController extends Controller
     public function bannerdAdRequests()
     {
         $ads = Ad::with(['images', 'position', 'adable'])
-            ->whereIn('status', ['pending', 'pending_review'])
+            ->where('status', 'pending_review')
             ->whereHas('position', function ($q) {
                 $q->where('name', 'banner');
             })
@@ -149,7 +150,7 @@ class AdController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'subtitle' => 'nullable|string|max:255',
+            'subtitle' => 'nullable|string',
             'expires_at' => 'nullable|date|after:now',
             'ad_position_id' => 'required|exists:ad_positions,id',
             'adable_type' => 'required|string',
@@ -365,7 +366,7 @@ class AdController extends Controller
 
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
-            'subtitle' => 'nullable|string|max:255',
+            'subtitle' => 'nullable|string',
             'price'      => 'nullable|numeric|min:0|max:999999999.99',
             'expires_at' => 'nullable|date',
             'ad_position_id' => 'sometimes|exists:ad_positions,id',
@@ -377,12 +378,32 @@ class AdController extends Controller
         return response()->json(['success' => 1, 'result' => $ad->fresh(['images', 'position', 'adable'])]);
     }
 
-    // Delete ad (soft delete if using SoftDeletes)
     public function destroy($id)
     {
         $ad = Ad::findOrFail($id);
         $this->authorizeAdOwner(request()->user(), $ad);
-        $ad->delete();
+
+        abort_if(
+            $ad->status !== 'pending_payment' || $ad->paid_at !== null,
+            422,
+            'Only unpaid sponsored ads can be deleted.',
+        );
+
+        $disk = MediaPath::uploadsDisk();
+
+        DB::transaction(function () use ($ad, $disk) {
+            foreach ($ad->images as $image) {
+                $storedPath = MediaPath::normalizeStoredPath((string) $image->getRawOriginal('image_url'));
+
+                if ($storedPath !== '') {
+                    Storage::disk($disk)->delete($storedPath);
+                }
+
+                $image->delete();
+            }
+
+            $ad->delete();
+        });
 
         return response()->json([
             'success' => 1,

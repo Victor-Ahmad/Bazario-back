@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Listing;
+use App\Support\MediaPath;
 use App\Services\PromotionRefundService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Stripe\StripeClient;
 
@@ -120,7 +122,7 @@ class ListingController extends Controller
     public function pending(Request $request)
     {
         $listings = Listing::query()
-            ->whereIn('status', ['pending', 'pending_review'])
+            ->where('status', 'pending_review')
             ->whereHas('user')
             ->with([
                 'user:id,name,email',
@@ -254,6 +256,38 @@ class ListingController extends Controller
                 'coverImage:id,listing_id,path,sort,is_cover',
             ]),
             'is_paid' => $listing->fresh()->paid_at !== null,
+        ]);
+    }
+
+    public function destroy(Request $request, Listing $listing)
+    {
+        $this->authorizeListingOwner($request->user(), $listing);
+
+        abort_if(
+            $listing->status !== 'pending_payment' || $listing->paid_at !== null,
+            422,
+            'Only unpaid announcements can be deleted.',
+        );
+
+        $disk = MediaPath::uploadsDisk();
+
+        DB::transaction(function () use ($listing, $disk) {
+            foreach ($listing->images as $image) {
+                $storedPath = MediaPath::normalizeStoredPath((string) $image->getRawOriginal('path'));
+
+                if ($storedPath !== '') {
+                    Storage::disk($disk)->delete($storedPath);
+                }
+
+                $image->delete();
+            }
+
+            $listing->delete();
+        });
+
+        return response()->json([
+            'success' => 1,
+            'message' => 'Announcement deleted successfully.',
         ]);
     }
 

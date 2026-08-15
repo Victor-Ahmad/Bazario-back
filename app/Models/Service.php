@@ -69,24 +69,16 @@ class Service extends Model
 
     public function getTitleTranslationsAttribute()
     {
-        $title = $this->attributes['title'] ?? null;
+        $value = $this->attributes['title'] ?? null;
 
-        if (is_array($title)) {
-            return $title;
-        }
-
-        return is_string($title) ? json_decode($title, true) : null;
+        return $value === null ? null : $this->castAttribute('title', $value);
     }
 
     public function getDescriptionTranslationsAttribute()
     {
-        $description = $this->attributes['description'] ?? null;
+        $value = $this->attributes['description'] ?? null;
 
-        if (is_array($description)) {
-            return $description;
-        }
-
-        return is_string($description) ? json_decode($description, true) : null;
+        return $value === null ? null : $this->castAttribute('description', $value);
     }
 
     public function user()
