@@ -585,7 +585,7 @@ class AdController extends Controller
     {
         return config('ads.tiers.' . $positionName, [
             'tier' => null,
-            'price' => null,
+            'price_per_day' => null,
         ]);
     }
 
