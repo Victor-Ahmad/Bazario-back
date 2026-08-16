@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
+use App\Support\MediaPath;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -44,6 +46,8 @@ class ProfileController extends Controller
                 'nullable', 'string', 'max:255', Rule::unique('users', 'phone')->ignore($user->id),
             ],
             'age' => ['nullable', 'integer', 'min:12', 'max:100'],
+            'seller_logo' => ['nullable', 'image', 'max:4096'],
+            'service_provider_logo' => ['nullable', 'image', 'max:4096'],
         ]);
 
         $user->update([
@@ -52,6 +56,28 @@ class ProfileController extends Controller
             'phone' => $data['phone'] ?: null,
             'age' => $data['age'] ?? null,
         ]);
+
+        $disk = MediaPath::uploadsDisk();
+
+        if ($request->hasFile('seller_logo') && $user->seller) {
+            $oldLogo = MediaPath::normalizeStoredPath((string) $user->seller->getRawOriginal('logo'));
+            $newLogo = $request->file('seller_logo')->store('sellers/logos', $disk);
+            $user->seller->update(['logo' => $newLogo]);
+
+            if ($oldLogo) {
+                Storage::disk($disk)->delete($oldLogo);
+            }
+        }
+
+        if ($request->hasFile('service_provider_logo') && $user->serviceProvider) {
+            $oldLogo = MediaPath::normalizeStoredPath((string) $user->serviceProvider->getRawOriginal('logo'));
+            $newLogo = $request->file('service_provider_logo')->store('service_providers/logos', $disk);
+            $user->serviceProvider->update(['logo' => $newLogo]);
+
+            if ($oldLogo) {
+                Storage::disk($disk)->delete($oldLogo);
+            }
+        }
 
         $user->load([
             'seller.attachments',
