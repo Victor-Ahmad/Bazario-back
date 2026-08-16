@@ -77,10 +77,8 @@ class ListingController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'attributes' => ['nullable', 'array'],
             'images' => ['required', 'array', 'max:12'],
             'images.*' => ['file', 'image', 'max:4096'],
-            'cover_index' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $uploadsDisk = config('bazario.uploads_disk', 'public');
@@ -95,11 +93,8 @@ class ListingController extends Controller
                 'description' => $data['description'] ?? null,
                 'price' => round($pricePerDay * $durationDays, 2),
                 'duration_days' => $durationDays,
-                'attributes' => $data['attributes'] ?? null,
                 'status' => 'pending_payment',
             ]);
-
-            $coverIndex = (int) ($data['cover_index'] ?? 0);
 
             foreach ($request->file('images', []) as $index => $file) {
                 $relPath = $file->store("listings/{$listing->id}", $uploadsDisk);
@@ -107,7 +102,7 @@ class ListingController extends Controller
                 $listing->images()->create([
                     'path' => $relPath,
                     'sort' => $index,
-                    'is_cover' => $index === $coverIndex,
+                    'is_cover' => $index === 0,
                 ]);
             }
 

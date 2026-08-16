@@ -13,13 +13,6 @@ class ListingWithAdRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $attrs = $this->input('attributes');
-        if (is_string($attrs)) {
-            $decoded = json_decode($attrs, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $this->merge(['attributes' => $decoded]);
-            }
-        }
     }
 
     public function rules(): array
@@ -28,12 +21,9 @@ class ListingWithAdRequest extends FormRequest
             // Listing
             'title'        => ['required', 'string', 'max:255'],
             'description'  => ['nullable', 'string'],
-            'price'        => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
-            'attributes'   => ['nullable', 'array'],
 
             'images'       => ['required', 'array', 'max:12'],
             'images.*'     => ['file', 'image', 'max:4096'],
-            'cover_index'  => ['nullable', 'integer', 'min:0'],
 
             // Ad (placement)
             'ad.title'          => ['required', 'string', 'max:255'],

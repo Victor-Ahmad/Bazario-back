@@ -160,7 +160,7 @@ class AdController extends Controller
             'ad_position_id' => 'required|exists:ad_positions,id',
             'adable_type' => 'required|string',
             'adable_id' => 'nullable|integer',
-            'images' => 'nullable|array|max:5',
+            'images' => 'required|array|max:5',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
         ]);
 
