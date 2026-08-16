@@ -68,6 +68,10 @@ class AdController extends Controller
     {
         $ads = Listing::approved()
             ->whereHas('user')
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
             ->with(['user:id,name', 'images', 'coverImage'])
             ->orderByDesc('created_at')
             ->paginate(20);
@@ -89,8 +93,9 @@ class AdController extends Controller
                     'label' => $position->label,
                     'priority' => $position->priority,
                     'tier' => $pricing['tier'],
-                    'price' => $pricing['price'],
+                    'price_per_day' => $pricing['price_per_day'],
                     'currency_iso' => strtoupper(config('ads.currency', config('stripe.currency', 'eur'))),
+                    'allowed_durations' => array_values(config('ads.allowed_durations', [1, 2, 3, 4, 5, 6, 7])),
                 ];
             })
             ->values();
@@ -151,7 +156,7 @@ class AdController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'subtitle' => 'nullable|string',
-            'expires_at' => 'nullable|date|after:now',
+            'duration_days' => ['required', 'integer', 'in:' . implode(',', config('ads.allowed_durations', [1, 2, 3, 4, 5, 6, 7]))],
             'ad_position_id' => 'required|exists:ad_positions,id',
             'adable_type' => 'required|string',
             'adable_id' => 'nullable|integer',
@@ -204,16 +209,18 @@ class AdController extends Controller
         }
         $position = AdPosition::query()->findOrFail($validated['ad_position_id']);
         $pricing = $this->getPricingForPosition($position->name);
-        abort_if($pricing['price'] === null, 422, 'Unsupported sponsored ad placement.');
+        abort_if($pricing['price_per_day'] === null, 422, 'Unsupported sponsored ad placement.');
 
         DB::beginTransaction();
         try {
             $ad = Ad::create([
                 ...$validated,
-                'price' => $pricing['price'],
+                'price' => round(((float) $pricing['price_per_day']) * (int) $validated['duration_days'], 2),
                 'status' => 'pending_payment',
+                'expires_at' => null,
                 'metadata' => [
                     'tier' => $pricing['tier'],
+                    'price_per_day' => (float) $pricing['price_per_day'],
                 ],
             ]);
 
@@ -322,9 +329,12 @@ class AdController extends Controller
                 'last_paid_session' => $sessionArray,
             ]);
 
+            $paidAt = now();
+
             $ad->update([
                 'status' => 'pending_review',
-                'paid_at' => now(),
+                'paid_at' => $paidAt,
+                'expires_at' => $paidAt->copy()->addDays(max(1, (int) $ad->duration_days)),
                 'metadata' => $metadata,
             ]);
         }
@@ -366,11 +376,10 @@ class AdController extends Controller
 
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
+            'title' => 'sometimes|string|max:255',
             'subtitle' => 'nullable|string',
-            'price'      => 'nullable|numeric|min:0|max:999999999.99',
-            'expires_at' => 'nullable|date',
             'ad_position_id' => 'sometimes|exists:ad_positions,id',
-            'status' => 'sometimes|string|in:pending,approved,rejected,expired',
+            'status' => 'sometimes|string|in:pending_payment,pending_review,approved,rejected,expired',
         ]);
 
         $ad->update($validated);

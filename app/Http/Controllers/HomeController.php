@@ -125,6 +125,10 @@ class HomeController extends Controller
         return Listing::query()
             ->approved()
             ->whereHas('user')
+            ->where(function (Builder $query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
             ->with([
                 'user:id,name',
                 'images:id,listing_id,path,sort,is_cover',

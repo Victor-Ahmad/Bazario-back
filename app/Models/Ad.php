@@ -10,6 +10,7 @@ class Ad extends Model
         'title',
         'subtitle',
         'price',
+        'duration_days',
         'expires_at',
         'status',
         'paid_at',
@@ -21,6 +22,7 @@ class Ad extends Model
     ];
 
     protected $casts = [
+        'duration_days' => 'integer',
         'expires_at' => 'datetime',
         'paid_at' => 'datetime',
         'metadata' => 'array',

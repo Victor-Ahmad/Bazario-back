@@ -11,16 +11,20 @@ class Listing extends Model
         'title',
         'description',
         'price',
+        'duration_days',
         'attributes',
         'status',
         'paid_at',
+        'expires_at',
         'refund_status',
         'metadata',
     ];
 
     protected $casts = [
         'attributes'   => 'array',
+        'duration_days' => 'integer',
         'paid_at' => 'datetime',
+        'expires_at' => 'datetime',
         'metadata' => 'array',
     ];
 

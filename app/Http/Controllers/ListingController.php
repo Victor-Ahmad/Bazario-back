@@ -21,6 +21,10 @@ class ListingController extends Controller
         $listings = Listing::query()
             ->approved()
             ->whereHas('user')
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
             ->with([
                 'user:id,name',
                 'images:id,listing_id,path,sort,is_cover',
@@ -38,7 +42,11 @@ class ListingController extends Controller
         $isOwner = $user && (int) $listing->user_id === (int) $user->id;
         $isAdmin = $user && $user->hasRole('admin');
 
-        abort_unless($listing->status === 'approved' || $isOwner || $isAdmin, 404);
+        $isPubliclyVisible = $listing->status === 'approved'
+            && $listing->user()->exists()
+            && ($listing->expires_at === null || $listing->expires_at->isFuture());
+
+        abort_unless($isPubliclyVisible || $isOwner || $isAdmin, 404);
         abort_unless($listing->user()->exists(), 404);
 
         $listing->load([
@@ -78,11 +86,15 @@ class ListingController extends Controller
         $uploadsDisk = config('bazario.uploads_disk', 'public');
 
         $listing = DB::transaction(function () use ($request, $data, $uploadsDisk) {
+            $durationDays = (int) config('listings.announcement.duration_days', 1);
+            $pricePerDay = (float) config('listings.announcement.price_per_day', 20);
+
             $listing = Listing::create([
                 'user_id' => $request->user()->id,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
-                'price' => (float) config('listings.announcement.price', 19),
+                'price' => round($pricePerDay * $durationDays, 2),
+                'duration_days' => $durationDays,
                 'attributes' => $data['attributes'] ?? null,
                 'status' => 'pending_payment',
             ]);
@@ -161,7 +173,13 @@ class ListingController extends Controller
         return response()->json([
             'success' => 1,
             'result' => [
-                'price' => (float) config('listings.announcement.price', 19),
+                'price_per_day' => (float) config('listings.announcement.price_per_day', 20),
+                'duration_days' => (int) config('listings.announcement.duration_days', 1),
+                'total_price' => round(
+                    (float) config('listings.announcement.price_per_day', 20)
+                    * (int) config('listings.announcement.duration_days', 1),
+                    2,
+                ),
                 'currency_iso' => strtoupper((string) config('listings.currency', config('stripe.currency', 'eur'))),
             ],
         ]);
@@ -242,9 +260,12 @@ class ListingController extends Controller
                 'last_paid_session' => $sessionArray,
             ]);
 
+            $paidAt = now();
+
             $listing->update([
                 'status' => 'pending_review',
-                'paid_at' => now(),
+                'paid_at' => $paidAt,
+                'expires_at' => $paidAt->copy()->addDays(max(1, (int) $listing->duration_days)),
                 'metadata' => $metadata,
             ]);
         }
