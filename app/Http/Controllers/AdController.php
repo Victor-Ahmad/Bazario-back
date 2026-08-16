@@ -12,6 +12,7 @@ use App\Models\Seller;
 use App\Models\ServiceProvider;
 use App\Models\Listing;
 use App\Models\AdPosition;
+use App\Models\Setting;
 use App\Services\PromotionRefundService;
 use App\Support\MediaPath;
 use Illuminate\Support\Str;
@@ -583,9 +584,19 @@ class AdController extends Controller
 
     private function getPricingForPosition(string $positionName): array
     {
-        return config('ads.tiers.' . $positionName, [
+        $tierConfig = config('ads.tiers.' . $positionName, [
             'tier' => null,
             'price_per_day' => null,
+        ]);
+        $defaultPrice = $tierConfig['price_per_day'];
+
+        return array_merge($tierConfig, [
+            'price_per_day' => $defaultPrice === null
+                ? null
+                : (float) Setting::getValue(
+                    'ad_price_per_day_' . $positionName,
+                    (float) $defaultPrice,
+                ),
         ]);
     }
 

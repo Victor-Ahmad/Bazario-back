@@ -361,6 +361,18 @@ function renderHeader(container) {
                 "a",
                 {
                     class: `navLink ${
+                        isActive("/demo/admin-settings.html") ? "active" : ""
+                    }`,
+                    href: "/demo/admin-settings.html",
+                },
+                [t(lang, "nav_admin_settings")],
+            ),
+        );
+        navItems.push(
+            el(
+                "a",
+                {
+                    class: `navLink ${
                         isActive("/demo/admin-payouts.html") ? "active" : ""
                     }`,
                     href: "/demo/admin-payouts.html",

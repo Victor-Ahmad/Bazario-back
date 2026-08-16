@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Listing;
+use App\Models\Setting;
 use App\Support\MediaPath;
 use App\Services\PromotionRefundService;
 use App\Traits\ApiResponseTrait;
@@ -15,6 +16,14 @@ use Stripe\StripeClient;
 class ListingController extends Controller
 {
     use ApiResponseTrait;
+
+    private function getAnnouncementPricePerDay(): float
+    {
+        return (float) Setting::getValue(
+            'announcement_price_per_day',
+            (float) config('listings.announcement.price_per_day', 20),
+        );
+    }
 
     public function index(Request $request)
     {
@@ -85,7 +94,7 @@ class ListingController extends Controller
 
         $listing = DB::transaction(function () use ($request, $data, $uploadsDisk) {
             $durationDays = (int) config('listings.announcement.duration_days', 1);
-            $pricePerDay = (float) config('listings.announcement.price_per_day', 20);
+            $pricePerDay = $this->getAnnouncementPricePerDay();
 
             $listing = Listing::create([
                 'user_id' => $request->user()->id,
@@ -168,10 +177,10 @@ class ListingController extends Controller
         return response()->json([
             'success' => 1,
             'result' => [
-                'price_per_day' => (float) config('listings.announcement.price_per_day', 20),
+                'price_per_day' => $this->getAnnouncementPricePerDay(),
                 'duration_days' => (int) config('listings.announcement.duration_days', 1),
                 'total_price' => round(
-                    (float) config('listings.announcement.price_per_day', 20)
+                    $this->getAnnouncementPricePerDay()
                     * (int) config('listings.announcement.duration_days', 1),
                     2,
                 ),

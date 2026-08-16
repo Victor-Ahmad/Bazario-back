@@ -19,7 +19,7 @@ class AdsSeeder extends Seeder
     {
         $positions = AdPosition::pluck('id', 'name');
         $seedBase = Carbon::create(2026, 8, 8, 12, 0, 0);
-        $announcementPrice = (float) config('listings.announcement.price', 19);
+        $announcementPrice = (float) config('listings.announcement.price_per_day', 20);
 
         $sellers = Seller::query()
             ->with('user')
