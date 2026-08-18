@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
@@ -15,12 +16,45 @@ class ProfileController extends Controller
 {
     use ApiResponseTrait;
 
+    private function syncApprovedBusinessRoles(User $user): void
+    {
+        $user->loadMissing(['seller', 'serviceProvider', 'roles']);
+
+        $preservedRoles = $user->getRoleNames()
+            ->filter(fn(string $roleName) => !in_array($roleName, ['customer', 'seller', 'service_provider'], true))
+            ->values()
+            ->all();
+
+        $nextRoles = [...$preservedRoles, 'customer'];
+
+        if ($user->seller?->status === 'approved') {
+            $nextRoles[] = 'seller';
+        }
+
+        if ($user->serviceProvider?->status === 'approved') {
+            $nextRoles[] = 'service_provider';
+        }
+
+        $resolvedRoles = array_values(array_unique($nextRoles));
+        $currentRoles = $user->getRoleNames()->values()->all();
+
+        sort($resolvedRoles);
+        sort($currentRoles);
+
+        if ($resolvedRoles !== $currentRoles) {
+            $user->syncRoles($resolvedRoles);
+            $user->load('roles');
+        }
+    }
+
     public function show(Request $request)
     {
         $user = $request->user()->load([
             'seller.attachments',
             'serviceProvider.attachments',
         ]);
+
+        $this->syncApprovedBusinessRoles($user);
 
         $result = [
             'user' => $this->serializeUser($user),
@@ -83,6 +117,8 @@ class ProfileController extends Controller
             'seller.attachments',
             'serviceProvider.attachments',
         ]);
+
+        $this->syncApprovedBusinessRoles($user);
 
         return $this->successResponse([
             'user' => $this->serializeUser($user),

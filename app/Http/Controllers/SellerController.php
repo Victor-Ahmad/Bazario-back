@@ -69,6 +69,28 @@ class SellerController extends Controller
         }
     }
 
+    protected function syncApprovedBusinessRoles(User $user): void
+    {
+        $user->loadMissing(['seller', 'serviceProvider', 'roles']);
+
+        $preservedRoles = $user->getRoleNames()
+            ->filter(fn(string $roleName) => !in_array($roleName, ['customer', 'seller', 'service_provider'], true))
+            ->values()
+            ->all();
+
+        $nextRoles = [...$preservedRoles, 'customer'];
+
+        if ($user->seller?->status === 'approved') {
+            $nextRoles[] = 'seller';
+        }
+
+        if ($user->serviceProvider?->status === 'approved') {
+            $nextRoles[] = 'service_provider';
+        }
+
+        $user->syncRoles(array_values(array_unique($nextRoles)));
+    }
+
 
     public function updateSellerStatus(Request $request, Seller $seller)
     {
@@ -84,10 +106,10 @@ class SellerController extends Controller
                 if (!$role) {
                     throw new \Exception(__('auth.role_not_found'));
                 }
-                $seller->user->assignRole($role);
-                $seller->user->syncRoles(['customer', 'seller']);
-                $this->forceLogoutUser($seller->user);
             }
+
+            $this->syncApprovedBusinessRoles($seller->user);
+            $this->forceLogoutUser($seller->user);
 
             DB::commit();
             return $this->successResponse($seller, 'auth', 'seller_status_updated_successfully');

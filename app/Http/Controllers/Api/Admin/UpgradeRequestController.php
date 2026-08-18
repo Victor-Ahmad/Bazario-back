@@ -89,6 +89,28 @@ class UpgradeRequestController extends Controller
         $user?->tokens()->delete();
     }
 
+    protected function syncApprovedBusinessRoles(User $user): void
+    {
+        $user->loadMissing(['seller', 'serviceProvider', 'roles']);
+
+        $preservedRoles = $user->getRoleNames()
+            ->filter(fn(string $roleName) => !in_array($roleName, ['customer', 'seller', 'service_provider'], true))
+            ->values()
+            ->all();
+
+        $nextRoles = [...$preservedRoles, 'customer'];
+
+        if ($user->seller?->status === 'approved') {
+            $nextRoles[] = 'seller';
+        }
+
+        if ($user->serviceProvider?->status === 'approved') {
+            $nextRoles[] = 'service_provider';
+        }
+
+        $user->syncRoles(array_values(array_unique($nextRoles)));
+    }
+
     protected function updateSellerStatus(Seller $seller, string $status)
     {
         if (!in_array($status, ['approved', 'rejected'], true)) {
@@ -108,10 +130,10 @@ class UpgradeRequestController extends Controller
                 if (!$role) {
                     throw new \Exception(__('auth.role_not_found'));
                 }
-                $seller->user->assignRole($role);
-                $seller->user->syncRoles(['customer', 'seller']);
-                $this->forceLogoutUser($seller->user);
             }
+
+            $this->syncApprovedBusinessRoles($seller->user);
+            $this->forceLogoutUser($seller->user);
 
             DB::commit();
             return $this->successResponse($seller, 'auth', 'seller_status_updated_successfully');
@@ -143,10 +165,10 @@ class UpgradeRequestController extends Controller
                 if (!$role) {
                     throw new \Exception(__('auth.role_not_found'));
                 }
-                $service_provider->user->assignRole($role);
-                $service_provider->user->syncRoles(['customer', 'service_provider']);
-                $this->forceLogoutUser($service_provider->user);
             }
+
+            $this->syncApprovedBusinessRoles($service_provider->user);
+            $this->forceLogoutUser($service_provider->user);
 
             DB::commit();
             return $this->successResponse($service_provider, 'auth', 'service_provider_status_updated_successfully');

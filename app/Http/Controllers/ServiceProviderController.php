@@ -70,6 +70,28 @@ class ServiceProviderController extends Controller
         }
     }
 
+    protected function syncApprovedBusinessRoles(User $user): void
+    {
+        $user->loadMissing(['seller', 'serviceProvider', 'roles']);
+
+        $preservedRoles = $user->getRoleNames()
+            ->filter(fn(string $roleName) => !in_array($roleName, ['customer', 'seller', 'service_provider'], true))
+            ->values()
+            ->all();
+
+        $nextRoles = [...$preservedRoles, 'customer'];
+
+        if ($user->seller?->status === 'approved') {
+            $nextRoles[] = 'seller';
+        }
+
+        if ($user->serviceProvider?->status === 'approved') {
+            $nextRoles[] = 'service_provider';
+        }
+
+        $user->syncRoles(array_values(array_unique($nextRoles)));
+    }
+
     public function updateServiceProviderStatus(Request $request, ServiceProvider $service_provider)
     {
         $request->validate([
@@ -84,10 +106,10 @@ class ServiceProviderController extends Controller
                 if (!$role) {
                     throw new \Exception(__('auth.role_not_found'));
                 }
-                $service_provider->user->assignRole($role);
-                $service_provider->user->syncRoles(['customer', 'service_provider']);
-                $this->forceLogoutUser($service_provider->user);
             }
+
+            $this->syncApprovedBusinessRoles($service_provider->user);
+            $this->forceLogoutUser($service_provider->user);
 
             DB::commit();
             return $this->successResponse($service_provider, 'auth', 'service_provider_status_updated_successfully');
