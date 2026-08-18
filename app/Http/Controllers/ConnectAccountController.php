@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\ConnectAccount;
+use App\Models\Listing;
+use App\Models\Product;
 use App\Models\Seller;
+use App\Models\Service;
 use App\Models\ServiceProvider;
 use App\Models\StripeTransfer;
 use App\Models\WalletLedgerEntry;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Stripe\StripeClient;
 
 class ConnectAccountController extends Controller
@@ -128,39 +130,26 @@ class ConnectAccountController extends Controller
             }
         }
 
-        $platformPending = WalletLedgerEntry::query()
-            ->select('currency_iso', DB::raw('SUM(amount) as amount'))
+        $platformPendingEntries = WalletLedgerEntry::query()
             ->where('user_id', $user->id)
             ->whereIn('type', ['sale_pending', 'transfer_pending'])
             ->where(function ($q) {
                 $q->whereNull('available_on')->orWhere('available_on', '<=', now());
             })
-            ->groupBy('currency_iso')
+            ->with('orderItem')
             ->get()
-            ->map(fn ($row) => [
-                'currency_iso' => strtoupper($row->currency_iso),
-                'amount' => (int) $row->amount,
-            ])
             ->values();
 
-        $transfers = StripeTransfer::query()
+        $platformPendingSummary = $this->summarizePendingBalances($platformPendingEntries);
+
+        $transferModels = StripeTransfer::query()
             ->where('payee_user_id', $user->id)
-            ->with('order')
+            ->with('order.items')
             ->latest()
             ->limit(25)
-            ->get()
-            ->map(function ($transfer) {
-                return [
-                    'id' => $transfer->id,
-                    'order_id' => $transfer->order_id,
-                    'transfer_id' => $transfer->transfer_id,
-                    'amount' => (int) $transfer->amount,
-                    'currency_iso' => strtoupper($transfer->currency_iso),
-                    'status' => $transfer->status,
-                    'created_at' => optional($transfer->created_at)?->toISOString(),
-                ];
-            })
             ->values();
+
+        $transferSummary = $this->summarizeTransfers($transferModels);
 
         return response()->json([
             'eligible' => $eligibility['allowed'],
@@ -168,8 +157,18 @@ class ConnectAccountController extends Controller
             'connected' => (bool) $account,
             'account' => $account,
             'stripe_balance' => $stripeBalance,
-            'platform_pending_balance' => $platformPending,
-            'transfers' => $transfers,
+            'platform_pending_balance' => $platformPendingSummary['all'],
+            'transfers' => $transferSummary['all'],
+            'earnings_by_role' => [
+                'seller' => [
+                    'platform_pending_balance' => $platformPendingSummary['roles']['seller'],
+                    'transfers' => $transferSummary['roles']['seller'],
+                ],
+                'service_provider' => [
+                    'platform_pending_balance' => $platformPendingSummary['roles']['service_provider'],
+                    'transfers' => $transferSummary['roles']['service_provider'],
+                ],
+            ],
         ]);
     }
 
@@ -273,5 +272,122 @@ class ConnectAccountController extends Controller
         }
 
         return $normalized;
+    }
+
+    private function summarizePendingBalances(iterable $entries): array
+    {
+        $all = [];
+        $roles = [
+            'seller' => [],
+            'service_provider' => [],
+        ];
+
+        foreach ($entries as $entry) {
+            $currencyIso = strtoupper((string) $entry->currency_iso);
+            $amount = (int) $entry->amount;
+
+            $all[$currencyIso] = ($all[$currencyIso] ?? 0) + $amount;
+
+            $earningRole = $this->resolveLedgerEntryRole($entry);
+            if ($earningRole) {
+                $roles[$earningRole][$currencyIso] = ($roles[$earningRole][$currencyIso] ?? 0) + $amount;
+            }
+        }
+
+        return [
+            'all' => $this->formatGroupedBalances($all),
+            'roles' => [
+                'seller' => $this->formatGroupedBalances($roles['seller']),
+                'service_provider' => $this->formatGroupedBalances($roles['service_provider']),
+            ],
+        ];
+    }
+
+    private function summarizeTransfers(iterable $transfers): array
+    {
+        $all = [];
+        $roles = [
+            'seller' => [],
+            'service_provider' => [],
+        ];
+
+        foreach ($transfers as $transfer) {
+            $normalized = [
+                'id' => $transfer->id,
+                'order_id' => $transfer->order_id,
+                'transfer_id' => $transfer->transfer_id,
+                'amount' => (int) $transfer->amount,
+                'currency_iso' => strtoupper((string) $transfer->currency_iso),
+                'status' => $transfer->status,
+                'created_at' => optional($transfer->created_at)?->toISOString(),
+                'earning_role' => $this->resolveTransferRole($transfer),
+            ];
+
+            $all[] = $normalized;
+
+            if ($normalized['earning_role']) {
+                $roles[$normalized['earning_role']][] = $normalized;
+            }
+        }
+
+        return [
+            'all' => $all,
+            'roles' => $roles,
+        ];
+    }
+
+    private function formatGroupedBalances(array $totals): array
+    {
+        $rows = [];
+
+        foreach ($totals as $currencyIso => $amount) {
+            $rows[] = [
+                'currency_iso' => $currencyIso,
+                'amount' => (int) $amount,
+            ];
+        }
+
+        return array_values($rows);
+    }
+
+    private function resolveLedgerEntryRole(WalletLedgerEntry $entry): ?string
+    {
+        $metadataRole = $entry->metadata['earning_role'] ?? null;
+        if (is_string($metadataRole) && in_array($metadataRole, ['seller', 'service_provider'], true)) {
+            return $metadataRole;
+        }
+
+        return match ($entry->orderItem?->purchasable_type) {
+            Product::class, Listing::class => 'seller',
+            Service::class => 'service_provider',
+            default => null,
+        };
+    }
+
+    private function resolveTransferRole(StripeTransfer $transfer): ?string
+    {
+        $metadataRole = $transfer->metadata['earning_role'] ?? null;
+        if (is_string($metadataRole) && in_array($metadataRole, ['seller', 'service_provider'], true)) {
+            return $metadataRole;
+        }
+
+        $roles = [];
+        foreach ($transfer->order?->items ?? [] as $item) {
+            $role = match ($item->purchasable_type) {
+                Product::class, Listing::class => 'seller',
+                Service::class => 'service_provider',
+                default => null,
+            };
+
+            if ($role) {
+                $roles[$role] = true;
+            }
+        }
+
+        if (count($roles) === 1) {
+            return array_key_first($roles);
+        }
+
+        return null;
     }
 }

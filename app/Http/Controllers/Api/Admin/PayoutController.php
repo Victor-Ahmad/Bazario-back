@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Listing;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\Service;
 use App\Models\StripeTransfer;
 use App\Models\User;
 use App\Models\WalletLedgerEntry;
@@ -130,6 +133,7 @@ class PayoutController extends Controller
                         'order_id' => (string) $batch['order_id'],
                         'payee_user_id' => (string) $user->id,
                         'transfer_batch_key' => $batch['batch_key'],
+                        'earning_role' => $batch['earning_role'],
                     ],
                 ], [
                     'idempotency_key' => $batch['batch_key'],
@@ -159,6 +163,7 @@ class PayoutController extends Controller
         return DB::transaction(function () use ($user) {
             $entries = $this->payableLedgerEntriesQuery()
                 ->where('user_id', $user->id)
+                ->with('orderItem')
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get();
@@ -168,7 +173,9 @@ class PayoutController extends Controller
             }
 
             $groups = $entries->groupBy(function ($entry) {
-                return $entry->order_id . '|' . strtoupper($entry->currency_iso);
+                $earningRole = $this->resolveEntryEarningRole($entry) ?? 'unknown';
+
+                return $entry->order_id . '|' . strtoupper($entry->currency_iso) . '|' . $earningRole;
             });
 
             $batches = [];
@@ -184,12 +191,24 @@ class PayoutController extends Controller
                     continue;
                 }
 
-                $batchKey = $this->makeBatchKey($user->id, $sample->order_id, strtoupper($sample->currency_iso), $groupEntries);
+                $earningRole = $this->resolveEntryEarningRole($sample);
+                if (!$earningRole) {
+                    continue;
+                }
+
+                $batchKey = $this->makeBatchKey(
+                    $user->id,
+                    $sample->order_id,
+                    strtoupper($sample->currency_iso),
+                    $earningRole,
+                    $groupEntries,
+                );
 
                 foreach ($groupEntries as $entry) {
                     $metadata = $entry->metadata ?? [];
                     $currentBatchKey = $metadata['transfer_batch_key'] ?? null;
                     $metadata['transfer_batch_key'] = $batchKey;
+                    $metadata['earning_role'] = $earningRole;
 
                     if ($entry->type !== 'transfer_pending' || $currentBatchKey !== $batchKey) {
                         $entry->update([
@@ -205,6 +224,7 @@ class PayoutController extends Controller
                     'order_id' => $sample->order_id,
                     'amount' => $amount,
                     'currency_iso' => strtoupper($sample->currency_iso),
+                    'earning_role' => $earningRole,
                 ];
             }
 
@@ -230,6 +250,7 @@ class PayoutController extends Controller
                     'metadata' => [
                         'transfer_group' => $transferGroup,
                         'transfer_batch_key' => $batch['batch_key'],
+                        'earning_role' => $batch['earning_role'],
                     ],
                 ],
             );
@@ -243,6 +264,7 @@ class PayoutController extends Controller
                 $metadata = $entry->metadata ?? [];
                 $metadata['transfer_id'] = $transfer->id;
                 $metadata['transfer_batch_key'] = $batch['batch_key'];
+                $metadata['earning_role'] = $batch['earning_role'];
 
                 $entry->update([
                     'type' => 'transfer_out',
@@ -255,6 +277,7 @@ class PayoutController extends Controller
                 'transfer_id' => $transfer->id,
                 'amount' => $batch['amount'],
                 'currency_iso' => $batch['currency_iso'],
+                'earning_role' => $batch['earning_role'],
             ];
         });
     }
@@ -276,11 +299,17 @@ class PayoutController extends Controller
         });
     }
 
-    private function makeBatchKey(int $userId, int $orderId, string $currencyIso, Collection $groupEntries): string
+    private function makeBatchKey(
+        int $userId,
+        int $orderId,
+        string $currencyIso,
+        string $earningRole,
+        Collection $groupEntries
+    ): string
     {
         $entryIds = $groupEntries->pluck('id')->sort()->implode('-');
 
-        return 'transfer_' . sha1($userId . '|' . $orderId . '|' . $currencyIso . '|' . $entryIds);
+        return 'transfer_' . sha1($userId . '|' . $orderId . '|' . $currencyIso . '|' . $earningRole . '|' . $entryIds);
     }
 
     private function payableLedgerEntriesQuery()
@@ -299,5 +328,19 @@ class PayoutController extends Controller
                             });
                     });
             });
+    }
+
+    private function resolveEntryEarningRole(WalletLedgerEntry $entry): ?string
+    {
+        $metadataRole = $entry->metadata['earning_role'] ?? null;
+        if (is_string($metadataRole) && in_array($metadataRole, ['seller', 'service_provider'], true)) {
+            return $metadataRole;
+        }
+
+        return match ($entry->orderItem?->purchasable_type) {
+            Product::class, Listing::class => 'seller',
+            Service::class => 'service_provider',
+            default => null,
+        };
     }
 }

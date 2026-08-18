@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Listing;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\Service;
 use App\Models\StripePayment;
 use App\Models\WalletLedgerEntry;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +70,7 @@ class StripeOrderPaymentService
                             'gross_amount' => (int) $item->gross_amount,
                             'platform_fee_amount' => (int) $item->platform_fee_amount,
                             'requires_booking_completion' => (bool) $item->serviceBooking,
+                            'earning_role' => $this->resolveEarningRole($item->purchasable_type),
                         ],
                     ]);
                 }
@@ -133,5 +137,14 @@ class StripeOrderPaymentService
                 'order_id' => (string) $orderId,
             ],
         ];
+    }
+
+    private function resolveEarningRole(?string $purchasableType): ?string
+    {
+        return match ($purchasableType) {
+            Product::class, Listing::class => 'seller',
+            Service::class => 'service_provider',
+            default => null,
+        };
     }
 }
