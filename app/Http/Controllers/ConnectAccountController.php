@@ -147,6 +147,7 @@ class ConnectAccountController extends Controller
             ->with('order.items')
             ->latest()
             ->limit(25)
+            ->get()
             ->values();
 
         $transferSummary = $this->summarizeTransfers($transferModels);
